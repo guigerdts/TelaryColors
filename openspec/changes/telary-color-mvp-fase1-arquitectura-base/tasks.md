@@ -42,13 +42,13 @@ RED = failing test first (acceptance); GREEN = implementation. `pytest` backend 
 
 ## Phase 3: Auth
 
-- [ ] 3.1 RED: `test_auth.py` — login 200 (audit, last_access), bad pwd 401, >72B 422, me 200/401, require_roles 403.
-- [ ] 3.2 GREEN: `security.py` (bcrypt direct, JWT 12h), `deps.py`, `auth/router.py`; no CORS.
+- [x] 3.1 RED: `test_auth.py` — login 200 (audit, last_access), bad pwd 401, >72B 422, me 200/401, require_roles 403.
+- [x] 3.2 GREEN: `security.py` (bcrypt direct, JWT 12h), `deps.py`, `auth/router.py`; no CORS.
 
 ## Phase 4: Users
 
-- [ ] 4.1 RED: `test_users.py` — admin CRUD ok, operator 403, unauth 401, bad role 422.
-- [ ] 4.2 GREEN: `users/{models,schemas,router}.py`; require_roles('admin'); audit.
+- [x] 4.1 RED: `test_users.py` — admin CRUD ok, operator 403, unauth 401, bad role 422.
+- [x] 4.2 GREEN: `users/{models,schemas,router}.py`; require_roles('admin'); audit.
 
 ## Phase 5: Pantone
 

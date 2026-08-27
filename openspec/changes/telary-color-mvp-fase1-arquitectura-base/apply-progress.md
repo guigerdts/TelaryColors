@@ -162,3 +162,81 @@ Mode: **Strict TDD** (pytest backend / vitest frontend)
 
 - Verify phase for slice B: independent `pytest` re-run + fresh-DB migration + seed idempotency, then `verify-report.md`.
 - PR B (data layer) from this branch after slice A merges (stacked-to-main).
+
+---
+
+# Apply Progress — Slice C: Auth + Users (tasks 3.1–3.2, 4.1–4.2)
+
+Slice: C (tasks 3.1, 3.2, 4.1, 4.2) — PR C, chained stacked-to-main
+Branch: `feat/slice-a-foundation` (same stack; PR C opens from this branch after B)
+Date: 2026-08-27
+Mode: **Strict TDD** (pytest backend / vitest frontend)
+
+## Completed Tasks
+
+- [x] 3.1 RED: `test_auth.py` — login 200 (audit, last_access), bad pwd 401, >72B 422, me 200/401, require_roles 403.
+- [x] 3.2 GREEN: `security.py` (bcrypt direct, JWT 12h), `deps.py`, `auth/router.py`; no CORS.
+- [x] 4.1 RED: `test_users.py` — admin CRUD ok, operator 403, unauth 401, bad role 422.
+- [x] 4.2 GREEN: `users/{models,schemas,router}.py`; require_roles('admin'); audit.
+
+## TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 3.1 | `backend/tests/test_auth.py` | Integration | auth-only | ✅ Written — RED committed `7396391` before router existed | ✅ login 200, bad pwd 401, >72B 422, me 200/401, require_roles 403 | ✅ multi-case (valid/bad login, expire, DI deps) | ✅ Clean |
+| 3.2 | — (via 3.1) | Integration | N/A | ➖ GREEN-driven by 3.1 | ✅ `security.create/decode_access_token` (HS256, 12h), `deps.require_roles/get_current_user`, `auth/router.py`, audited login | ✅ 12h expiry + OAuth2 password flow + role guards | ✅ Clean |
+| 4.1 | `backend/tests/test_users.py` | Integration | users-only | ✅ Written — RED committed `800bdec` before router existed | ✅ admin CRUD ok, operator 403, unauth 401, bad role 422 | ✅ multi-case (create/update/delete, dup 409, audit aks) | ✅ Clean |
+| 4.2 | — (via 4.1) | Integration | N/A | ➖ GREEN-driven by 4.1 | ✅ `users/schemas.py` + `users/router.py` (admin-only CRUD, 409 dup, FK-integrity delete guard, audit on every write) | ✅ duplicate-username 409 + audit-protected delete | ✅ Clean |
+
+## Work Unit Evidence (Slice C)
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` → **28 passed** (5 auth + 23 users). Full suite: `./.venv/bin/python -m pytest -q` → **41 passed** (slice A+B+C) in 52.39s. |
+| Runtime harness command/scenario and exact result | `uvicorn app.main:app` → `/docs` OPENAPI carries `/api/v1/auth/login` (OAuth2 password flow, `tokenUrl` for Swagger Authorize) + `/api/v1/users` admin CRUD. Login with seeded admin → valid 12h JWT; `GET /auth/me` returns the user; operator/unauth get 403/401. |
+| Rollback boundary | Revert slice C commits `7396391..d1990db` on the branch. No migration changes in this slice (schema unchanged since slice B). No unrelated work touched. |
+
+## Files Changed (PR C)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `backend/app/core/security.py` | Modified | `create_access_token`/`decode_access_token` — HS256 JWT, 12h expiry (`access_token_expire_hours`), `sub` = username |
+| `backend/app/core/config.py` | Modified | `secret_key`, `jwt_algorithm`, `access_token_expire_hours` settings (12h default) |
+| `backend/app/core/deps.py` | Modified | `get_current_user` (bearer → user, 401) + `require_roles(...)` factory (403) — OAuth2PasswordBearer → `/api/v1/auth/login` |
+| `backend/app/modules/auth/__init__.py` | Created | package marker |
+| `backend/app/modules/auth/schemas.py` | Created | OAuth2 password + login/token/me response schemas |
+| `backend/app/modules/auth/router.py` | Created | `POST /auth/login` (200, audit + `last_access_at` update; 401 bad pwd; 422 >72B), `GET /auth/me` |
+| `backend/app/modules/users/schemas.py` | Created | `UserCreate`/`UserUpdate` validation (role enum, 72-byte pwd guard) + `UserOut` |
+| `backend/app/modules/users/router.py` | Created | Admin-only CRUD: `GET/POST /users` (201, 409 dup, 422), `PATCH/DELETE /users/{id}` (404, 409 FK-integrity on audit-linked delete); audit `log_action` on every write |
+| `backend/app/modules/access_logs/service.py` | Created | `log_action(db, user_id, action)` — audit write path used by auth + users routers |
+| `backend/app/main.py` | Modified | Mount auth router then users router under `/api/v1` |
+
+## Commits (conventional, work units, no AI attribution)
+
+| Hash | Commit |
+|------|--------|
+| `7396391` | test(auth): RED user auth scenarios (3.1) |
+| `0fa06ec` | feat(auth): JWT login and current-user endpoints (3.2) |
+| `800bdec` | test(users): RED admin user CRUD scenarios (4.1) |
+| `d1990db` | feat(users): admin user CRUD endpoints with audit (4.2 GREEN) |
+
+> **Note (crash recovery)**: the slice C GREEN for users (task 4.2) was staged but not committed when the session crashed mid-apply. On recovery the commit was completed after confirming the full suite passed (41/41). The pre-commit `gga` review hook needs more than the default 120s bash timeout — use ~600s to let the AI review finish (the earlier attempt silently timed out without producing a commit).
+
+## Deviations from Design
+
+- `access_logs/service.py` (`log_action`) added so the auth and users routers share one audit-write helper (design listed audit logging inline per-router; a single helper avoids duplication).
+- Audit ID is read after `db.flush()` in the same transaction, so the newly-created user's `id` is available before committing.
+
+## Issues Found
+
+- **`InsecureKeyLengthWarning` (security, follow-up)**: the configured JWT `secret_key` is 20 bytes — below the 32-byte minimum PyJWT recommends for HS256. Tokens still work and tests pass, but this should be hardened (32+ byte secret) in a follow-up, not this slice. Noted for the verify phase / future work.
+
+## Verification Environment
+
+- Python 3.13.7 venv at `backend/.venv` (gitignored) — fully installed
+- SQLite DB `backend/data/app.db` already migrated (slice B) and seeded with the admin user used to exercise login
+
+## Next Steps
+
+- Verify phase for slice C: independent `pytest` re-run + runtime login→me→users CRUD handshake, then extend `verify-report.md`.
+- PR C (auth + users) from this branch after slice B merges (stacked-to-main).
