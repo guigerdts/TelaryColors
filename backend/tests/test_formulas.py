@@ -41,7 +41,8 @@ def _create_formula(client, headers, color_id, ingredients=None, **overrides) ->
         "name": "Base Blanca",
         "pantone_color_id": color_id,
         "ingredients": ingredients
-        or [{"colorant": "Blanco TiO2", "quantity": "100", "unit": "g"}],
+        if ingredients is not None
+        else [{"colorant": "Blanco TiO2", "quantity": "100", "unit": "g"}],
     }
     payload.update(overrides)
     return client.post("/api/v1/formulas", headers=headers, json=payload)
