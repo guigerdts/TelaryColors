@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Product: Telary Color — color formula manager for Telary Home's paint area.
+  Stack: FastAPI (Python) backend, React + Vite + Tailwind frontend (PWA),
+  SQLite with SQLAlchemy 2.0 + Alembic, JWT auth (bcrypt password hashing).
+  Architecture: modular monolith — independent modules for formulas,
+  samples, inventory, users; clean REST API / OpenAPI via FastAPI.
+  Audit: all data-mutating actions logged to access_logs.
+  Scope: Phase 1 MVP (login, Pantone color CRUD + formulas, instant search).
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale (ADR)
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - Keep modular boundaries (formulas, samples, inventory, users)
+    tdd: true
+    test_command: "pytest"
+    frontend_test_command: "npm test"
+  verify:
+    test_command: "pytest"
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: true
+  backend:
+    runner: pytest
+    command: "pytest"
+    test_dirs: ["tests/"]
+    coverage: "pytest --cov"
+  frontend:
+    runner: vitest
+    command: "npm test"
+    coverage: "npm test -- --coverage"
