@@ -85,5 +85,80 @@ Mode: **Strict TDD** (pytest backend / vitest frontend)
 
 ## Next Steps
 
-- PR B (data layer): models, alembic env.py + 0001_initial, seed (tasks 2.1–2.4). `backend/data/` does not exist yet — create with migration.
-- Verify phase for slice A: re-run `pytest`, `npm test`, `npm run build`, boot → `/docs`.
+- Verify phase for slice A: re-run `pytest`, `npm test`, `npm run build`, boot → `/docs`. *(resolved: verify-report.md 2026-08-27 — pass)*
+- Verify phase for slice B: re-run focused data-layer tests + fresh-DB migration.
+
+---
+
+# Apply Progress — Slice B: Data Layer (tasks 2.1–2.4)
+
+Slice: B (tasks 2.1–2.4) — PR B, chained stacked-to-main
+Branch: `feat/slice-a-foundation` (same stack; PR B opens from this branch after A)
+Date: 2026-08-27
+Mode: **Strict TDD** (pytest backend / vitest frontend)
+
+## Completed Tasks
+
+- [x] 2.1 RED: `test_migration.py` — upgrade head → 7 tables; rerun clean.
+- [x] 2.2 GREEN: `modules/*/models.py` (7 tables, NUMERIC, UTC, cascade, unique pairs); alembic env.py, `0001_initial`.
+- [x] 2.3 RED: `test_seed.py` — seed twice → 1 admin, unchanged data.
+- [x] 2.4 GREEN: `app/seed.py` idempotent; env creds, fallback admin.
+
+## TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2.1 | `backend/tests/test_migration.py` | Integration | migration-only boot | ✅ RED committed `e7707e8` (7-table assertion fails — no models yet) | ✅ 7 tables created after models + `0001_initial` | ✅ idempotency (rerun on clean DB) | ✅ Clean |
+| 2.2 | — (validated via 2.1 + `alembic upgrade head`) | Integration | N/A | ➖ GREEN-driven by 2.1 | ✅ modules/models ×7, enums, `utcnow`, alembic env.py + 0001_initial | ✅ 7 tables + NUMERIC + UTC + cascade + unique pairs | ✅ Clean |
+| 2.3 | `backend/tests/test_seed.py` | Integration | seed-only | ✅ Written — seed.py missing at write time | ✅ 2 seed runs → 1 admin, data unchanged | ✅ env creds overrides vs fallback | ✅ Clean |
+| 2.4 | — (via 2.3) | Integration | N/A | ➖ GREEN-driven by 2.3 | ✅ `app/seed.py` idempotent (bcrypt hash via `core/security.py`) | ✅ env creds, fallback admin | ✅ Clean |
+
+## Work Unit Evidence (Slice B)
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `./.venv/bin/python -m pytest tests/ -q` → **13 passed** in 12.61s (9 slice A + test_migration ×3 + test_seed). No failures. |
+| Runtime harness command/scenario and exact result | `alembic upgrade head` on a fresh DB → **7 tables** (`users, pantone_colors, formulas, formula_ingredients, designs, design_colors, access_logs`); rerun on clean DB → idempotent. Seed twice → exactly 1 admin, data unchanged. |
+| Rollback boundary | Revert `e7707e8..HEAD` on the branch + `rm backend/data/app.db` (SQLite DB created by migration). No unrelated work touched. |
+
+## Files Changed (PR B)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `backend/app/modules/{users,pantone_colors,formulas,designs,access_logs}/models.py` | Created | ORM models ×7 tables: NUMERIC money, naive-UTC timestamps, cascade FKs, unique pair constraints (design_colors color_idx, formula_ingredients) |
+| `backend/app/db/enums.py` | Created | Shared enum types (UserRole, PantoneGamut, LogAction) |
+| `backend/app/db/base.py` | Modified | Added `utcnow()` naive-UTC clock (ADR-8) |
+| `backend/app/core/security.py` | Modified | bcrypt `hash_password`/`verify_password` with 72-byte guard (ADR-1, design learning #5) — pulled forward from Phase 3 because seed needs admin hashing; auth router stays Phase 3 |
+| `backend/app/core/config.py` | Modified | `seed_admin_username`/`seed_admin_password` settings (ADR-10) |
+| `backend/.env.example` | Modified | Seed admin env template |
+| `backend/alembic/{alembic.ini,env.py,script.py.mako,versions/0001_initial.py}` | Created | Single initial migration (REQ-02) |
+| `backend/app/seed.py`, `backend/tests/test_seed.py` | Created | Idempotent bootstrap admin + RED test |
+
+## Commits (conventional, work units, no AI attribution)
+
+| Hash | Commit |
+|------|--------|
+| `e7707e8` | test(backend): migration creates the seven tables idempotently (2.1 RED) |
+| `69e0072` | feat(backend): add data layer — models, migration, seed, bcrypt primitives (2.2–2.4) |
+
+> **Note (crash recovery)**: the intended 4 work-unit commits (models / bcrypt primitives / migration / seed) were absorbed into `69e0072`. The pre-commit Gentleman Guardian Angel hook runs a full `git add -A` before its review, staging every remaining file into the commit it gates. No content was lost; commit granularity is coarser than planned as a result. Successor work units should commit one unit at a time and verify `git status` between units to detect hook re-staging.
+
+## Deviations from Design
+
+- bcrypt hashing primitives (`security.py`) implemented in slice B (needed by seed) instead of Phase 3; Phase 3 still owns routers, JWT, login, and `require_roles`.
+- `0001_initial.py` is the single migration (REQ-02); future schema changes use new revisions, not edits.
+- Icon/matrix seed data for Pantone/formulas is NOT part of this slice (tasks 2.x only); data seeding for business entities arrives with their CRUD slices.
+
+## Issues Found
+
+- **Git index corruption (environment, resolved again)**: the staged snapshot inherited missing-blob entries again (`invalid sha1 pointer in cache-tree`, ~28 missing blobs), which broke `git commit`. Rebuilt the index from the worktree (`rm .git/index && git add -A`) — all 90 staged files exist on disk, so nothing was lost; `git fsck --full` clean afterwards.
+
+## Verification Environment
+
+- Python 3.13.7 venv at `backend/.venv` (gitignored) — fully installed
+- SQLite DB created on first `alembic upgrade head` at `backend/data/app.db` (gitignored)
+
+## Next Steps
+
+- Verify phase for slice B: independent `pytest` re-run + fresh-DB migration + seed idempotency, then `verify-report.md`.
+- PR B (data layer) from this branch after slice A merges (stacked-to-main).
