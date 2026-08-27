@@ -1,0 +1,21 @@
+{
+  "name": "Telary Color — Gestor de fórmulas",
+  "short_name": "Telary Color",
+  "description": "Gestor de fórmulas de color para el área de pintura de Telary Home.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
