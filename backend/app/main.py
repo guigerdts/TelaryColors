@@ -12,6 +12,7 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
+from app.modules.pantone_colors.router import router as pantone_router
 from app.modules.users.router import router as users_router
 
 API_PREFIX = "/api/v1"
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name)
     app.include_router(auth_router, prefix=API_PREFIX)
     app.include_router(users_router, prefix=API_PREFIX)
+    app.include_router(pantone_router, prefix=API_PREFIX)
     return app
 
 

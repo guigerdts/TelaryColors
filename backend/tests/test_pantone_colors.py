@@ -19,11 +19,10 @@ from app.modules.pantone_colors.models import PantoneColor
 from app.modules.users.models import User
 
 
-def _create(client, headers, code="221C", paint_type="reactiva", **overrides) -> None:
+def _create(client, headers, code="221C", paint_type="reactiva", **overrides):
     payload = {"code": code, "paint_type": paint_type}
     payload.update(overrides)
-    response = client.post("/api/v1/pantone-colors", headers=headers, json=payload)
-    return response
+    return client.post("/api/v1/pantone-colors", headers=headers, json=payload)
 
 
 def test_full_crud_cycle(client, auth_headers, session_factory) -> None:
@@ -104,11 +103,13 @@ def test_duplicate_code_on_create_returns_409_not_persisted(
 
 def test_duplicate_code_on_update_returns_409(client, auth_headers) -> None:
     headers = auth_headers("admin")
-    assert _create(client, headers, code="221C").status_code == 201
-    assert _create(client, headers, code="185C").status_code == 201
+    first = _create(client, headers, code="221C")
+    assert first.status_code == 201
+    second = _create(client, headers, code="185C")
+    assert second.status_code == 201
 
     updated = client.patch(
-        "/api/v1/pantone-colors/2",
+        f"/api/v1/pantone-colors/{second.json()['id']}",
         headers=headers,
         json={"code": "221C"},  # collides with the first color's code
     )
