@@ -1,0 +1,27 @@
+"""Config: pydantic-settings loads documented defaults and env overrides.
+
+Covers the app configuration layer: values come from environment
+variables (or backend/.env, see .env.example) with safe LAN defaults.
+"""
+
+from app.core.config import Settings
+
+
+def test_defaults_when_env_unset(monkeypatch) -> None:
+    monkeypatch.delenv("APP_NAME", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.app_name == "Telary Color API"
+    assert settings.database_url == "sqlite:///./data/app.db"
+
+
+def test_env_vars_override_defaults(monkeypatch) -> None:
+    monkeypatch.setenv("APP_NAME", "Telary Test")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:////tmp/forced.db")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.app_name == "Telary Test"
+    assert settings.database_url == "sqlite:////tmp/forced.db"
