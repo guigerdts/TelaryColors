@@ -192,7 +192,7 @@ Mode: **Strict TDD** (pytest backend / vitest frontend)
 
 | Evidence | Required value |
 |---|---|
-| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` → **28 passed** (5 auth + 23 users). Full suite: `./.venv/bin/python -m pytest -q` → **41 passed** (slice A+B+C) in 52.39s. |
+| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` → **28 passed** (9 auth + 19 users). Full suite: `./.venv/bin/python -m pytest -q` → **41 passed** (slice A+B+C) in 52.39s. |
 | Runtime harness command/scenario and exact result | `uvicorn app.main:app` → `/docs` OPENAPI carries `/api/v1/auth/login` (OAuth2 password flow, `tokenUrl` for Swagger Authorize) + `/api/v1/users` admin CRUD. Login with seeded admin → valid 12h JWT; `GET /auth/me` returns the user; operator/unauth get 403/401. |
 | Rollback boundary | Revert slice C commits `7396391..d1990db` on the branch. No migration changes in this slice (schema unchanged since slice B). No unrelated work touched. |
 
