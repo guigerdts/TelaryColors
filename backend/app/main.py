@@ -3,19 +3,23 @@
 Boot: ``python -m uvicorn app.main:app`` from the backend venv
 (never the PATH ``uvicorn`` binary — broken Termux stub).
 
-Single-origin deployment: this app serves the built SPA and the REST
-API from one origin (no CORS). Routers and the static mount land in
-later slices (modules / Phase 8); this factory only assembles the app.
+Single-origin deployment: this app serves the REST API under /api/v1
+and (from Phase 8) the built SPA from the same origin (no CORS, per
+base spec "Single-Origin Deployment").
 """
 
 from fastapi import FastAPI
 
 from app.core.config import settings
+from app.modules.auth.router import router as auth_router
+
+API_PREFIX = "/api/v1"
 
 
 def create_app() -> FastAPI:
-    """Build the FastAPI application."""
+    """Build the FastAPI application with the versioned REST routers."""
     app = FastAPI(title=settings.app_name)
+    app.include_router(auth_router, prefix=API_PREFIX)
     return app
 
 
