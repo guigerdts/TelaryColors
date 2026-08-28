@@ -1,15 +1,15 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:77a0c056ea31977f8a7da6ed9d7acf182fcee9d2d80032ca07b734b5b22247f8
+evidence_revision: sha256:554d06de438cd10dad672a9bc49e2c1809a020c2b9a40009e139181882913b37
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 3/3
-scenarios: 5/5
-test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest tests/ -q
+requirements: 10/10
+scenarios: 16/16
+test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q
 test_exit_code: 0
-test_output_hash: sha256:25ff3273113a15e9533534b5c458ec4e5a75bca741836efcd2cef180f51a8236
-build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_sliceb.db ./.venv/bin/python -m alembic upgrade head
+test_output_hash: sha256:de29e1f7bfb8a913eacda69f8c31a3c3a80f46a165e1489cd9894a2688d0c738
+build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicec.db ./.venv/bin/python -m alembic upgrade head
 build_exit_code: 0
 build_output_hash: sha256:f88ce7928af8bb72e66cdeee9242c48f70d978320adf06288b8844b642a82dc6
 ```
@@ -33,6 +33,17 @@ evidence_revision: sha256:0c7e8445f031895e3e201bf774acf1df9a58c6b6d587149e3643ed
 verdict: pass
 requirements: 5/5
 scenarios: 6/6
+test_exit_code: 0
+build_exit_code: 0
+```
+
+```yaml
+# Slice B verdict (context only — full record in the Slice B section below)
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:77a0c056ea31977f8a7da6ed9d7acf182fcee9d2d80032ca07b734b5b22247f8
+verdict: pass
+requirements: 3/3
+scenarios: 5/5
 test_exit_code: 0
 build_exit_code: 0
 ```
@@ -210,3 +221,186 @@ Coverage analysis skipped — no coverage tool detected (`pytest-cov` not instal
 - Backend venv: `backend/.venv` (Python 3.13.7)
 - Commands executed by verifier: `./.venv/bin/python -m pytest tests/ -q` (exit 0), `DATABASE_URL=sqlite:////tmp/telary_verify_sliceb.db ./.venv/bin/python -m alembic upgrade head` ×2 (exit 0), `DATABASE_URL=sqlite:////tmp/telary_verify_sliceb.db ./.venv/bin/python -m app.seed` ×2 (exit 0), direct SQLite/ORM probes
 - Evidence hashes: pytest stdout `sha256:25ff3273…`; migration output `sha256:f88ce792…`; evidence revision `sha256:77a0c056…`
+
+---
+
+## Verification Report — Slice C (Auth + Users)
+
+**Change**: telary-color-mvp-fase1-arquitectura-base
+**Slice**: C (tasks 3.1, 3.2, 4.1, 4.2) — Auth (JWT login, current user, DI deps, no CORS) + Users (admin-only CRUD, roles, audit) + access-logs behavior for the auth/users domain.
+**Version**: auth spec (current) + users spec (slice C scope) + access-logs spec (slice C scope) + base spec (Strict TDD requirement)
+**Mode**: Strict TDD
+**Date**: 2026-08-27
+
+### Assessment Universe (slice C scope note)
+
+The envelope totals are the requirements/scenarios whose observable behavior ships in tasks 3.1-4.2 and is proven at runtime here: 10 requirements / 16 scenarios across the auth, users, and access-logs specs, assessed for the auth/users domain only. Items owned by other slices are recorded under DEFERRED below — deferrals, not slice C defects. The users "Seed Admin" requirement (2 scenarios) is DEFERRED to slice B, where it was verified; its `test_seed.py` still re-passes in this slice's full suite. The users "Minimal Admin UI Page" requirement is DEFERRED to slice F (Phase 9 frontend).
+
+### Completeness
+| Metric | Value |
+|--------|-------|
+| Tasks total (slice C) | 4 |
+| Tasks complete | 4 |
+| Tasks incomplete | 0 |
+
+All slice C tasks (3.1, 3.2, 4.1, 4.2) are marked `[x]` in `tasks.md` and recorded in the slice C section of `apply-progress.md`. Slice C commits on the branch: `7396391` (3.1 RED auth tests), `0fa06ec` (3.2 GREEN auth), `800bdec` (4.1 RED users tests), `d1990db` (4.2 GREEN users); HEAD is `915d1a6` (docs: slice C apply progress). Working tree clean at verification time. RED-before-GREEN is confirmed: the auth test file existed before the auth router (`7396391` touches only `conftest.py` + `test_auth.py`), and the users test file existed before the users router (`800bdec` touches only `test_users.py`).
+
+### Build & Tests Execution (independent re-runs, not trusted from apply-progress)
+
+**Build (schema bootstrap)**: ✅ Passed — slice C changes no schema (commit stats for `0fa06ec`/`d1990db` touch no model or migration file). The handshake DB was bootstrapped on the documented path:
+```text
+cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicec.db ./.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial, create all seven domain tables
+exit 0 — output sha256:f88ce792… (byte-identical to slice B's migration output — same single migration, same result)
+```
+`python -m app.seed` (same env) exit 0 → exactly 1 user: `admin` / role `admin` / `full_name=Administrador`, `last_access_at=None`, 0 `access_logs` rows — the exact bootstrap state the runtime handshake needs. App assembly (`create_app()` mounting both new routers) is proven by the handshake below.
+
+**Tests**: ✅ 41 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q
+41 passed, 45 warnings in 49.01s
+exit 0 — stdout sha256:de29e1f7bfb8a913eacda69f8c31a3c3a80f46a165e1489cd9894a2688d0c738
+```
+(45 warnings = PyJWT `InsecureKeyLengthWarning` emission points, see Issues, plus the slice-A-carried `StarletteDeprecationWarning`.)
+
+**Focused tests (slice C acceptance)**: ✅ 28 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py
+28 passed, 45 warnings in 24.11s
+exit 0 — stdout sha256:260fd79bb9dac354d157930276d205d2a605fe119457abec7834fbfecf3c73fc
+```
+(9 auth tests + 19 users tests = 28. apply-progress records "5 auth + 23 users" — same total, wrong per-file split; cosmetic, see Issues.)
+
+**Runtime handshake (independent, real stack, seeded DB)**: ✅ 49/49 checks passed
+The handshake ran the unmodified application (no dependency overrides) against the seeded temp DB (`/tmp/telary_verify_slicec.db`), exercising the real OAuth2 form → bcrypt → JWT → DI → SQLite path end-to-end. Key proven behaviors:
+- Login `admin`/`telary-admin` → 200; JWT decodes: `sub=admin`, `exp` remaining > 11h and ≤ 12h from issuance; `token_type=bearer`; profile `role=admin`; no `password_hash` in any response.
+- `users.last_access_at` set on login; exactly one `login` `access_logs` row written for the admin in the same transaction.
+- Bad password → 401 with no token; unknown user → 401; >72-byte password → 422.
+- `GET /auth/me`: valid token → 200 admin profile; missing / invalid / expired (minted with past `exp`) tokens → 401.
+- Users enforcement: unauthenticated → 401; operator token → 403 on list/create/patch/delete, and operator create writes no row.
+- Admin CRUD: create 201 → read (list) 200 → update 200 (role+name applied) → delete 204 (row gone).
+- Duplicate username → 409; invalid role → 422; >72-byte create password → 422.
+- Audit: read-only GETs (`/users`, `/auth/me`) add no `access_logs` rows; `user.create`/`user.update`/`user.delete` rows present for the acting admin.
+- Delete of a user with audit history → 409 and the user survives (audit trail protected); a historical audit row is byte-identical after a profile update.
+- CORS: no `CORSMiddleware` in the middleware stack; responses carry no `access-control-allow-origin`.
+exit 0 — stdout sha256:b2a6a7a3c57333a60e1ad90141d375ce6657297766472bf2f3beb37242fc79d8
+
+**Coverage**: ➖ Not available — `pytest-cov` not installed. Reported, not a failure.
+
+### Spec Compliance Matrix (slice C assessment universe)
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| auth: JWT Login | Successful login (200, 12h JWT, last_access_at) | `test_auth.py > test_login_success_returns_token_updates_last_access_and_audits` + handshake | ✅ COMPLIANT |
+| auth: JWT Login | Invalid password (401, no token) | `test_auth.py > test_login_wrong_password_returns_401`, `test_login_unknown_user_returns_401` | ✅ COMPLIANT |
+| auth: Current User | Valid token (200 profile) | `test_auth.py > test_me_with_valid_token_returns_profile` | ✅ COMPLIANT |
+| auth: Current User | Missing or expired token (401) | `test_auth.py > test_me_without_token_returns_401`, `test_me_with_invalid_token_returns_401`, `test_me_with_expired_token_returns_401` | ✅ COMPLIANT |
+| auth: Password Hashing & Validation | Password within 72-byte limit | `test_seed.py` verify round-trip + login success + `test_users.py` create (bcrypt `$2` hash, verify round-trip) | ✅ COMPLIANT |
+| auth: Password Hashing & Validation | Password exceeding limit (validation error) | `test_auth.py > test_login_password_over_72_bytes_returns_422`, `test_users.py > test_create_user_password_too_long_returns_422` | ✅ COMPLIANT |
+| auth: DI-based Auth Dependencies | Protecting an endpoint (401 before logic) | `test_me_without_token_returns_401`, `test_require_roles_admits_admin_and_rejects_operator`, users 401 tests; CORS absence static + runtime | ✅ COMPLIANT |
+| users: Admin-only User Management | Admin manages users (list/create/change role) | `test_users.py > test_admin_lists_users`, `test_admin_creates_user_*`, `test_admin_updates_user_role`, `test_admin_deletes_user`, `test_write_actions_are_audited` | ✅ COMPLIANT |
+| users: Admin-only User Management | Operator cannot create users (403, no row) | `test_users.py > test_operator_cannot_create_user_and_no_row_written` + handshake | ✅ COMPLIANT |
+| users: Admin-only User Management | Unauthenticated (401) | `test_users.py > test_list_users_unauthenticated_returns_401`, `test_create_user_unauthenticated_returns_401` | ✅ COMPLIANT |
+| users: Roles (admin / operator) | Invalid role value (validation error) | `test_users.py > test_create_user_invalid_role_returns_422`, `test_update_user_invalid_role_returns_422` | ✅ COMPLIANT |
+| users: last_access_at tracking | Successful login updates it | `test_auth.py > test_login_success_…` + handshake (admin and operator logins) | ✅ COMPLIANT |
+| access-logs: Mutating actions logged | Mutating action logged | `test_users.py > test_write_actions_are_audited` + handshake (create/update/delete rows) | ✅ COMPLIANT |
+| access-logs: Mutating actions logged | Read-only action not logged | runtime handshake (`GET /users` + `GET /auth/me` add no rows) | ✅ COMPLIANT |
+| access-logs: Login auditing | Successful login logged | `test_auth.py > test_login_success_…` + handshake (admin `login` row) | ✅ COMPLIANT |
+| access-logs: Audit Record Integrity | Historical record unchanged | handshake (profile update → audit row byte-identical) + `test_delete_user_with_audit_history_returns_409` + statically verified FK NO ACTION | ✅ COMPLIANT |
+
+**Compliance summary**: 16/16 scenarios compliant in the slice C assessment universe; 0 UNTESTED; 0 FAILING. One committed-test gap: the read-only-not-logged negative is proven by the independent runtime probe but not yet locked by a committed pytest — SUGGESTION below.
+
+### Correctness (Static Evidence)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| bcrypt direct, no passlib | ✅ Implemented | `security.py` uses `bcrypt.hashpw`/`checkpw` directly (ADR-1); explicit 72-byte guard at hash, schema validator, and login |
+| HS256 JWT, 12h expiry | ✅ Implemented | `create_access_token`/`decode_access_token`; `sub` = username (the immutable identity); `exp` = 12h default (`access_token_expire_hours`) |
+| OAuth2 password form | ✅ Implemented | `OAuth2PasswordRequestForm` on `POST /auth/login`; `python-multipart` pinned; `OAuth2PasswordBearer(tokenUrl=…)` wires Swagger Authorize |
+| DI dependencies | ✅ Implemented | `get_current_user` → 401 on any `jwt.PyJWTError`, missing `sub`, or unknown user; `require_roles(*roles)` → 403; both return 401/403 before business logic |
+| No CORS | ✅ Implemented | No `CORSMiddleware` anywhere in the codebase (grep) or the middleware stack (runtime) |
+| Login audit + last_access | ✅ Implemented | `auth/router.py` updates `last_access_at` and logs `login` in the same transaction, commits before issuing the JWT (design Auth Flow) |
+| Admin-only users CRUD | ✅ Implemented | `require_roles(Role.admin)` on list/create/patch/delete; 403 operator; 401 unauthenticated; operator create writes no row |
+| Validation | ✅ Implemented | duplicate username 409; invalid role 422 (`Role` enum exactly {admin, operator}); >72-byte password 422; FK-integrity delete → 409 |
+| Password never leaks | ✅ Implemented | `UserOut` omits `password_hash`; runtime probes confirm no hash/plaintext in login, me, create, list, update responses |
+| Audit on every write, none on reads | ✅ Implemented | `access_logs/service.py:log_action` — `user.create`/`user.update`/`user.delete` + `login`; read-only handlers never log |
+| English API ids / Spanish UI messages | ✅ Implemented | API field names English (`username`, `password`, `access_token`, `token_type`, `role`, `last_access_at`); user-facing `detail` strings Spanish |
+
+### Coherence (Design)
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| ADR-1: bcrypt direct + PyJWT HS256 | ✅ Yes | `security.py` matches exactly; no passlib |
+| Auth Flow (72B guard → bcrypt → last_access + audit same tx → 12h JWT) | ✅ Yes | `auth/router.py:login` matches the design sequence line-for-line |
+| `get_current_user`/`require_roles` in `core/deps.py` | ✅ Yes | 401/403 semantics per design |
+| ADR-3: bearer token from localStorage, no cookie | ✅ Yes | `OAuth2PasswordBearer` → `Authorization: Bearer` only |
+| Single-origin, no CORS | ✅ Yes | no CORS middleware (static SPA mount itself still deferred to slice E) |
+| API surface codes | ✅ Yes | login 200/401/422, me 200/401, users 200/201/403/404/409/422, delete 204 — all exercised at runtime |
+| Module layout (schemas/router per module) | ✅ Yes | `auth/{schemas,router}.py`, `users/{schemas,router}.py` |
+| Audit helper single point | ⚠️ Deviation (documented) | `access_logs/service.py` added so auth + users share one audit write path; design sketched inline per-router logging — documented in apply-progress, no spec break |
+| Login response shape | ⚠️ Deviation (additive superset) | response includes the `user` profile alongside design's `{access_token, token_type}`; auth spec only requires the JWT, so this extends, does not break |
+
+### TDD Compliance (Strict TDD module)
+| Check | Result | Details |
+|-------|--------|---------|
+| TDD Evidence reported | ✅ | Slice C TDD Cycle Evidence table present (4 rows: 3.1, 3.2, 4.1, 4.2) |
+| All tasks have tests | ✅ | 4/4 — 3.1/3.2 driven by `test_auth.py`; 4.1/4.2 driven by `test_users.py` |
+| RED confirmed (tests exist) | ✅ | 2/2 test files exist; RED committed before GREEN in separate commits: `7396391` (auth, before router existed), `800bdec` (users, before router existed) |
+| GREEN confirmed (tests pass) | ✅ | 28/28 slice C tests pass on independent execution (41/41 full suite) |
+| Triangulation adequate | ✅ | auth: 9 test cases over the 5 auth behaviors; users: 19 test cases over 8 users behaviors — no multi-scenario behavior rests on a single test |
+| Safety Net for modified files | ✅ | `test_auth.py`, `test_users.py`, `conftest.py` are all new in the RED commits (N/A legitimate); no modified-file task claims N/A improperly |
+
+**TDD Compliance**: 6/6 checks passed
+
+### Test Layer Distribution
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Unit | 0 | 0 | — |
+| Integration | 28 | 2 | pytest + TestClient + temp-file SQLite + real bcrypt/JWT primitives |
+| E2E | 0 | 0 | not installed / out of slice scope |
+| **Total (slice C)** | **28** | **2** | |
+
+### Changed File Coverage
+Coverage analysis skipped — no coverage tool detected (`pytest-cov` not installed). Not a failure.
+
+### Assertion Quality
+- `test_auth.py`: asserts real status codes, JWT claims (`sub`, `exp` within an 11h < remaining ≤ 12h window), `last_access_at` set, the `login` audit row with matching `user_id`, response never leaking `password_hash`, and 401 for missing/invalid/expired tokens — all execute the production path and assert concrete values.
+- `test_users.py`: asserts status codes, DB row effects (created user verified via ORM, role updated in DB, deleted row gone, operator create writes no row), bcrypt hash properties (`$2` prefix, hash ≠ plaintext, `verify_password` round-trip), duplicate-username 409, invalid-role 422, audit action tuples, and FK-integrity 409 with a survival check.
+- The `auth_headers` fixture mints tokens directly with `jwt.encode` (same secret, HS256) instead of going through login — intentional token factory per design "Tests" section; the login path itself is fully covered by `test_auth.py`.
+- No tautologies, ghost loops, type-only-only assertions, smoke-only checks, or implementation-detail coupling found.
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+### Quality Metrics
+**Linter**: ➖ Not available (no flake8/ruff configured)
+**Type Checker**: ➖ Not available (Python; pytest + runtime handshake used as the executable check)
+**Coverage**: ➖ Not available (pytest-cov missing)
+
+### Issues Found
+**CRITICAL**: None
+
+**WARNING**:
+1. `InsecureKeyLengthWarning` (PyJWT, RFC 7518 §3.2): the configured `secret_key` (`dev-secret-change-me`, 20 bytes) is below PyJWT's 32-byte minimum for HS256 and every token encode/decode emits the warning. Tokens sign and verify correctly and `config.py` documents the production override (`SECRET_KEY` env / `.env`), so this is a hardening follow-up, NOT a slice C blocker. Follow-up: set a ≥32-byte key via env/`.env` and add `InsecureKeyLengthWarning` to the pytest filterwarnings to keep the suite warning-clean.
+
+**SUGGESTION**:
+1. The access-logs "Read-only action not logged" negative is proven only by the independent runtime probe, not by a committed pytest; a small test (reads add no `access_logs` rows) would lock the behavior against regression.
+2. apply-progress slice C records "28 passed (5 auth + 23 users)" — the actual split is 9 auth + 19 users (total 28 correct). Cosmetic miscount.
+3. apply-progress slice C states `backend/data/app.db` was "already migrated + seeded"; at verification time the file does not exist and there is no `backend/.env` (seed defaults `admin`/`telary-admin` apply). The verifier bootstrapped its own temp DB via the documented `alembic upgrade head` → `python -m app.seed` path; no impact on the slice C verdict, but the apply note is stale.
+4. `LoginResponse` carries the `user` profile beyond the design's `{access_token, token_type}` — additive superset, non-breaking (clients gain the profile for free).
+5. Carried from slice A: StarletteDeprecationWarning (httpx → httpx2) on every pytest run — upstream note.
+6. Carried from slice B: `unique=True, index=True` on `users.username` yields a UNIQUE auto-index plus an explicit duplicate index in SQLite — harmless, optional future cleanup.
+
+### DEFERRED (out of slice C scope — NOT defects)
+- users: Seed Admin (fresh database / admin already present) → verified in slice B; `test_seed.py` re-passes in this slice's full suite.
+- users: Minimal Admin UI Page (Spanish UI, manage users) → slice F (Phase 9 frontend).
+- access-logs: mutating-action logging for pantone/formulas/designs resources → slices D/E.
+- base: REQ-04 SPA static mount (single-origin) → slice E (task 8.2).
+- Remaining data-layer constraint scenarios already recorded as DEFERRED in the slice B section (gamut default, cascade deletes, NUMERIC/unit storage, FK links, design 1–7 cardinality, unique pairs) → their API slices D/E; the roles enum and audit-integrity rows from that list are now exercised end-to-end by this slice.
+
+### Verdict
+**PASS** — Slice C (tasks 3.1, 3.2, 4.1, 4.2) is complete and proven: full suite 41/41 (exit 0, stdout sha256 `de29e1f7…`); focused slice C acceptance 28/28 (exit 0, stdout sha256 `260fd79b…`); an independent 49-check runtime handshake against the seeded DB proves login 200 with a decodable 12h JWT (`sub=admin`), `last_access_at` + `login` audit in the same transaction, 401/422 failure paths, the `/auth/me` token matrix, admin-only users CRUD (201 → 200 → 200 → 204) with 409 duplicate / 422 invalid-role / 403 operator / 401 unauthenticated, audit rows on every write and login with none on reads, immutable audit records, and no CORS. TDD evidence 6/6 with RED commits `7396391` + `800bdec` landing before their GREENs. One non-blocking WARNING (JWT secret 20B < the 32B RFC-recommended minimum) is recorded for follow-up; all remaining items are SUGGESTIONs or cross-slice deferrals.
+
+### Verification Environment (slice C)
+- Workspace: /root/TelaryColor (git branch `feat/slice-a-foundation`, HEAD `915d1a65` — `docs(sdd): record slice C auth+users apply progress`)
+- Slice C candidate tree: `git rev-parse HEAD^{tree}` = `ac426fc62dba646a86223517ad85f3e3b0ca33e1`; envelope `evidence_revision` = sha256 of that tree hash string (`554d06de…`)
+- Backend venv: `backend/.venv` (Python 3.13.7)
+- Handshake DB: fresh `/tmp/telary_verify_slicec.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slice B) + `python -m app.seed` (exit 0 → 1 admin, 0 audit rows)
+- Commands executed by verifier: `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `de29e1f7…`), `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` (exit 0, stdout sha256 `260fd79b…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_slicec.db ./.venv/bin/python /tmp/telary_slicec_handshake.py` (exit 0, 49/49 checks, stdout sha256 `b2a6a7a3…`), direct SQLite probes
+- Evidence hashes: full-suite stdout `sha256:de29e1f7…`; focused stdout `sha256:260fd79b…`; handshake stdout `sha256:b2a6a7a3…`; migration output `sha256:f88ce792…`; evidence revision `sha256:554d06de…`

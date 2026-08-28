@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     app_name: str = "Telary Color API"
     database_url: str = "sqlite:///./data/app.db"
 
+    # JWT signing (auth spec: HS256, 12h expiry). SECRET_KEY must be
+    # overridden in production via the environment / backend/.env.
+    secret_key: str = "dev-secret-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_hours: int = 12
+
     # Seed admin bootstrap (design ADR-10): env-configured first, secure
     # default fallback. Override both in production via SEED_ADMIN_USERNAME /
     # SEED_ADMIN_PASSWORD.
