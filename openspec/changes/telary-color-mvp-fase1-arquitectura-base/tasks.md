@@ -52,13 +52,13 @@ RED = failing test first (acceptance); GREEN = implementation. `pytest` backend 
 
 ## Phase 5: Pantone
 
-- [ ] 5.1 RED: `test_pantone_colors.py` — CRUD, dup 409, `?q=` prefix + empty 200, type 422, gamut 'C'.
-- [ ] 5.2 GREEN: `pantone_colors/{models,schemas,router}.py`, code unique+indexed, audit.
+- [x] 5.1 RED: `test_pantone_colors.py` — CRUD, dup 409, `?q=` prefix + empty 200, type 422, gamut 'C'.
+- [x] 5.2 GREEN: `pantone_colors/{models,schemas,router}.py`, code unique+indexed, audit.
 
 ## Phase 6: Formulas
 
-- [ ] 6.1 RED: `test_formulas.py` — nested ingredients, cascade, unit/qty 422, missing pantone, kg→g (0.001 = 1 g).
-- [ ] 6.2 GREEN: `formulas/{models,schemas,router}.py` — `quantity_g` single conversion; audit.
+- [x] 6.1 RED: `test_formulas.py` — nested ingredients, cascade, unit/qty 422, missing pantone, kg→g (0.001 = 1 g).
+- [x] 6.2 GREEN: `formulas/{models,schemas,router}.py` — `quantity_g` single conversion; audit.
 
 ## Phase 7: Designs
 

@@ -192,7 +192,7 @@ Mode: **Strict TDD** (pytest backend / vitest frontend)
 
 | Evidence | Required value |
 |---|---|
-| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` → **28 passed** (5 auth + 23 users). Full suite: `./.venv/bin/python -m pytest -q` → **41 passed** (slice A+B+C) in 52.39s. |
+| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` → **28 passed** (9 auth + 19 users). Full suite: `./.venv/bin/python -m pytest -q` → **41 passed** (slice A+B+C) in 52.39s. |
 | Runtime harness command/scenario and exact result | `uvicorn app.main:app` → `/docs` OPENAPI carries `/api/v1/auth/login` (OAuth2 password flow, `tokenUrl` for Swagger Authorize) + `/api/v1/users` admin CRUD. Login with seeded admin → valid 12h JWT; `GET /auth/me` returns the user; operator/unauth get 403/401. |
 | Rollback boundary | Revert slice C commits `7396391..d1990db` on the branch. No migration changes in this slice (schema unchanged since slice B). No unrelated work touched. |
 
@@ -239,4 +239,77 @@ Mode: **Strict TDD** (pytest backend / vitest frontend)
 ## Next Steps
 
 - Verify phase for slice C: independent `pytest` re-run + runtime login→me→users CRUD handshake, then extend `verify-report.md`.
+
+---
+
+# Apply Progress — Slice D: Pantone Colors + Formulas (tasks 5.1–5.2, 6.1–6.2)
+
+Slice: D (tasks 5.1, 5.2, 6.1, 6.2) — PR D, chained stacked-to-main
+Branch: `feat/pr-d-pantone-formulas`
+Date: 2026-08-27
+Mode: **Strict TDD** (pytest backend)
+
+## Completed Tasks
+
+- [x] 5.1 RED: `test_pantone_colors.py` — CRUD, dup 409, `?q=` prefix + empty 200, type 422, gamut 'C'.
+- [x] 5.2 GREEN: `pantone_colors/{models,schemas,router}.py`, code unique+indexed, audit.
+- [x] 6.1 RED: `test_formulas.py` — nested ingredients, cascade, unit/qty 422, missing pantone, kg→g (0.001 = 1 g).
+- [x] 6.2 GREEN: `formulas/{models,schemas,router}.py` — `quantity_g` single conversion; audit.
+
+## TDD Cycle Evidence (Slice D)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 5.1 | `backend/tests/test_pantone_colors.py` | Integration | ✅ 41 passed (pre-baseline) | ✅ Written — RED committed `4731e28` before router existed (11 failed) | ✅ 12 passed (router 5.2 added) | ✅ multi-case (CRUD, dup create+update 409, search prefix + case-insensitive + no-match, type 422, gamut default, audit) | ✅ Clean (refined brittle id-2 + `_create` annotation per review hook) |
+| 5.2 | — (via 5.1) | Integration | N/A | ➖ GREEN-driven by 5.1 | ✅ `pantone_colors/schemas.py` + `router.py` (authed CRUD, 409 dup, `?q=` ilike search, audit on writes) + mounted in `main.py` | ✅ duplicate create/update + search empty vs matching + operator-CAN | ✅ Clean |
+| 6.1 | `backend/tests/test_formulas.py` | Integration | ✅ 52 passed (A+B+C+pantone) | ✅ Written — RED committed `a19c8fe` before router existed (10 failed) | ✅ 11 passed (router 6.2 added) | ✅ multi-case (nested CRUD + cascade, unit/qty 422, kg→g 1 kg=1000, sub-gram 0.001 kg=1 g, valid + nonexistent pantone link, audit) | ✅ Clean (fixed `_create_formula` falsy-collection `or` trap per review hook) |
+| 6.2 | — (via 6.1) | Integration | N/A | ➖ GREEN-driven by 6.1 | ✅ `formulas/schemas.py` (`IngredientOut.quantity_g` single conversion) + `router.py` (nested ingredients, cascade delete, pantone-link validation, audit) + mounted in `main.py` | ✅ cascade delete + conversion happy/edge + link valid/nonexistent | ✅ Clean |
+
+## Work Unit Evidence (Slice D)
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_pantone_colors.py tests/test_formulas.py` → **23 passed** (12 pantone + 11 formulas). Full suite: `./.venv/bin/python -m pytest -q` → **64 passed** (slice A+B+C+D, up from 41) in 104s. |
+| Runtime harness command/scenario and exact result | `python -m uvicorn app.main:app` → boot log "Application startup complete / Uvicorn running"; `/openapi.json` from the live server carries `/api/v1/pantone-colors*` and `/api/v1/formulas*`. |
+| Rollback boundary | Revert the 4 slice-D commits on `feat/pr-d-pantone-formulas` (`4731e28..dc84176`). No schema/migration changes (models unchanged since slice B, exactly as constrained). Only slice-D files touched — no slices E/F. |
+
+## Files Changed (PR D)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `backend/tests/test_pantone_colors.py` | Created | RED 5.1 — pantone CRUD, duplicate 409 (create+update), `?q=` prefix search (matching + case-insensitive + empty 200), invalid paint_type 422, gamut default 'C', operator-CAN, unauth 401, write-audit |
+| `backend/app/modules/pantone_colors/schemas.py` | Created | `PantoneColorCreate`/`Update` (paint_type enum validation, code required, gamut default 'C') + `PantoneColorOut` |
+| `backend/app/modules/pantone_colors/router.py` | Created | Authed CRUD `GET/POST /pantone-colors` (201, 409 dup, `?q=` ilike search) + `GET/PATCH/DELETE /{id}` (404); audit on writes |
+| `backend/tests/test_formulas.py` | Created | RED 6.1 — nested ingredient CRUD + cascade delete, unit/qty 422, kg→g conversion (1 kg=1000 g, 0.001 kg=1 g, Decimal), pantone link valid/nonexistent, operator-CAN, unauth 401, write-audit |
+| `backend/app/modules/formulas/schemas.py` | Created | `FormulaCreate` (nested `ingredients`), `IngredientIn` (Decimal qty, g/kg unit), `IngredientOut.quantity_g` single conversion point, `FormulaOut` nested, `FormulaUpdate` |
+| `backend/app/modules/formulas/router.py` | Created | Authed CRUD with nested ingredients, cascade delete, pantone_color_id existence check (404), audit on writes |
+| `backend/app/main.py` | Modified | Mount pantone + formulas routers under `/api/v1` |
+
+## Commits (conventional, work units, no AI attribution)
+
+| Hash | Commit |
+|------|--------|
+| `4731e28` | test(pantone): RED pantone CRUD+search scenarios (5.1) |
+| `9d442f1` | feat(pantone): pantone colors CRUD + `?q=` search router (5.2 GREEN) |
+| `a19c8fe` | test(formulas): RED formulas+ingredients+conversion scenarios (6.1) |
+| `dc84176` | feat(formulas): formulas CRUD with nested ingredients + quantity_g conversion (6.2 GREEN) |
+
+## Deviations from Design
+
+- `IngredientOut.quantity_g` is computed in a Pydantic v2 `model_validator(mode="after")` (with a `Decimal("0")` placeholder default so `from_attributes=True` doesn't fail on the ORM source that lacks the attribute). This keeps the **single conversion point in schemas.py** exactly as the design specifies, without touching the slice-B models (constraint honored).
+- `FormulaUpdate` only sets fields that are provided (`None` means "leave unchanged"), matching the existing users-router pattern; ingredients are replaced only when an `ingredients` list is supplied. This preserves existing ingredients on a name/notes-only update (covered by the CRUD test).
+
+## Issues Found
+
+- **Known (carried from slice C, not slice-D scope)**: the JWT `secret_key` is 20 bytes → `InsecureKeyLengthWarning` for HS256. This is a pre-existing follow-up, unchanged by slice D.
+
+## Verification Environment
+
+- Python 3.13.7 venv at `backend/.venv` (gitignored) — pytest 64/64 passing, uvicorn boots clean.
+- Runtime verified via `uvicorn app.main:app` + `/openapi.json` carrying pantone + formulas routes.
+
+## Next Steps
+
+- Verify phase for slice D: independent `pytest` re-run + runtime pantone+formulas write/cascade/conversion handshake against the seeded DB, then extend `verify-report.md`.
+- PR D (pantone + formulas) from `feat/pr-d-pantone-formulas` after slice C merges (stacked-to-main).
 - PR C (auth + users) from this branch after slice B merges (stacked-to-main).
