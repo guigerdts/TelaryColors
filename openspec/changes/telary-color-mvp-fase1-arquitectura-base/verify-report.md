@@ -1,15 +1,15 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:554d06de438cd10dad672a9bc49e2c1809a020c2b9a40009e139181882913b37
+evidence_revision: sha256:21a7784d799d32f2618ce9c078831e6f7e652eb53eb8b3d275005911c05947e5
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 10/10
-scenarios: 16/16
-test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q
+requirements: 7/7
+scenarios: 14/14
+test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest tests/test_pantone_colors.py tests/test_formulas.py
 test_exit_code: 0
-test_output_hash: sha256:de29e1f7bfb8a913eacda69f8c31a3c3a80f46a165e1489cd9894a2688d0c738
-build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicec.db ./.venv/bin/python -m alembic upgrade head
+test_output_hash: sha256:51a77aa8f4ea0e6257f579419af8b68c46ef0268a39fc131978c9d08fffa2be8
+build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python -m alembic upgrade head
 build_exit_code: 0
 build_output_hash: sha256:f88ce7928af8bb72e66cdeee9242c48f70d978320adf06288b8844b642a82dc6
 ```
@@ -404,3 +404,199 @@ Coverage analysis skipped — no coverage tool detected (`pytest-cov` not instal
 - Handshake DB: fresh `/tmp/telary_verify_slicec.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slice B) + `python -m app.seed` (exit 0 → 1 admin, 0 audit rows)
 - Commands executed by verifier: `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `de29e1f7…`), `./.venv/bin/python -m pytest -q tests/test_auth.py tests/test_users.py` (exit 0, stdout sha256 `260fd79b…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_slicec.db ./.venv/bin/python /tmp/telary_slicec_handshake.py` (exit 0, 49/49 checks, stdout sha256 `b2a6a7a3…`), direct SQLite probes
 - Evidence hashes: full-suite stdout `sha256:de29e1f7…`; focused stdout `sha256:260fd79b…`; handshake stdout `sha256:b2a6a7a3…`; migration output `sha256:f88ce792…`; evidence revision `sha256:554d06de…`
+
+---
+
+## Verification Report — Slice D (Pantone Colors + Formulas)
+
+**Change**: telary-color-mvp-fase1-arquitectura-base
+**Slice**: D (tasks 5.1, 5.2, 6.1, 6.2) — Pantone colors CRUD + instant search + gamut/paint-type classification; formulas CRUD with nested ingredients + `quantity_g` unit conversion + pantone link.
+**Version**: pantone-colors spec (current) + formulas spec (slice D scope) + auth/base specs (route-authentication expectations for the new routes).
+**Mode**: Strict TDD
+**Date**: 2026-08-28
+
+```yaml
+# Slice D verdict (latest assessment — top envelope reflects these counts)
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:21a7784d799d32f2618ce9c078831e6f7e652eb53eb8b3d275005911c05947e5
+verdict: pass
+blockers: 0
+critical_findings: 0
+requirements: 7/7
+scenarios: 14/14
+test_exit_code: 0
+build_exit_code: 0
+```
+
+### Assessment Universe (slice D scope note)
+
+The envelope totals are the requirements/scenarios whose observable behavior ships in tasks 5.1-6.2 and is proven at runtime here: **7 requirements / 14 scenarios** across the pantone-colors and formulas specs. The route-authentication expectations (401 unauthenticated on these resources; authed-not-admin-only role model) are enforced by the auth/base specs and proven end-to-end at runtime, recorded as cross-cutting evidence (not inflated into the slice D counts). Items owned by other slices are under DEFERRED below — deferrals, not slice D defects.
+
+### Completeness
+| Metric | Value |
+|--------|-------|
+| Tasks total (slice D) | 4 |
+| Tasks complete | 4 |
+| Tasks incomplete | 0 |
+
+All slice D tasks (5.1, 5.2, 6.1, 6.2) are marked `[x]` in `tasks.md`. Slice D commits on the branch: `4731e28` (5.1 RED pantone tests), `9d442f1` (5.2 GREEN pantone), `a19c8fe` (6.1 RED formulas tests), `dc84176` (6.2 GREEN formulas), `3aa2138` (docs: slice D apply progress). HEAD is `3aa2138`; working tree clean at verification time.
+
+### Build & Tests Execution (independent re-runs, not trusted from apply-progress)
+
+**Build (schema bootstrap)**: ✅ Passed — slice D changes no schema (commit stats for `9d442f1`/`dc84176` touch no model or migration file). The handshake DB was bootstrapped on the documented path:
+```text
+cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial, create all seven domain tables
+exit 0 — output sha256:f88ce792… (byte-identical to slices B and C — single migration unchanged)
+```
+`python -m app.seed` (same env) exit 0 → exactly 1 user: `admin` / role `admin`. App assembly (`create_app()` mounting the new pantone + formulas routers) is proven by the OpenAPI surface in the handshake below.
+
+**Focused tests (slice D acceptance)**: ✅ 23 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q tests/test_pantone_colors.py tests/test_formulas.py
+23 passed, 53 warnings in 37.83s
+exit 0 — stdout sha256:51a77aa8f4ea0e6257f579419af8b68c46ef0268a39fc131978c9d08fffa2be8
+```
+(12 pantone tests + 11 formulas tests.)
+
+**Full suite (regression)**: ✅ 64 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q
+64 passed, 97 warnings in 103.85s
+exit 0 — stdout sha256:52fcd07f8dc9b5fb37af4dab7c040c22374a46a87ecc03982798b88f4d20cd28
+```
+64/64 matches the prior slice baseline with no regressions (slice C was 41; slices D's 23 new tests bring the total to 64 after slice C's 41. The earlier 41 → 64 growth is exactly the 23 slice D tests with no other change.)
+
+**Runtime handshake (independent, real stack, seeded DB)**: ✅ 51/51 checks passed
+```text
+PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python /tmp/telary_sliced_handshake.py
+51 passed, 0 failed — exit 0 — stdout sha256:17c8d0b53e3c50c124ae2f80b191f3fb9bc1fd4b39da11684bf6bf6565c07f36
+```
+The handshake ran the unmodified application against a freshly migrated+seeded temp DB (`/tmp/telary_verify_sliced.db`, `alembic upgrade head` + `python -m app.seed`), exercising the real OAuth2 form → bcrypt → JWT → DI → SQLite path. The operator was provisioned through the real admin-only user-management API (`POST /users` 201) before being exercised, matching the documented bootstrap path. Key proven behaviors:
+- Unauth → 401 on every pantone/formulas route (list + create both proven).
+- Operator (non-admin) CAN create/read/patch/delete pantone colors and create/patch/delete formulas — these resources are authed-not-admin-only (unlike `/users`), per design roles.
+- Pantone: create 201 with default `gamut=C`; read 200; patch 200 (paint_type+gamut applied); duplicate `code` create → 409 with the duplicate NOT persisted (DB count == 1); `?q=221` prefix search returns `{221C, 221U}`; `?q=221c` case-insensitive; `?q=nomatch` → empty list 200; invalid `paint_type=acuarela` → 422.
+- Formulas: create with 2 nested ingredients → 201 with `created_by` (operator id), `created_at`, `updated_at`; delete → 204 and both the formula row and its ingredients are cascade-removed (DB counts 0).
+- Conversion: `1 kg` → `quantity_g == 1000` (Decimal); `0.001 kg` → `quantity_g == 1` (sub-gram, no FP loss); original `unit`/`quantity` preserved in output; invalid `unit=litros` → 422; invalid `quantity=mucho` → 422.
+- Link: formula referencing an existing pantone color → 201 linked; referencing `99999` → rejected (404/422).
+- Audit: `pantone.create/update/delete` and `formula.create/update/delete` rows written; read-only GETs (`/pantone-colors`, `/formulas`) add no `access_logs` rows.
+- `/openapi.json` carries `/api/v1/pantone-colors` + `/api/v1/pantone-colors/{color_id}` and `/api/v1/formulas` + `/api/v1/formulas/{formula_id}`.
+
+**Coverage**: ➖ Not available — `pytest-cov` not installed. Reported, not a failure.
+
+### Spec Compliance Matrix (slice D assessment universe)
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| pantone-colors: Pantone Color CRUD | Full CRUD cycle | `test_pantone_colors.py > test_full_crud_cycle`, `test_read_missing_returns_404` + handshake | ✅ COMPLIANT |
+| pantone-colors: Pantone Color CRUD | Duplicate code | `test_duplicate_code_on_create_returns_409_not_persisted`, `test_duplicate_code_on_update_returns_409` + handshake (count==1) | ✅ COMPLIANT |
+| pantone-colors: Instant Search by Code | Matching results | `test_search_q_prefix_matching_results`, `test_search_q_prefix_case_insensitive` + handshake | ✅ COMPLIANT |
+| pantone-colors: Instant Search by Code | No matches | `test_search_q_no_matches_returns_empty_list` + handshake | ✅ COMPLIANT |
+| pantone-colors: Gamut and Paint Type Classification | Invalid paint type | `test_invalid_paint_type_returns_422` + handshake | ✅ COMPLIANT |
+| pantone-colors: Gamut and Paint Type Classification | Default gamut | `test_default_gamut_is_C` + handshake (gamut==C) | ✅ COMPLIANT |
+| formulas: Formula CRUD with Nested Ingredients | Create formula with ingredients | `test_full_crud_cycle_with_cascade_delete`, `test_operator_can_create_formula` + handshake (created_by/created_at/updated_at) | ✅ COMPLIANT |
+| formulas: Formula CRUD with Nested Ingredients | Cascade delete | `test_full_crud_cycle_with_cascade_delete` + handshake (DB ing count 0) | ✅ COMPLIANT |
+| formulas: Ingredient Fields | Invalid unit | `test_invalid_unit_returns_422` + handshake | ✅ COMPLIANT |
+| formulas: Ingredient Fields | Invalid quantity | `test_invalid_quantity_returns_422` + handshake | ✅ COMPLIANT |
+| formulas: Automatic Unit Conversion | Kilogram to grams | `test_kg_to_grams_conversion` + handshake (quantity_g==1000, unit/quantity preserved) | ✅ COMPLIANT |
+| formulas: Automatic Unit Conversion | Sub-gram precision | `test_sub_gram_precision_conversion` + handshake (0.001kg → 1g, Decimal) | ✅ COMPLIANT |
+| formulas: Formula to Pantone Link | Valid reference | `test_formula_to_pantone_link_valid` + handshake (pantone_color_id matches) | ✅ COMPLIANT |
+| formulas: Formula to Pantone Link | Nonexistent reference | `test_formula_to_pantone_link_nonexistent_rejected` + handshake (404/422) | ✅ COMPLIANT |
+
+**Compliance summary**: 14/14 scenarios compliant in the slice D assessment universe; 0 UNTESTED (every assessed scenario has a passing committed covering test, independently re-run); 0 FAILING.
+
+**Cross-cutting (auth/base expectations, proven end-to-end, not in slice D counts)**: 401 on unauthenticated access to all four pantone/formulas routes; authed-not-admin-only role model (operator can write pantone + formulas); audit rows on every write with none on reads.
+
+### Correctness (Static Evidence)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Single conversion point `quantity_g` | ✅ Implemented | `formulas/schemas.py:IngredientOut._compute_quantity_g` — `q * 1000 if unit=='kg' else q`, Decimal, no FP loss; matches design "single conversion point `formulas/schemas.py:IngredientOut`" line-for-line |
+| Original unit/quantity preserved | ✅ Implemented | `IngredientOut` exposes `quantity`, `unit` alongside `quantity_g` (design: "original unit preserved") |
+| `?q=` prefix + case-insensitive search | ✅ Implemented | `pantone_colors/router.py:list_pantone_colors` — `code.ilike(q + "%")` on the indexed `code` column; empty list when `q` matches nothing |
+| Duplicate code → 409 not persisted | ✅ Implemented | `UNIQUE(code)` at schema; router catches `IntegrityError` → 409 + `db.rollback()` (duplicate not persisted) |
+| Default gamut `'C'` | ✅ Implemented | `gamut` `default="C"` + `server_default="C"` in `PantoneColor`; schema default `"C"` |
+| paint_type enum validation (422) | ✅ Implemented | `PantoneColorCreate.paint_type: PaintType` (reactiva/pigmento) → pydantic 422 |
+| Nested ingredients CRUD | ✅ Implemented | `FormulaOut` nests `list[IngredientOut]`; create/update replace ingredients; ORM `delete-orphan` |
+| Cascade delete | ✅ Implemented | `formula_ingredients.formula_id` `ondelete=CASCADE` (DB) + relationship `cascade="all, delete-orphan"` (ORM); prove → 0 ingredients after delete |
+| `created_by`/`created_at`/`updated_at` | ✅ Implemented | `formulas/models.py:Formula`; `created_by` = acting user id; timestamps via `utcnow()` (+ `onupdate` for `updated_at`) |
+| Formula→Pantone FK link validation | ✅ Implemented | `_ensure_pantone_exists` in `formulas/router.py:create_formula` → 404 when the referenced pantone id is absent |
+| `quantity` Decimal, no FP loss | ✅ Implemented | `Numeric(10,4)` storage (ADR-5) + `Decimal` in schema/`IngredientOut` |
+| Audit on every write, none on reads | ✅ Implemented | `log_action(db, user.id, "<resource>.<verb>")` in create/update/delete handlers (same tx); read handlers never log |
+| Routes authed-not-admin-only | ✅ Implemented | `get_current_user` (not `require_roles`) on every pantone/formulas route — operator CAN, unauth 401 |
+
+### Coherence (Design)
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| Single conversion point `quantity_g` at `IngredientOut` | ✅ Yes | Matches design line exactly; the only conversion code in the codebase |
+| API surface codes (`?q=`, 409 dup, 422 bad values, 404 missing, CRUD) | ✅ Yes | All exercised at runtime in the handshake |
+| Roles: pantone/formulas authed (admin OR operator), not admin-only | ✅ Yes | `get_current_user` only (no `require_roles`); operator CRUD proven end-to-end |
+| Decimal storage (ADR-5) | ✅ Yes | `Numeric(10,4)` + pydantic `Decimal`; 0.001kg→1g proven with no FP loss |
+| Enum units `g`/`kg` (ADR-4) + normalize to grams | ✅ Yes | `Unit` enum; `quantity_g` computed in `IngredientOut` |
+| Module layout (schemas/router per module) | ✅ Yes | `pantone_colors/{schemas,router}.py`, `formulas/{schemas,router}.py` |
+| Audit `log_action` shared helper | ✅ Yes | Reused from slice C `access_logs/service.py` |
+| Formula cascade at DB + ORM levels | ✅ Yes | `ondelete=CASCADE` + `delete-orphan`; cascade proven |
+
+### TDD Compliance (Strict TDD module)
+| Check | Result | Details |
+|-------|--------|--------|
+| TDD Evidence reported | ✅ | Slice D apply-progress records the RED/GREEN cycle for 5.1/5.2/6.1/6.2 |
+| All tasks have tests | ✅ | 4/4 — 5.1/5.2 driven by `test_pantone_colors.py`; 6.1/6.2 driven by `test_formulas.py` |
+| RED confirmed (test files exist) | ✅ | RED commits exist and contain ONLY the test files, before their routers: `4731e28` (only `test_pantone_colors.py`, 185 insertions), `a19c8fe` (only `test_formulas.py`, 235 insertions). Both GREEN routers were added later in `9d442f1`/`dc84176` |
+| RED committed before GREEN | ✅ | Verified via `git show --stat`: RED commits touch no router/model/schema file; GREEN commits introduce the routers |
+| GREEN confirmed (tests pass) | ✅ | 23/23 slice D tests pass on independent execution (64/64 full suite) |
+| Triangulation adequate | ✅ | pantone: 12 tests over the 6 scenarios; formulas: 11 tests over the 8 scenarios; no multi-scenario behavior rests on a single test |
+| Safety Net for modified files | ✅ | Both test files are new in the RED commits (N/A legitimate); no modified-file task claims N/A improperly |
+
+**TDD Compliance**: 6/6 checks passed.
+
+### Test Layer Distribution
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Unit | 0 | 0 | — |
+| Integration | 23 | 2 | pytest + TestClient + temp-file SQLite + real bcrypt/JWT primitives |
+| E2E | 51 checks | 1 | independent runtime handshake (real app + seeded DB) |
+| **Total (slice D)** | **23 committed** | **2** | |
+
+### Changed File Coverage
+Coverage analysis skipped — no coverage tool detected (`pytest-cov` not installed). Not a failure.
+
+### Assertion Quality
+- `test_pantone_colors.py`: asserts real status codes (201/200/200/204/409/422/401/404), DB row effects (duplicate not persisted via count==1; delete row gone via `db.get is None`), `?q=` prefix + case-insensitive result sets, default gamut `C`, and audit action tuples against the acting user id — all execute the production path and assert concrete values.
+- `test_formulas.py`: asserts status codes, DB row effects (formula persisted, `created_by==1` for seeded admin, `created_at`/`updated_at` non-null, 2 ingredients, cascade removal via empty ingredient-id set, link `pantone_color_id`), Decimal `quantity_g == 1000`/`== 1` with no FP loss, original unit preserved, invalid unit/quantity 422, and audit action tuples — all real behavior.
+- Both suites verify audit via the full audit-row set query (`pantone.create/update/delete`, `formula.create/update/delete`), confirming read-only handlers never log (covered by the handshake negative).
+- No tautologies, ghost loops, type-only-only assertions, smoke-only checks, or implementation-detail coupling found.
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+### Quality Metrics
+**Linter**: ➖ Not available (no flake8/ruff configured)
+**Type Checker**: ➖ Not available (Python; pytest + runtime handshake used as the executable check)
+**Coverage**: ➖ Not available (pytest-cov missing)
+
+### Issues Found
+**CRITICAL**: None
+
+**WARNING**:
+1. `InsecureKeyLengthWarning` (PyJWT, RFC 7518 §3.2): the configured `secret_key` (`dev-secret-change-me`, 20 bytes) is below PyJWT's 32-byte minimum for HS256 and every token encode/decode emits the warning. Carried forward from slice C; tokens sign and verify correctly and `config.py` documents the production override, so this is a hardening follow-up, NOT a slice D blocker. Follow-up: set a ≥32-byte key via env/`.env` and add `InsecureKeyLengthWarning` to the pytest filterwarnings.
+
+**SUGGESTION**:
+1. The handshake provisions the operator via the real admin-only `POST /users` API before exercising the operator role on pantone/formulas, since `python -m app.seed` only creates the admin. This is the documented bootstrap path and not a defect, but worth confirming the operator provisioning flow is acceptable for the target LAN production seeding story.
+2. `duplicate code on PATCH` returns 409 only when the code collides with an *existing different* row; the update-409 path is covered by `test_duplicate_code_on_update_returns_409`. No gap.
+3. Carried from slice A/B/C: StarletteDeprecationWarning (httpx → httpx2) on every pytest run — upstream note; `unique=True, index=True` duplicate auto-index (optional future cleanup).
+4. Carried from slice C: the "read-only not logged" audit negative is also proven by the committed `test_write_actions_are_audited` via the audit tuple set, and additionally by the handshake DB-count negative — robust.
+
+### DEFERRED (out of slice D scope — NOT defects)
+- formulas/designs cross-resource behaviors owned by slice E (designs CRUD, design 1–7 cardinality), and access-logs for designs.
+- Frontend screens and UI language (Spanish labels for pantone/formulas screens) → slice F (Phase 9).
+- base: REQ-04 SPA static mount (single-origin) → slice E (task 8.2).
+- seed provisioning of operator (only admin seeded) → user-management/admin-UI story, slice F / user-facing ops; not a slice D requirement.
+
+### Verdict
+**PASS** — Slice D (tasks 5.1, 5.2, 6.1, 6.2) is complete and proven: focused slice D acceptance 23/23 (exit 0, stdout sha256 `51a77aa8…`); full suite 64/64 (exit 0, stdout sha256 `52fcd07f…`, no regressions vs the slice C 41 baseline); an independent 51/51-check runtime handshake against a freshly migrated+seeded DB proves operator-writable, authed-not-admin-only pantone CRUD (201→200→200→204) with duplicate 409 (not persisted), `?q=` prefix + case-insensitive search and empty-list-200 on no-match, invalid `paint_type` 422, default `gamut=C`, formula CRUD with nested ingredients + `created_by`/`created_at`/`updated_at`, cascade delete (DB counts 0), Decimal `quantity_g` conversion (`1kg→1000`, `0.001kg→1`) with original unit preserved, unit/quantity 422, valid/nonexistent pantone link, audit rows on every write with none on reads, 401 unauthenticated on all four routes, and the OpenAPI surface carrying `/api/v1/pantone-colors*` + `/api/v1/formulas*`. TDD evidence 6/6 with RED commits `4731e28` + `a19c8fe` landing only-test-file before their GREEN routers. One carried, non-blocking WARNING (JWT secret 20B < 32B) is recorded for follow-up; remaining items are SUGGESTIONs or cross-slice deferrals.
+
+### Verification Environment (slice D)
+- Workspace: /root/TelaryColor (git branch `feat/pr-d-pantone-formulas`, HEAD `3aa2138` — `docs(sdd): record slice D pantone+formulas apply progress`)
+- Slice D candidate tree: `git rev-parse HEAD^{tree}` = `2d902ff16a887c1524affc06fc549dec6f98a43e`; envelope `evidence_revision` = sha256 of that tree hash string (`21a7784d…`)
+- Backend venv: `backend/.venv` (Python 3.13.7)
+- Handshake DB: fresh `/tmp/telary_verify_sliced.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slices B/C) + `python -m app.seed` (exit 0 → 1 admin); operator provisioned via real `POST /users`
+- Commands executed by verifier: `./.venv/bin/python -m pytest -q tests/test_pantone_colors.py tests/test_formulas.py` (exit 0, stdout sha256 `51a77aa8…`), `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `52fcd07f…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python /tmp/telary_sliced_handshake.py` (exit 0, 51/51, stdout sha256 `17c8d0b5…`), `alembic upgrade head` fresh DB (exit 0, output sha256 `f88ce792…`), direct SQLite probes
+- Evidence hashes: focused stdout `sha256:51a77aa8…`; full-suite stdout `sha256:52fcd07f…`; handshake stdout `sha256:17c8d0b5…`; migration output `sha256:f88ce792…`; evidence revision `sha256:21a7784d…`
