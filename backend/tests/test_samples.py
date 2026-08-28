@@ -12,6 +12,14 @@ types are rejected with nothing written, oversized files get 413, a
 path-traversal filename never reaches the filesystem (server-generated
 ``uuid4().hex`` name), ``/uploads`` never lists directories, and ``/api/``
 is never shadowed.
+
+Slice C covers backend CRUD + lifecycle (samples spec "Sample CRUD with
+Optional Photo" and "Free Audited Status Lifecycle"): create without a
+photo keeps ``photo_url`` null, a later PATCH persists and audits a photo
+URL, every status transition writes exactly one ``sample.status`` audit row
+in the same transaction (any direction), the reusable listing
+(``?pantone_target_id=&status=``) returns at most the 5 newest samples, and
+DELETE is not routed (405).
 """
 
 import os
@@ -21,7 +29,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import sqlalchemy as sa
+
 from app.core.config import settings
+from app.modules.access_logs.models import AccessLog
+from app.modules.samples.models import Sample
+from app.modules.users.models import User
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -264,3 +277,268 @@ def test_uploaded_photo_is_served_back_from_uploads(
     assert served.status_code == 200
     assert served.headers["content-type"].startswith("image/png")
     assert served.content == PNG_BYTES
+
+
+# --- Slice C: backend CRUD + audited lifecycle ------------------------------
+#
+# Samples spec "Sample CRUD with Optional Photo" (S2 create without photo,
+# S3 photo added later) and "Free Audited Status Lifecycle" (S4 audited
+# transition, S5 any direction), "Reusable Listing by Target Pantone" (S6
+# window capped, S7 fewer than five) and the CRUD no-delete rule (S1
+# "A sample MUST never be hard-deleted"). Each status transition writes
+# exactly one ``sample.status`` audit row in the same transaction, and
+# every create writes a ``sample.create`` row (design ADR-6).
+
+
+def _create_color(client, headers, code="221C") -> int:
+    response = client.post(
+        "/api/v1/pantone-colors",
+        headers=headers,
+        json={"code": code, "paint_type": "reactiva"},
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+def _create_sample(client, headers, color_id, **overrides):
+    payload = {"pantone_target_id": color_id}
+    payload.update(overrides)
+    return client.post("/api/v1/samples", headers=headers, json=payload)
+
+
+def test_create_sample_without_photo_has_null_photo_url(
+    client, auth_headers, session_factory
+) -> None:
+    """S2 Create without photo: persists with null photo_url, default status."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+
+    created = _create_sample(client, headers, color_id)
+    assert created.status_code == 201
+    body = created.json()
+    assert body["photo_url"] is None
+    assert body["status"] == "archivada_reutilizable"  # register = near-miss
+    assert body["pantone_target_id"] == color_id
+    sample_id = body["id"]
+
+    with session_factory() as db:
+        sample = db.get(Sample, sample_id)
+        assert sample is not None
+        assert sample.photo_url is None
+        assert sample.pantone_target_id == color_id
+        assert sample.status.value == "archivada_reutilizable"
+        assert sample.created_by == 1  # seeded admin occupies id 1
+
+
+def test_create_sample_with_photo_url_persists_it(
+    client, auth_headers, session_factory
+) -> None:
+    """S2 triangulation: an explicit photo_url at create time is persisted."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+
+    created = _create_sample(
+        client, headers, color_id, photo_url="/uploads/initial.png"
+    )
+    assert created.status_code == 201
+    assert created.json()["photo_url"] == "/uploads/initial.png"
+
+    with session_factory() as db:
+        stored = db.get(Sample, created.json()["id"])
+        assert stored.photo_url == "/uploads/initial.png"
+
+
+def test_create_sample_with_nonexistent_pantone_target_is_404(
+    client, auth_headers
+) -> None:
+    """A sample must anchor to a real Pantone target: unknown id → 404."""
+    headers = auth_headers("admin")
+    response = _create_sample(client, headers, 99999)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Color Pantone no encontrado"
+
+
+def test_patch_adds_photo_url_later_persisted_and_audited(
+    client, auth_headers, session_factory
+) -> None:
+    """S3 Photo added later: PATCH photo_url → persisted + audited."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+    with session_factory() as db:
+        admin_id = db.scalar(sa.select(User.id).where(User.username == "admin"))
+
+    patched = client.patch(
+        f"/api/v1/samples/{sample_id}",
+        headers=headers,
+        json={"photo_url": "/uploads/later.png"},
+    )
+    assert patched.status_code == 200
+    assert patched.json()["photo_url"] == "/uploads/later.png"
+
+    with session_factory() as db:
+        assert db.get(Sample, sample_id).photo_url == "/uploads/later.png"
+        actions = db.execute(
+            sa.select(AccessLog.action, AccessLog.user_id)
+        ).all()
+        assert ("sample.create", admin_id) in actions
+        assert ("sample.update", admin_id) in actions
+
+
+def test_transition_to_descatada_logs_exactly_one_row_same_txn(
+    client, auth_headers, session_factory
+) -> None:
+    """S4 Audited transition: archivada → descartada writes ONE sample.status
+    row in the same transaction as the status change."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    patched = client.patch(
+        f"/api/v1/samples/{sample_id}",
+        headers=headers,
+        json={"status": "descartada"},
+    )
+    assert patched.status_code == 200
+    assert patched.json()["status"] == "descartada"
+
+    with session_factory() as db:
+        assert db.get(Sample, sample_id).status.value == "descartada"
+        status_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action == "sample.status")
+        ).all()
+        assert len(status_rows) == 1, "exactly one sample.status row per transition"
+        sample_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action.like("sample.%"))
+        ).all()
+        # create + one transition → exactly two sample audit rows, same txns
+        assert len(sample_rows) == 2
+
+
+def test_all_six_status_transitions_succeed_and_are_audited(
+    client, auth_headers, session_factory
+) -> None:
+    """S5 Any direction: every one of the 6 directed transitions succeeds and
+    each is audited with its own sample.status row."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    transitions = [
+        "aprobada",
+        "descartada",
+        "archivada_reutilizable",
+        "descartada",
+        "aprobada",
+        "archivada_reutilizable",
+    ]
+    for target in transitions:
+        response = client.patch(
+            f"/api/v1/samples/{sample_id}",
+            headers=headers,
+            json={"status": target},
+        )
+        assert response.status_code == 200, f"transition to {target} failed"
+        assert response.json()["status"] == target
+
+    with session_factory() as db:
+        status_rows = db.execute(
+            sa.select(AccessLog.id).where(AccessLog.action == "sample.status")
+        ).all()
+        assert len(status_rows) == len(transitions)
+        sample_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action.like("sample.%"))
+        ).all()
+        assert len(sample_rows) == len(transitions) + 1  # + the create row
+
+
+def test_patch_cannot_change_pantone_target_id(
+    client, auth_headers, session_factory
+) -> None:
+    """PATCH scope (design ADR-6): pantone_target_id is immutable post-create;
+    an attempt is rejected (400) and never silently ignored."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    other_color_id = _create_color(client, headers, code="294C")
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    patched = client.patch(
+        f"/api/v1/samples/{sample_id}",
+        headers=headers,
+        json={"status": "aprobada", "pantone_target_id": other_color_id},
+    )
+    assert patched.status_code == 400
+
+    with session_factory() as db:
+        stored = db.get(Sample, sample_id)
+        assert stored.pantone_target_id == color_id, "target must stay immutable"
+        assert stored.status.value == "archivada_reutilizable", (
+            "rejected PATCH must not mutate any field"
+        )
+
+
+def test_reusable_listing_capped_at_five_newest_first(
+    client, auth_headers
+) -> None:
+    """S6 Window capped: >5 reusable samples → at most 5, newest-first."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    other_color_id = _create_color(client, headers, code="294C")
+
+    created_ids = [
+        _create_sample(client, headers, color_id).json()["id"]
+        for _ in range(7)
+    ]
+    # demote the OLDEST sample to descartada: it must NOT leak into the
+    # reusable listing (status filter)
+    assert client.patch(
+        f"/api/v1/samples/{created_ids[0]}", headers=headers,
+        json={"status": "descartada"},
+    ).status_code == 200
+    # a sample for a different target must NOT leak (target filter)
+    _create_sample(client, headers, other_color_id)
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={"pantone_target_id": color_id, "status": "archivada_reutilizable"},
+    )
+    assert listing.status_code == 200
+    returned = listing.json()
+    assert len(returned) <= 5
+    assert [s["id"] for s in returned] == created_ids[-5:][::-1], (
+        "expected the 5 newest reusable samples, newest-first"
+    )
+    assert all(s["pantone_target_id"] == color_id for s in returned)
+    assert all(s["status"] == "archivada_reutilizable" for s in returned)
+
+
+def test_reusable_listing_fewer_than_five_returns_all(
+    client, auth_headers
+) -> None:
+    """S7 Fewer than five: all reusable samples for the target return."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+
+    created_ids = [
+        _create_sample(client, headers, color_id).json()["id"]
+        for _ in range(3)
+    ]
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={"pantone_target_id": color_id, "status": "archivada_reutilizable"},
+    )
+    assert listing.status_code == 200
+    assert [s["id"] for s in listing.json()] == created_ids[::-1]
+
+
+def test_delete_sample_returns_405(client, auth_headers) -> None:
+    """A sample must never be hard-deleted: DELETE is not routed → 405."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    deleted = client.delete(f"/api/v1/samples/{sample_id}", headers=headers)
+    assert deleted.status_code == 405

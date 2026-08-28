@@ -49,14 +49,14 @@ Chain strategy: stacked-to-main
 
 ## Phase C: Backend CRUD
 
-- [ ] C1 RED `test_samples.py`: create without photo → null `photo_url` (S2)
-- [ ] C2 RED `test_samples.py`: PATCH adds `photo_url` later → persisted + audited (S3)
-- [ ] C3 RED `test_samples.py`: `archivada_reutilizable`→`descartada` → one `access_logs` row same txn (S4)
-- [ ] C4 RED `test_samples.py`: any-direction transition succeeds + audited (S5)
-- [ ] C5 RED `test_samples.py`: listing >5 → ≤5 newest-first (S6)
-- [ ] C6 RED `test_samples.py`: listing <5 → all returned (S7)
-- [ ] C7 RED `test_samples.py`: DELETE → 405
-- [ ] C8 GREEN `schemas.py` + `router.py`: POST (default `archivada_reutilizable`), GET read, PATCH (`status`/`photo_url`/`notes` only; `pantone_target_id` immutable), GET list `?pantone_target_id=&status=` cap 5; audit `sample.create/update/status`; no DELETE route
+- [x] C1 RED `test_samples.py`: create without photo → null `photo_url` (S2)
+- [x] C2 RED `test_samples.py`: PATCH adds `photo_url` later → persisted + audited (S3)
+- [x] C3 RED `test_samples.py`: `archivada_reutilizable`→`descartada` → one `access_logs` row same txn (S4)
+- [x] C4 RED `test_samples.py`: any-direction transition succeeds + audited (S5)
+- [x] C5 RED `test_samples.py`: listing >5 → ≤5 newest-first (S6)
+- [x] C6 RED `test_samples.py`: listing <5 → all returned (S7)
+- [x] C7 RED `test_samples.py`: DELETE → 405
+- [x] C8 GREEN `schemas.py` + `router.py`: POST (default `archivada_reutilizable`), GET read, PATCH (`status`/`photo_url`/`notes` only; `pantone_target_id` immutable), GET list `?pantone_target_id=&status=` cap 5; audit `sample.create/update/status`; no DELETE route
 
 ## Phase D: Ficha Integration
 
