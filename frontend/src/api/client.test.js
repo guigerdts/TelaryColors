@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiFetch, setUnauthorizedHandler } from './client.js'
-import { listReusableSamples } from './index.js'
+import { listReusableSamples, promoteSample } from './index.js'
 import { clearToken, getToken, setToken } from '../auth/store.js'
 
 describe('api client', () => {
@@ -125,5 +125,36 @@ describe('api client', () => {
 
     const [, init] = fetchMock.mock.calls[0]
     expect(init.headers.Authorization).toBe('Bearer jwt-xyz')
+  })
+
+  it('promoteSample POSTs to /samples/{id}/promote with the formula payload', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ formula: { id: 9 }, sample: { id: 100, status: 'aprobada', formula_id: 9 } }),
+    })
+
+    const res = await promoteSample(100, {
+      name: 'Fórmula promovida',
+      ingredients: [{ colorant: 'Amarillo', quantity: '10', unit: 'g' }],
+    })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples/100/promote')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body).name).toBe('Fórmula promovida')
+    expect(JSON.parse(init.body).ingredients).toHaveLength(1)
+    expect(res.sample.status).toBe('aprobada')
+  })
+
+  it('promoteSample interpolates the sample id (not a constant)', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 201, json: async () => ({ formula: {}, sample: {} }) })
+
+    await promoteSample(42, { name: 'Otra', ingredients: [] })
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples/42/promote')
   })
 })

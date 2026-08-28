@@ -71,6 +71,14 @@ export const createSample = (payload) =>
 export const updateSample = (id, payload) =>
   apiFetch(`/samples/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
 
+// Promote a reusable sample into a NEW formula. One atomic backend call
+// (POST /samples/{id}/promote): the server derives pantone_color_id from the
+// sample, marks it aprobada, sets formula_id, and writes one sample.promote
+// audit row. Returns { formula, sample }. 404/409 are surfaced as thrown errors
+// by apiFetch on !ok.
+export const promoteSample = (id, payload) =>
+  apiFetch(`/samples/${id}/promote`, { method: 'POST', body: payload }).then((r) => r.json())
+
 // Upload a sample photo as multipart/form-data. Deliberately does NOT go
 // through apiFetch: a FormData body must let fetch derive the multipart
 // boundary, so no JSON content-type is set here (the upload endpoint rejects
