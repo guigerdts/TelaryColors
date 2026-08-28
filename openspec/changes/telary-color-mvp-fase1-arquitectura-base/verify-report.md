@@ -4,8 +4,8 @@ evidence_revision: sha256:854da29ea53c017325ba3ff9d5f93c6e64b25bd5fe75eb7f68e231
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 3/3
-scenarios: 3/3
+requirements: 32/32
+scenarios: 54/54
 test_command: cd /root/TelaryColor/frontend && npm test
 test_exit_code: 0
 test_output_hash: sha256:0949f39571f5dfa7a758719480bd22bdc4f158d306aaeca522900007080bc7fa
