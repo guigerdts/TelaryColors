@@ -9,6 +9,9 @@ export default defineConfig({
       // Dev: forward API calls to the FastAPI backend on :8000.
       // Prod: FastAPI serves frontend/dist (single origin, no CORS).
       '/api': 'http://localhost:8000',
+      // Dev: stored sample photos are served by the backend /uploads mount;
+      // prod serves them from the same origin, so the browser URL is stable.
+      '/uploads': 'http://localhost:8000',
     },
   },
   test: {
