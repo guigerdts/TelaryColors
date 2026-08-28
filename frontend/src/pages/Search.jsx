@@ -2,7 +2,7 @@
 // firing the search, then renders the matching colors and their formulas.
 import { useEffect, useState } from 'react'
 
-import { listFormulas, searchPantone } from '../api/index.js'
+import { listFormulas, listReusableSamples, searchPantone } from '../api/index.js'
 import { useDebounce } from '../hooks/useDebounce.js'
 
 export default function SearchPage() {
@@ -10,6 +10,7 @@ export default function SearchPage() {
   const [results, setResults] = useState([])
   const [formulas, setFormulas] = useState([])
   const [message, setMessage] = useState('')
+  const [reusableSamples, setReusableSamples] = useState({})
 
   const debounced = useDebounce(query, 250)
 
@@ -50,6 +51,30 @@ export default function SearchPage() {
     }
   }, [])
 
+  // Client-side ficha: after a search returns colors, fetch each result's
+  // reusable samples (GET /samples?pantone_target_id=&status=archivada_reutilizable)
+  // and keep them keyed by color id for the card surfaces below.
+  useEffect(() => {
+    if (!results.length) {
+      setReusableSamples({})
+      return
+    }
+    let cancelled = false
+    Promise.all(results.map((color) => listReusableSamples(color.id).then((samples) => ({ id: color.id, samples }))))
+      .then((all) => {
+        if (cancelled) return
+        const byColor = {}
+        for (const { id, samples } of all) byColor[id] = samples
+        setReusableSamples(byColor)
+      })
+      .catch(() => {
+        /* ignore — a failing ficha lookup must not break the search */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [results])
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-slate-800">Buscar color</h2>
@@ -87,6 +112,26 @@ export default function SearchPage() {
                   </ul>
                 </div>
               ))}
+            {reusableSamples[color.id]?.length > 0 && (
+              <div className="mt-2 border-t border-dashed border-slate-200 pt-2">
+                <p className="text-sm font-medium text-slate-700">
+                  Muestras reutilizables ({reusableSamples[color.id].length})
+                </p>
+                <ul className="mt-1 flex gap-2">
+                  {reusableSamples[color.id]
+                    .filter((sample) => sample.photo_url)
+                    .map((sample) => (
+                      <li key={sample.id}>
+                        <img
+                          src={sample.photo_url}
+                          alt={`Muestra reutilizable de ${color.code}`}
+                          className="h-12 w-12 rounded border border-slate-200 object-cover"
+                        />
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
           </li>
         ))}
       </ul>
