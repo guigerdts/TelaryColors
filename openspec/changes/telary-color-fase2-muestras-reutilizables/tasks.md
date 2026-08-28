@@ -29,12 +29,12 @@ Chain strategy: stacked-to-main
 
 ## Phase A: Data Layer
 
-- [ ] A1 RED `test_migration.py`: add `samples` to EXPECTED_TABLES (7→8; fresh upgrade + already-applied "Database available" scenarios)
-- [ ] A2 RED `test_samples.py`: `alembic upgrade head` creates `samples` + both indexes (S1 Migration adds table)
-- [ ] A3 GREEN `db/enums.py`: add `SampleStatus(aprobada, archivada_reutilizable, descartada)`
-- [ ] A4 GREEN `modules/samples/{__init__,models}.py`: `Sample` ORM (NOT NULL FK `pantone_target_id` ix, nullable `formula_id`/`photo_url`, `status` ix, `notes`, FK `created_by`, `created_at`)
-- [ ] A5 GREEN `alembic/env.py`: `import app.modules.samples.models`
-- [ ] A6 GREEN `alembic/versions/0002_samples.py`: additive (`down_revision="0001_initial"`), upgrade/downgrade, `ix_samples_pantone_target_id` + `ix_samples_status`
+- [x] A1 RED `test_migration.py`: add `samples` to EXPECTED_TABLES (7→8; fresh upgrade + already-applied "Database available" scenarios)
+- [x] A2 RED `test_samples.py`: `alembic upgrade head` creates `samples` + both indexes (S1 Migration adds table)
+- [x] A3 GREEN `db/enums.py`: add `SampleStatus(aprobada, archivada_reutilizable, descartada)`
+- [x] A4 GREEN `modules/samples/{__init__,models}.py`: `Sample` ORM (NOT NULL FK `pantone_target_id` ix, nullable `formula_id`/`photo_url`, `status` ix, `notes`, FK `created_by`, `created_at`)
+- [x] A5 GREEN `alembic/env.py`: `import app.modules.samples.models`
+- [x] A6 GREEN `alembic/versions/0002_samples.py`: additive (`down_revision="0001_initial"`), upgrade/downgrade, `ix_samples_pantone_target_id` + `ix_samples_status`
 
 ## Phase B: Photo Upload
 

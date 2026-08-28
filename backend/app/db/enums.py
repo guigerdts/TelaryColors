@@ -4,7 +4,8 @@ SQLite has no native enum type, so each enum maps to a ``String`` column via
 ``sa.Enum(..., native_enum=False)``. This keeps the schema simple and portable
 while still validating values on the Python side (design ADR "enums as Python
 enum with String column"). ``PaintType`` is shared by ``pantone_colors`` and
-``designs``; ``Unit`` is owned by ``formula_ingredients``.
+``designs``; ``Unit`` is owned by ``formula_ingredients``; ``SampleStatus`` is
+owned by ``samples``.
 """
 
 from enum import Enum
@@ -18,3 +19,9 @@ class PaintType(str, Enum):
 class Unit(str, Enum):
     g = "g"
     kg = "kg"
+
+
+class SampleStatus(str, Enum):
+    aprobada = "aprobada"
+    archivada_reutilizable = "archivada_reutilizable"
+    descartada = "descartada"
