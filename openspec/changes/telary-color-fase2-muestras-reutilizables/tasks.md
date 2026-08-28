@@ -38,14 +38,14 @@ Chain strategy: stacked-to-main
 
 ## Phase B: Photo Upload
 
-- [ ] B1 RED `test_samples.py`: crafted type (JPEG bytes claiming PNG) → 400, no file written (S8)
-- [ ] B2 RED `test_samples.py`: oversized → 413, no file written (S9)
-- [ ] B3 RED `test_samples.py`: `../../evil.png` filename → server-generated name inside `upload_dir` (S10)
-- [ ] B4 RED `test_samples.py`: `GET /uploads/`/directory → no listing (S11); `/api/` never shadowed (S12)
-- [ ] B5 GREEN `core/config.py` + `.env.example`: `upload_dir` (default `backend/data/uploads/`), `max_upload_bytes` (5 MiB)
-- [ ] B6 GREEN `modules/samples/uploads.py`: `_UploadsRoute` + helper (sniff JPEG `FF D8 FF`/PNG/WebP + declared agreement; `uuid4().hex` name)
-- [ ] B7 GREEN `modules/samples/router.py` + `main.py`: `POST /samples/upload` under `/api/v1`; register `_UploadsRoute` before `_mount_spa`; `_SPARoute.matches` yields `NONE` for `/uploads/`
-- [ ] B8 GREEN `frontend/vite.config.js`: dev proxy `/uploads` → `:8000`
+- [x] B1 RED `test_samples.py`: crafted type (JPEG bytes claiming PNG) → 400, no file written (S8)
+- [x] B2 RED `test_samples.py`: oversized → 413, no file written (S9)
+- [x] B3 RED `test_samples.py`: `../../evil.png` filename → server-generated name inside `upload_dir` (S10)
+- [x] B4 RED `test_samples.py`: `GET /uploads/`/directory → no listing (S11); `/api/` never shadowed (S12)
+- [x] B5 GREEN `core/config.py` + `.env.example`: `upload_dir` (default `backend/data/uploads/`), `max_upload_bytes` (5 MiB)
+- [x] B6 GREEN `modules/samples/uploads.py`: `_UploadsRoute` + helper (sniff JPEG `FF D8 FF`/PNG/WebP + declared agreement; `uuid4().hex` name)
+- [x] B7 GREEN `modules/samples/router.py` + `main.py`: `POST /samples/upload` under `/api/v1`; register `_UploadsRoute` before `_mount_spa`; `_SPARoute.matches` yields `NONE` for `/uploads/`
+- [x] B8 GREEN `frontend/vite.config.js`: dev proxy `/uploads` → `:8000`
 
 ## Phase C: Backend CRUD
 
