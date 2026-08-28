@@ -18,5 +18,11 @@ class Settings(BaseSettings):
     app_name: str = "Telary Color API"
     database_url: str = "sqlite:///./data/app.db"
 
+    # Seed admin bootstrap (design ADR-10): env-configured first, secure
+    # default fallback. Override both in production via SEED_ADMIN_USERNAME /
+    # SEED_ADMIN_PASSWORD.
+    seed_admin_username: str = "admin"
+    seed_admin_password: str = "telary-admin"
+
 
 settings = Settings()
