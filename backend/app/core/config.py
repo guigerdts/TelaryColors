@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     app_name: str = "Telary Color API"
     database_url: str = "sqlite:///./data/app.db"
 
+    # Photo uploads (samples spec "Photo Upload Validation", design ADR-1/3):
+    # local-FS storage under the backend run directory — ``data/uploads/``
+    # from the backend CWD resolves to the gitignored ``backend/data/`` tree
+    # (same convention as ``database_url``). Max 5 MiB per file. Override in
+    # production via UPLOAD_DIR / MAX_UPLOAD_BYTES.
+    upload_dir: str = "data/uploads/"
+    max_upload_bytes: int = 5 * 1024 * 1024
+
     # JWT signing (auth spec: HS256, 12h expiry). SECRET_KEY must be
     # overridden in production via the environment / backend/.env.
     secret_key: str = "dev-secret-change-me"

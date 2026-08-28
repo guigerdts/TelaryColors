@@ -25,3 +25,23 @@ def test_env_vars_override_defaults(monkeypatch) -> None:
 
     assert settings.app_name == "Telary Test"
     assert settings.database_url == "sqlite:////tmp/forced.db"
+
+
+def test_upload_settings_defaults_when_env_unset(monkeypatch) -> None:
+    monkeypatch.delenv("UPLOAD_DIR", raising=False)
+    monkeypatch.delenv("MAX_UPLOAD_BYTES", raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.upload_dir == "data/uploads/"
+    assert settings.max_upload_bytes == 5 * 1024 * 1024
+
+
+def test_upload_settings_env_vars_override_defaults(monkeypatch) -> None:
+    monkeypatch.setenv("UPLOAD_DIR", "/tmp/uploads")
+    monkeypatch.setenv("MAX_UPLOAD_BYTES", "1048576")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.upload_dir == "/tmp/uploads"
+    assert settings.max_upload_bytes == 1048576
