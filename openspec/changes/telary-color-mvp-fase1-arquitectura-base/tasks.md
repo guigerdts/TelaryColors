@@ -72,10 +72,10 @@ RED = failing test first (acceptance); GREEN = implementation. `pytest` backend 
 
 ## Phase 9: Frontend
 
-- [ ] 9.1 RED (vitest): Bearer attach + 401 clears token; store persists token; guard redirects.
-- [ ] 9.2 RED (vitest): search debounce renders; picker disables 8th.
-- [ ] 9.3 GREEN: `src/api`, auth store, guards, pages Login/Search/Pantone/Formulas/Designs/Admin (ES UI).
+- [x] 9.1 RED (vitest): Bearer attach + 401 clears token; store persists token; guard redirects.
+- [x] 9.2 RED (vitest): search debounce renders; picker disables 8th.
+- [x] 9.3 GREEN: `src/api`, auth store, guards, pages Login/Search/Pantone/Formulas/Designs/Admin (ES UI).
 
 ## Phase 10: Verify + Docs
 
-- [ ] 10.1 `pytest` + `npm test` green; boot → `/docs`; login→search→create on LAN.
+- [x] 10.1 `pytest` + `npm test` green; boot → `/docs`; login→search→create on LAN.
