@@ -62,13 +62,13 @@ RED = failing test first (acceptance); GREEN = implementation. `pytest` backend 
 
 ## Phase 7: Designs
 
-- [ ] 7.1 RED: `test_designs.py` — admin+operator CRUD, dup name 409, 0/8 colors 422 (ES msg), 1 & 7 ok, dup color, cascade+audit.
-- [ ] 7.2 GREEN: `designs/{models,schemas,router}.py` — 1–7 cardinality in tx; unique pair FK.
+- [x] 7.1 RED: `test_designs.py` — admin+operator CRUD, dup name 409, 0/8 colors 422 (ES msg), 1 & 7 ok, dup color, cascade+audit.
+- [x] 7.2 GREEN: `designs/{models,schemas,router}.py` — 1–7 cardinality in tx; unique pair FK.
 
 ## Phase 8: Audit + Wiring
 
-- [ ] 8.1 RED: `test_access_logs.py` — mutations + login logged, reads not, history stable.
-- [ ] 8.2 GREEN: `access_logs/service.py` in routers; `main.py` mounts API + static dist.
+- [x] 8.1 RED: `test_access_logs.py` — mutations + login logged, reads not, history stable.
+- [x] 8.2 GREEN: `access_logs/service.py` in routers; `main.py` mounts API + static dist.
 
 ## Phase 9: Frontend
 

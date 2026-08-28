@@ -1,15 +1,15 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:21a7784d799d32f2618ce9c078831e6f7e652eb53eb8b3d275005911c05947e5
+evidence_revision: sha256:8227d357292fa8a35717ab4770a2be64151b712cd44c882b9aba9d6f7b8c94b8
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 7/7
-scenarios: 14/14
-test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest tests/test_pantone_colors.py tests/test_formulas.py
+requirements: 10/10
+scenarios: 16/16
+test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest tests/test_designs.py tests/test_access_logs.py
 test_exit_code: 0
-test_output_hash: sha256:51a77aa8f4ea0e6257f579419af8b68c46ef0268a39fc131978c9d08fffa2be8
-build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python -m alembic upgrade head
+test_output_hash: sha256:7124d9f71d2bbc05ad8657ac20e699aa2ffd8c0e679bc5e69b1f8577733bee39
+build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python -m alembic upgrade head
 build_exit_code: 0
 build_output_hash: sha256:f88ce7928af8bb72e66cdeee9242c48f70d978320adf06288b8844b642a82dc6
 ```
@@ -600,3 +600,205 @@ Coverage analysis skipped — no coverage tool detected (`pytest-cov` not instal
 - Handshake DB: fresh `/tmp/telary_verify_sliced.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slices B/C) + `python -m app.seed` (exit 0 → 1 admin); operator provisioned via real `POST /users`
 - Commands executed by verifier: `./.venv/bin/python -m pytest -q tests/test_pantone_colors.py tests/test_formulas.py` (exit 0, stdout sha256 `51a77aa8…`), `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `52fcd07f…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_sliced.db ./.venv/bin/python /tmp/telary_sliced_handshake.py` (exit 0, 51/51, stdout sha256 `17c8d0b5…`), `alembic upgrade head` fresh DB (exit 0, output sha256 `f88ce792…`), direct SQLite probes
 - Evidence hashes: focused stdout `sha256:51a77aa8…`; full-suite stdout `sha256:52fcd07f…`; handshake stdout `sha256:17c8d0b5…`; migration output `sha256:f88ce792…`; evidence revision `sha256:21a7784d…`
+---
+
+## Verification Report — Slice E (Designs + Access Logs + Static SPA Mount)
+
+**Change**: telary-color-mvp-fase1-arquitectura-base
+**Slice**: E (tasks 7.1, 7.2, 8.1, 8.2) — Designs CRUD with 1–7 color cardinality + audit; access-logs admin read endpoint + full audit wiring; base REQ-04 single-origin static SPA mount (no CORS).
+**Version**: designs spec (current) + access-logs spec (slice E scope) + base spec (REQ-04 Single-Origin Deployment)
+**Mode**: Strict TDD
+**Date**: 2026-08-28
+
+```yaml
+# Slice E verdict (latest assessment — top envelope reflects these counts)
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:8227d357292fa8a35717ab4770a2be64151b712cd44c882b9aba9d6f7b8c94b8
+verdict: pass
+blockers: 0
+critical_findings: 0
+requirements: 10/10
+scenarios: 16/16
+test_exit_code: 0
+build_exit_code: 0
+```
+
+### Assessment Universe (slice E scope note)
+
+The envelope totals are the requirements/scenarios whose observable behavior ships in tasks 7.1–8.2 and is proven at runtime here: **10 requirements / 16 scenarios** = designs spec (6 requirements / 11 scenarios, excluding the frontend "Minimal Designs Page" requirement) + access-logs spec (3 requirements / 4 scenarios) + base spec REQ-04 "Single-Origin Deployment" (1 scenario). The designs frontend requirement (UI enforces cardinality, task 9.x) is DEFERRED to slice F — a deferral, not a slice E defect. Schema is unchanged since slice B (no migration in this slice), so no data-layer scenarios are re-assessed here.
+
+### Completeness
+| Metric | Value |
+|--------|-------|
+| Tasks total (slice E) | 4 |
+| Tasks complete | 4 |
+| Tasks incomplete | 0 |
+
+All slice E tasks (7.1, 7.2, 8.1, 8.2) are marked `[x]` in `tasks.md`. Slice E commits on the branch: `14e71d5` (7.1 RED: `test_designs.py` only, 289 insertions), `a3e6ca9` (7.2 GREEN designs router), `48e01a4` (8.1 RED: `test_access_logs.py` only, 263 insertions), `d83c24d` (8.2 GREEN access-logs router + SPA mount), `ab7bf02` (docs: slice E apply progress). HEAD is `ab7bf02`; working tree clean at verification time. RED-before-GREEN confirmed independently: each RED commit touches ONLY its test file and no router/model/schema file (verified via `git show --stat`), and each GREEN commit lands afterward.
+
+### Build & Tests Execution (independent re-runs, not trusted from apply-progress)
+
+**Build (schema bootstrap)**: ✅ Passed — slice E changes no schema (commit stats for `a3e6ca9`/`d83c24d` touch no model or migration file). The handshake DB was bootstrapped on the documented path:
+```text
+cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial, create all seven domain tables
+exit 0 — output sha256:f88ce792… (byte-identical to slices B, C, and D — single migration unchanged)
+```
+`python -m app.seed` (same env) exit 0 → exactly 1 user (`admin` / role `admin`), 0 `access_logs` rows (probed). Operator provisioned later through the real admin-only `POST /users` API, matching the documented bootstrap path.
+
+**Focused tests (slice E acceptance)**: ✅ 24 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q tests/test_designs.py tests/test_access_logs.py
+24 passed, 74 warnings in 42.23s
+exit 0 — stdout sha256:7124d9f71d2bbc05ad8657ac20e699aa2ffd8c0e679bc5e69b1f8577733bee39
+```
+(15 designs tests + 9 access-logs tests — matches apply-progress exactly.)
+
+**Full suite (regression)**: ✅ 88 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest -q
+88 passed, 170 warnings in 135.17s (0:02:15)
+exit 0 — stdout sha256:c21d6f88442c5c3bc11a202738fe3ce81e907b88ec4487cf6b5d3bde48d257c7
+```
+88/88 matches the apply-progress claim and the slice D baseline + 24 new slice E tests (64 → 88), with zero regressions. Note: `frontend/dist` exists, so the `_SPARoute` was appended in every test process — the entire 88-test suite already ran with the SPA route active and every `/api/*` test still resolved to the REST tree.
+
+**Runtime handshake (independent, real stack, seeded DB)**: ✅ 75/75 checks passed
+```text
+PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python /tmp/telary_slicee_handshake.py
+RESULT: 75/75 checks passed — ALL CHECKS PASSED — exit 0 — stdout sha256:6ea2a7e6b551d63baab783a60f7e73987380df7600dc2696f423903e0738dba5
+```
+The handshake ran the unmodified application (no dependency overrides, no fixtures) against a freshly migrated+seeded temp DB, exercising the real OAuth2 form → bcrypt → JWT → DI → SQLite path. Key proven behaviors:
+- **Roles**: admin creates a 1-color design (201) and operator creates a 7-color design (201); both list/read/update (200) and delete (204); unauthenticated → 401 on all five design routes (GET/POST list+create, GET/PATCH/DELETE id). `created_by`/`created_at`/`updated_at` persisted.
+- **Duplicate name**: create → 409 with `"Ya existe un diseño con ese nombre"`, NOT persisted (DB row-count by name == 1); update rename onto an existing name → 409 with the same Spanish detail.
+- **Validation**: invalid `paint_type=esmalte` → 422; 0 colors → 422 Spanish `"entre 1 y 7"`; 8 distinct colors → 422 Spanish; exactly 1 and exactly 7 accepted (boundaries); update paths also proven (PATCH with 0 colors → 422 Spanish, 8 entries → 422 Spanish, duplicate color → 409) and rejected updates leave the design untouched.
+- **Duplicate color**: same color twice in one design → 409 `"El diseño no puede repetir el mismo color"`, NOT persisted.
+- **Cascade + audit**: deleting a design removes its `design_colors` rows (DB probe) and writes a `design.delete` audit row.
+- **Access-logs**: admin → 200 (timestamp-desc ordering), operator → 403, unauth → 401. Login (admin + operator) writes `login` audit rows; every mutation (`user.create`, `design.create/update/delete`) audited; repeated reads (incl. the audit endpoint itself) add no rows.
+- **Immutability**: the operator's historical `design.create` audit row `(user_id, timestamp, action)` is byte-identical after an admin updates the operator's profile.
+- **REQ-04 single-origin**: `GET /` → 200 `text/html` serving the built `index.html`; `GET /api/v1/designs/{id}` still returns JSON (API not shadowed); `GET /openapi.json` 200; `OPTIONS /api/v1/designs` (with a foreign `Origin` + `Access-Control-Request-Method`) → 405 with no `access-control-allow-origin`/`access-control-allow-methods` headers (no CORS, ADR-2); an `/api/v1/` route registered AFTER `create_app()` still resolves (200) — the exact regression a root `Mount("/")` caused is not present.
+- **OpenAPI**: `/api/v1/designs`, `/api/v1/designs/{design_id}`, `/api/v1/access-logs` all present; the SPA catch-all is excluded from the schema (`include_in_schema=False`).
+
+**Coverage**: ➖ Not available — `pytest-cov` not installed. Reported, not a failure.
+
+### Spec Compliance Matrix (slice E assessment universe)
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| designs: Design Fields | Create a design | `test_designs.py > test_create_design_persists_fields` + handshake (created_by/created_at/updated_at, nested colors) | ✅ COMPLIANT |
+| designs: Design Fields | Duplicate name | `test_designs.py > test_duplicate_name_on_create_returns_409`, `test_duplicate_name_on_update_returns_409` + handshake (not persisted) | ✅ COMPLIANT |
+| designs: Design Fields | Invalid paint type | `test_designs.py > test_invalid_paint_type_returns_422` + handshake | ✅ COMPLIANT |
+| designs: Color Cardinality (1–7) | No colors | `test_designs.py > test_zero_colors_returns_422_spanish` + handshake (create and update paths) | ✅ COMPLIANT |
+| designs: Color Cardinality (1–7) | Too many colors | `test_designs.py > test_eight_colors_returns_422_spanish` + handshake (create and update paths) | ✅ COMPLIANT |
+| designs: Color Cardinality (1–7) | Boundary accepted | `test_designs.py > test_one_and_seven_colors_accepted_boundary` + handshake (exactly 1 and exactly 7) | ✅ COMPLIANT |
+| designs: No Duplicate Color References | Duplicate color | `test_designs.py > test_duplicate_color_reference_rejected` + handshake (create and update → 409, not persisted) | ✅ COMPLIANT |
+| designs: Cascade Delete of Link Rows | Delete design | `test_designs.py > test_delete_design_cascades_and_audits` + handshake (DB probe: design_colors empty, `design.delete` row) | ✅ COMPLIANT |
+| designs: Authenticated Access (admin or operator) | Operator works with designs | `test_designs.py > test_operator_can_write_designs` + handshake (create/update/delete/list/read as operator) | ✅ COMPLIANT |
+| designs: Authenticated Access (admin or operator) | Unauthenticated request | `test_designs.py > test_unauthenticated_returns_401` + handshake (401 on all five routes) | ✅ COMPLIANT |
+| designs: Audit All Design Mutations | Mutation logged | `test_designs.py > test_write_actions_are_audited` + handshake (`design.create/update/delete` rows) | ✅ COMPLIANT |
+| access-logs: Audit Logging of Data-Mutating Actions | Mutating action logged | `test_access_logs.py > test_mutations_write_audit_rows`, `test_delete_actions_audited_across_resources` + handshake | ✅ COMPLIANT |
+| access-logs: Audit Logging of Data-Mutating Actions | Read-only action not logged | `test_access_logs.py > test_read_requests_do_not_write_audit_rows`, `test_history_stable_across_repeated_reads`, `test_read_only_designs_and_formulas_leave_no_rows` + handshake (DB counts) | ✅ COMPLIANT |
+| access-logs: Login Auditing | Successful login logged | `test_access_logs.py > test_successful_login_writes_login_row` + handshake (admin + operator login rows) | ✅ COMPLIANT |
+| access-logs: Audit Record Integrity | Historical record unchanged | `test_access_logs.py > test_historical_audit_row_unchanged_after_user_update` + handshake (row tuple byte-identical after profile update) | ✅ COMPLIANT |
+| base: Single-Origin Deployment (REQ-04) | SPA served from same origin | (no committed pytest — see SUGGESTION 2) + independent runtime handshake: `GET /` → 200 text/html from `frontend/dist`, API NOT shadowed, OPTIONS preflight → 405, zero `access-control-*` headers | ✅ COMPLIANT (runtime handshake evidence) |
+
+**Compliance summary**: 16/16 scenarios compliant in the slice E assessment universe; 0 UNTESTED; 0 FAILING. REQ-04's SPA scenario is proven by the independent 75-check runtime handshake (real execution evidence, not static analysis); the committed-suite gap is a documented SUGGESTION (the mount/ordering/no-CORS behavior is not locked by a committed pytest).
+
+**Cross-cutting (auth/base expectations, proven end-to-end, not inflated into counts)**: 401 unauthenticated and 403-where-admin-only semantics on the new routes; Spanish user-facing `detail` messages on all designs errors; audit rows written in the same transaction as the mutation.
+
+### Correctness (Static Evidence)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Designs CRUD with admin\|operator roles | ✅ Implemented | `require_roles(Role.admin, Role.operator)` on all five routes (plant-level work per spec — unlike admin-only `/users`) |
+| 1–7 cardinality app-level in-tx | ✅ Implemented | `_validate_color_ids` runs inside the request transaction before any flush (design ADR-6 / design-time note — SQLite cannot CHECK a cross-row count); Spanish `"El diseño debe tener entre 1 y 7 colores"` |
+| Distinctness of color references | ✅ Implemented | `len(set(color_ids)) != len(color_ids)` → 409 Spanish; DB `UniqueConstraint(design_id, pantone_color_id)` (slice B) as the data-layer backstop |
+| Pantone existence check | ✅ Implemented | `db.get(PantoneColor, id) is None` → 404 `"Color Pantone no encontrado"` inside the same tx |
+| Duplicate name 409 (create + update) | ✅ Implemented | `_ensure_name_free` with `exclude_id` on update; Spanish `"Ya existe un diseño con ese nombre"`; `designs.name` UNIQUE (slice B) as backstop |
+| Update replaces color set | ✅ Implemented | `design.colors = [...]` with ORM `delete-orphan` cascade prunes stale links; `color_ids` absent ⇒ colors preserved (users/formulas partial-update pattern) |
+| Cascade delete + audit | ✅ Implemented | `db.delete(design)` cascades via `delete-orphan` + DB `ON DELETE CASCADE`; `design.delete` audit row in the same tx |
+| `created_by`/timestamps | ✅ Implemented | `created_by` = acting user id; `created_at`/`updated_at` via `utcnow()` (+ `onupdate`) |
+| Access-logs admin-only read | ✅ Implemented | `require_roles(Role.admin)` on `GET /access-logs`; ordered `timestamp desc, id desc` (stable tiebreak — documented deviation, design said newest-first). Endpoint never logs (spec read-only negative) |
+| Audit wiring across all resources | ✅ Implemented | `log_action` shared helper (slice C) now used by designs router too; auth/users/pantone/formulas/designs all audit in the same tx as their mutation |
+| Audit immutability | ✅ Implemented | `access_logs.user_id → users` NO ACTION FK (slice B); rows store `user_id` + `timestamp` + `action` snapshot; profile update leaves the tuple byte-identical |
+| `_SPARoute` ordering-sensitive shape | ✅ Works as designed (bounded risk — WARNING 2) | custom `Route` yields `Match.NONE` for non-HTTP scopes and `/api/*` paths so the REST tree always wins; appended LAST in `create_app()`; `include_in_schema=False`. Proven at runtime incl. a late-registered `/api/v1/` route. Risk: any future NON-API route appended after `_mount_spa` would be shadowed (Starlette first-match) — see WARNING 2 |
+| No CORS | ✅ Implemented | no `CORSMiddleware` in the codebase or middleware stack; preflight → 405 with zero `access-control-*` headers (runtime) |
+
+### Coherence (Design)
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| ADR-6: 1–7 cardinality app-level in tx + DB unique pair | ✅ Yes | `_validate_color_ids` in the request transaction; `uq_design_color` at the data layer; UI-side disable is slice F |
+| Design Time Note (cardinality enforcement) | ✅ Yes | Spanish 422 for 0/>7; boundary 1 & 7 accepted; duplicate color rejected (409 — spec allows reject-or-collapse; the implementation rejects) |
+| API surface: `POST /designs` `GET/PATCH/DELETE /designs/{id}` admin\|operator, codes 201/200/422/409/404 | ✅ Yes | All codes exercised at runtime; delete 204 (spec/design-consistent with the other CRUD modules) |
+| `GET /access-logs` admin-only (design API surface) | ✅ Yes | `require_roles(Role.admin)`; confirmed 200/403/401 |
+| Single-origin static SPA at `/`, no CORS (ADR-2 / REQ-04) | ✅ Yes | `_SPARoute` serves `frontend/dist` at `/` when present; no CORS; REST under `/api/v1` never shadowed |
+| Audit every design mutation + login in same tx | ✅ Yes | `log_action` before `commit` in create/update/delete and login; design "Sequence: Design create" matches |
+| Cardinality at router (not schema) | ⚠️ Deviation (documented) | `DesignCreate.color_ids` has no `min_length=1/max_length=7` Field — a schema-level rejection would return Pydantic's English error and never reach the spec-required Spanish message; ADR-6 explicitly places the check at the application layer. Exactly the documented deviation; no spec break |
+| SPA via custom `Route` instead of `Mount("/")` | ⚠️ Deviation (documented, evaluated) | A root mount matches every path and shadowed test_auth's late-registered `/api/v1/_probe` route (real regression). `_SPARoute` fixes it; behavior per REQ-04/ADR-2. Risk evaluated in WARNING 2 |
+| `DesignOut` nests `colors: [{id, pantone_color_id}]` | ⚠️ Deviation (additive) | create/update still take flat `color_ids`; nested output mirrors `FormulaOut.ingredients`; spec-compatible |
+| Access-logs ordering `timestamp desc, id desc` | ⚠️ Deviation (additive tiebreak) | spec requires newest-first; `id desc` only stabilizes same-tick rows |
+
+### TDD Compliance (Strict TDD module)
+| Check | Result | Details |
+|-------|--------|--------|
+| TDD Evidence reported | ✅ | Slice E apply-progress records the RED/GREEN cycle for 7.1/7.2/8.1/8.2 (table + per-task notes) |
+| All tasks have tests | ✅ | 4/4 — 7.1/7.2 driven by `test_designs.py`; 8.1/8.2 driven by `test_access_logs.py` |
+| RED confirmed (test files exist) | ✅ | RED commits exist and contain ONLY the test files, before their routers: `14e71d5` (only `test_designs.py`, 289 insertions), `48e01a4` (only `test_access_logs.py`, 263 insertions). GREEN routers landed later in `a3e6ca9`/`d83c24d` |
+| RED committed before GREEN | ✅ | Verified via `git show --stat` per commit: RED commits touch no router/model/schema file |
+| GREEN confirmed (tests pass) | ✅ | 24/24 slice E tests pass on independent execution (88/88 full suite) |
+| Triangulation adequate | ✅ | designs: 15 tests over 11 scenarios, both boundary values (1 AND 7) asserted with DIFFERENT expected outcomes, Spanish-detail asserts, DB not-persisted probes, update + create paths; access-logs: 9 tests over 4 scenarios incl. direct-DB negatives and the immutability tuple compare — no multi-scenario behavior rests on a single test |
+| Safety Net for modified files | ✅ | Both test files are new in the RED commits (N/A legitimate); the table's pre-baseline claims (64 passed / 79 passed) are consistent with the verified suite history |
+
+**TDD Compliance**: 6/6 checks passed. One documented TDD note (not a failure): the 7.1 RED file received a post-GREEN strengthening (nonexistent-pantone asserted as 404 + Spanish detail instead of the lax `in (404, 422)`), fixup-squashed into the RED commit and recorded in apply-progress — the committed RED file is the strengthened version, which is the contract that was then enforced.
+
+### Test Layer Distribution
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Unit | 0 | 0 | — |
+| Integration | 24 | 2 | pytest + TestClient + temp-file SQLite + real bcrypt/JWT primitives |
+| E2E | 75 checks | 1 | independent runtime handshake (real app + seeded DB, SPA mount active) |
+| **Total (slice E)** | **24 committed** | **2** | |
+
+### Changed File Coverage
+Coverage analysis skipped — no coverage tool detected (`pytest-cov` not installed). Not a failure.
+
+### Assertion Quality
+- `test_designs.py`: asserts real status codes (201/200/204/409/422/404/401), DB row effects (created design via ORM with `created_by==1`, timestamps non-null, design deleted ⇒ `None`, `design_colors` rows `== []` after cascade), Spanish `detail` strings (`"entre 1 y 7"`, `"Color Pantone no encontrado"`), duplicate-create NOT persisted via DB count, boundary 1 & 7 with different expected lengths (1 vs 7), operator writes verified down to `db.scalar(sa.select(Design)) is None` after operator delete, audit tuples `("design.<verb>", admin_id)` — all execute the production path and assert concrete values.
+- `test_access_logs.py`: asserts status codes (200/403/401), ordering (timestamps sorted desc + `id desc` tiebreak), the full audit action set across login/user/pantone/formula/design mutations, login row with non-null timestamp, reads-not-logged via DB count before/after over every read flavor (incl. the audit endpoint), history stable over 5 repeated reads, immutability as the exact `(user_id, timestamp, action)` tuple comparison, and a direct-DB negative proving reads materialize no audit rows — all real behavior.
+- Both suites use the real TestClient + real SQLite; the `auth_headers` token factory (slice C) is the only shortcut and is itself real-JWT against the app secret, with the login path fully covered by `test_auth.py` (slice C) and re-proven by the handshake.
+- No tautologies, ghost loops, type-only-only assertions, smoke-only checks, or implementation-detail coupling found. Mock ratio: zero mocks in both files.
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+### Quality Metrics
+**Linter**: ➖ Not available (no flake8/ruff configured)
+**Type Checker**: ➖ Not available (Python; pytest + runtime handshake used as the executable check)
+**Coverage**: ➖ Not available (pytest-cov missing)
+
+### Issues Found
+**CRITICAL**: None
+
+**WARNING**:
+1. `InsecureKeyLengthWarning` (PyJWT, RFC 7518 §3.2): the configured `secret_key` (`dev-secret-change-me`, 20 bytes) is below PyJWT's 32-byte minimum for HS256 and every token encode/decode emits the warning. Carried forward from slices C/D unchanged; tokens sign and verify correctly and `config.py` documents the production override, so this is a hardening follow-up, NOT a slice E blocker. Follow-up: set a ≥32-byte key via env/`.env` and add `InsecureKeyLengthWarning` to the pytest filterwarnings.
+2. **`_SPARoute` ordering-sensitive shape (evaluated as bounded risk)**: the SPA route yields `Match.NONE` for non-HTTP scopes and `/api/*` paths, which protects the REST tree (proven: full suite 88/88 runs with the SPA route active; handshake proves a route registered AFTER `create_app()` under `/api/v1/` still resolves). The residual risk is symmetrical: because the route is appended last, any future NON-API route appended after `_mount_spa()` (e.g., a test registering `/healthz` or a marketing page) would be silently shadowed by the SPA catch-all. This is a maintenance trap rather than a current defect — production `create_app()` never adds routes after the mount. Recommended follow-up: document the invariant in `main.py` (comment added in-slice) and/or add a committed pytest asserting `GET /` serves the SPA and late `/api/` routes resolve, locking the ordering behavior (see SUGGESTION 2).
+
+**SUGGESTION**:
+1. Apply-progress TDD-table RED hashes (`5ca3bfa` for 7.1, `26d1ece` for 8.1) differ from the actual committed RED hashes (`14e71d5`, `48e01a4`). The intermediate commits exist but were rewritten by the documented `--fixup`/`--autosquash` rebase; the final RED commits are verified (only-test-file, before GREEN). Cosmetic doc drift — worth correcting in the apply-progress record for future readers.
+2. REQ-04's SPA mount / no-CORS / non-shadowing behavior has NO committed pytest — the 88-test suite would not catch a regression that breaks `GET /` or re-introduces CORS. Recommended: add a `test_boot.py` (or standalone `test_spa_mount.py`) case asserting `GET /` → 200 text/html when `frontend/dist` exists, `OPTIONS /api/v1/…` → 405 with zero `access-control-*` headers, and a late-registered `/api/v1/` route still resolving. (The handshake proves the behavior today; a committed test would lock it.)
+3. `test_zero_colors_returns_422_spanish` / `test_eight_colors_returns_422_spanish` assert `status_code in (400, 422)` (spec allows either) plus the Spanish detail — the implemented code returns exactly 422, so the asserts could be tightened to `== 422`; harmless as written.
+4. The designs update-path cardinality/duplicate negatives (PATCH with 0 / 8 / duplicated colors) are proven only by the independent handshake, not by a committed pytest; the shared `_validate_color_ids` code path makes the risk low, but a committed case would lock it (mirrors SUGGESTION 2's rationale).
+5. Carried from earlier slices: StarletteDeprecationWarning (httpx → httpx2); `unique=True, index=True` duplicate auto-indexes in SQLite (optional future cleanup).
+
+### DEFERRED (out of slice E scope — NOT defects)
+- designs: Minimal Designs Page (frontend, Spanish UI, 1–7 picker disabling the 8th color) → slice F (Phase 9, tasks 9.2/9.3); the static mount already serves whatever build exists.
+- users: Minimal Admin UI Page → slice F.
+- base: PWA manifest/icon scenarios → verified in slice A.
+- base: Strict TDD "Frontend red-green" scenario → slice F (vitest).
+
+### Verdict
+**PASS** — Slice E (tasks 7.1, 7.2, 8.1, 8.2) is complete and proven: focused slice E acceptance 24/24 (exit 0, stdout sha256 `7124d9f7…`); full suite 88/88 (exit 0, stdout sha256 `c21d6f88…`, zero regressions vs the slice D 64 baseline); an independent 75/75-check runtime handshake against a freshly migrated+seeded DB proves admin AND operator designs CRUD (1-color and 7-color creates, list/read/update/delete), duplicate name 409 on create AND update with the duplicate never persisted, invalid paint_type 422, 0/8 colors → 422 with the Spanish `"entre 1 y 7"` message (create and update paths), boundary 1 & 7 accepted, duplicate color 409 not persisted, cascade delete removing `design_colors` rows with a `design.delete` audit row, admin-only `/access-logs` (200/403/401) with timestamp-desc ordering, login + every mutation audited, reads never logged, audit rows immutable across a referenced profile update, and REQ-04 single-origin: `GET /` serves the built SPA (200 text/html) while `/api/v1/*` stays on the REST tree (late-registered routes included), OPTIONS preflight → 405 with zero `access-control-*` headers (no CORS), and `/openapi.json` carrying `/api/v1/designs*` + `/api/v1/access-logs`. TDD evidence 6/6 with RED commits `14e71d5` + `48e01a4` landing only-test-file before their GREEN routers. Two WARNINGs recorded (carried JWT 20B secret; `_SPARoute` ordering shape evaluated as a bounded, currently-working risk); remaining items are SUGGESTIONs or cross-slice deferrals.
+
+### Verification Environment (slice E)
+- Workspace: /root/TelaryColor (git branch `feat/pr-e-designs-audit`, HEAD `ab7bf02` — `docs(sdd): record slice E designs+audit apply progress`)
+- Slice E candidate tree: `git rev-parse HEAD^{tree}` = `edd0f69e62ce8ce255b85a1cdec73cfc682a7520`; envelope `evidence_revision` = sha256 of that tree hash string (`8227d357…`)
+- Backend venv: `backend/.venv` (Python 3.13.7)
+- Handshake DB: fresh `/tmp/telary_verify_slicee.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slices B/C/D) + `python -m app.seed` (exit 0 → 1 admin, 0 audit rows); operator provisioned via real `POST /users`
+- Commands executed by verifier: `./.venv/bin/python -m pytest -q tests/test_designs.py tests/test_access_logs.py` (exit 0, stdout sha256 `7124d9f7…`), `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `c21d6f88…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python /tmp/telary_slicee_handshake.py` (exit 0, 75/75, stdout sha256 `6ea2a7e6…`), `alembic upgrade head` fresh DB (exit 0, output sha256 `f88ce792…`), direct SQLite/ORM probes
+- Evidence hashes: focused stdout `sha256:7124d9f7…`; full-suite stdout `sha256:c21d6f88…`; handshake stdout `sha256:6ea2a7e6…`; migration output `sha256:f88ce792…`; evidence revision `sha256:8227d357…`
