@@ -313,3 +313,85 @@ Mode: **Strict TDD** (pytest backend)
 - Verify phase for slice D: independent `pytest` re-run + runtime pantone+formulas write/cascade/conversion handshake against the seeded DB, then extend `verify-report.md`.
 - PR D (pantone + formulas) from `feat/pr-d-pantone-formulas` after slice C merges (stacked-to-main).
 - PR C (auth + users) from this branch after slice B merges (stacked-to-main).
+
+---
+
+# Apply Progress — Slice E: Designs + Access Logs + Static Mount (tasks 7.1–7.2, 8.1–8.2)
+
+Slice: E (tasks 7.1, 7.2, 8.1, 8.2) — PR E, chained stacked-to-main
+Branch: `feat/pr-e-designs-audit`
+Date: 2026-08-28
+Mode: **Strict TDD** (pytest backend; RED observed + committed before each GREEN)
+
+## Completed Tasks
+
+- [x] 7.1 RED: `test_designs.py` — admin+operator CRUD, dup name 409, 0/8 colors 422 (ES msg), 1 & 7 ok, dup color, cascade+audit.
+- [x] 7.2 GREEN: `designs/{models,schemas,router}.py` — 1–7 cardinality in tx; unique pair FK.
+- [x] 8.1 RED: `test_access_logs.py` — mutations + login logged, reads not, history stable.
+- [x] 8.2 GREEN: `access_logs/{schemas,router}.py`; `main.py` mounts API + static dist.
+
+## TDD Cycle Evidence (Slice E)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 7.1 | `backend/tests/test_designs.py` | Integration | ✅ 64 passed (pre-baseline) | ✅ RED committed `5ca3bfa` before router existed — **14 failed** (endpoints missing → 404; only the lax `in (404, 422)` nonexistent-color case passed trivially) | ✅ 15 passed (router 7.2 added) | ✅ multi-case: create persists created_by/at/updated_at, dup name 409 (create+update), paint_type 422, 0/8 colors 422 Spanish `"entre 1 y 7"`, boundary 1 & 7, dup color 409, nonexistent pantone 404, CRUD cycle + color-set replacement, cascade+`design.delete`, operator-CAN, 401, write-audit, reads-not-audited | ✅ Clean — after GREEN, strengthened the weak RED assertion to the real contract: nonexistent pantone → **404 + `detail == "Color Pantone no encontrado"`** (was `in (404, 422)`; fold into 7.1 via fixup, no behavior change) |
+| 7.2 | — (via 7.1) | Integration | N/A | ➖ GREEN-driven by 7.1 | ✅ `designs/schemas.py` + `router.py` (`require_roles(admin, operator)`), mounted in `main.py`; 1–7 cardinality + distinctness + pantone-existence enforced in the request transaction; audit `design.create/update/delete`; `DesignOut.colors` nested | ✅ boundary 1 & 7 accepted vs 0/8 rejected w/ Spanish detail; replace-on-PATCH vs preserve-on-no-`color_ids` | ✅ Clean (one self-catch during dev: an early `main.py` import of the not-yet-existing `access_logs.router` was scoped out of the 7.2 commit and landed with 8.2) |
+| 8.1 | `backend/tests/test_access_logs.py` | Integration | ✅ 79 passed (A+B+C+D+designs) | ✅ RED committed `26d1ece` before router existed — **4 failed** (all `/access-logs`-endpoint tests: 404 instead of 401/200/ordering); the 5 mutation/login/integrity wiring tests **already passed** (slice-C/D wiring holds) | ✅ 9 passed (router 8.2 added) | ✅ multi-case: admin-only 200/403/401, timestamp-desc ordering, every mutation logged (login, user/pantone/formula/design create+update, formula/design delete), login row, reads-not-logged, history stable over 5 reads, audit-row immutability after profile update, direct-DB no-row-on-read proof | ✅ Clean — dropped a `GET /users/{id}` call the users router never exposed (no such route); unique design names in the ordered test to avoid the 409 duplicate-name path |
+| 8.2 | — (via 8.1) | Integration | N/A | ➖ GREEN-driven by 8.1 | ✅ `access_logs/{schemas,router}.py` (admin-only, `timestamp desc, id desc`) + `main.py` mounts access-logs + guarded static SPA mount | ✅ boot + openapi route presence + `/` serves dist + no CORS (OPTIONS 405, zero `access-control-*` headers) | ✅ Refactor after a real regression: the first GREEN used `Mount("/", StaticFiles(...))`, which shadowed test_auth's dynamically-registered probe route (404) → replaced with a custom `Route` (`_SPARoute`) that yields `Match.NONE` for non-HTTP and `/api/*` paths; the REST tree keeps priority for any route, late-registered or not. Full suite back to green. |
+
+## Work Unit Evidence (Slice E)
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `./.venv/bin/python -m pytest -q tests/test_designs.py tests/test_access_logs.py` → **24 passed** (15 designs + 9 access-logs). Full suite: `./.venv/bin/python -m pytest -q` → **88 passed** (up from 64; zero regressions) in ~3m14s. |
+| Runtime harness command/scenario and exact result | `python -m uvicorn app.main:app` → boots; `/openapi.json` carries `/api/v1/designs`, `/api/v1/designs/{design_id}`, `/api/v1/access-logs`; `GET /` → **200 text/html** (built SPA index.html, `frontend/dist` present); `GET /api/v1/designs` → 401 (protected); `OPTIONS /api/v1/designs` with a foreign Origin → **405 with no `access-control-*` headers** (no CORS, REQ-04/ADR-2). |
+| Rollback boundary | Revert the 4 slice-E commits (`14e71d5..d83c24d`) on `feat/pr-e-designs-audit`. No schema/migration changes (models untouched since slice B, constrained). Only slice-E files touched: `backend/tests/{test_designs,test_access_logs}.py`, `designs/{schemas,router}.py`, `access_logs/{schemas,router}.py`, `app/main.py`, plus the two docs artifacts. No slice F (frontend screens) work. |
+
+## Files Changed (PR E)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `backend/tests/test_designs.py` | Created | RED 7.1 — designs CRUD; dup name 409 (create+update); paint_type 422; 0/8 colors 422 with Spanish `"entre 1 y 7"`; boundary 1 & 7 accepted; dup color 409; nonexistent pantone 404; list/read/PATCH color-set replacement; cascade delete + `design.delete` audit; operator-CAN; unauth 401; write-audit; reads-not-audited |
+| `backend/app/modules/designs/schemas.py` | Created | `DesignCreate` (name, paint_type enum, `color_ids: list[int]`), `DesignUpdate` (partial; `color_ids` replaces the set), `DesignOut` nesting `colors: [DesignColorOut]` with `pantone_color_id` |
+| `backend/app/modules/designs/router.py` | Created | `require_roles(admin, operator)` CRUD; 1–7 cardinality + distinctness + pantone-existence checks inside the request transaction; 409 dup name; audit `design.create/update/delete`; 404 `"Diseño no encontrado"`; delete cascades via the `delete-orphan` relationship |
+| `backend/tests/test_access_logs.py` | Created | RED 8.1 — admin-only endpoint (200/403/401), timestamp-desc ordering, mutations across all resource routers + login logged, reads never log (incl. the audit endpoint itself), history stable over repeated reads, audit-row immutability after user-profile update |
+| `backend/app/modules/access_logs/schemas.py` | Created | `AccessLogOut` (id, user_id, timestamp, action) — read-only projection |
+| `backend/app/modules/access_logs/router.py` | Created | `GET /access-logs` admin-only, ordered `timestamp desc, id desc` |
+| `backend/app/main.py` | Modified | Mounted designs + access-logs routers under `/api/v1`; `_SPARoute` static SPA serving from `frontend/dist` at `/` when the directory exists (never shadows `/api/*`; `include_in_schema=False`; no CORS) |
+| `openspec/.../tasks.md` | Modified | 7.1, 7.2, 8.1, 8.2 marked `[x]` |
+
+## Commits (conventional, work units, no AI attribution)
+
+| Hash | Commit |
+|------|--------|
+| `14e71d5` | test(designs): RED design CRUD + cardinality scenarios (7.1) — includes the post-GREEN strengthening of the nonexistent-pantone contract (fixup-squashed) |
+| `a3e6ca9` | feat(designs): designs CRUD with 1-7 color cardinality + audit (7.2 GREEN) |
+| `48e01a4` | test(access_logs): RED audit endpoint + wiring scenarios (8.1) |
+| `d83c24d` | feat(access_logs): admin audit endpoint + static SPA mount (8.2 GREEN) |
+
+> **Note (commit hygiene)**: a post-GREEN strengthening of one designs test was at first `--amend`ed onto HEAD (the 8.2 feat) by mistake; it was moved back into the 7.1 RED commit with `git reset --soft` + `git commit --fixup` + `--autosquash` rebase. The resulting tree is byte-identical to the verified 88/88 state; each work-unit commit contains exactly its own files (checked per commit).
+
+## Deviations from Design
+
+- **Cardinality enforced only at the router level, not on the schema.** `DesignCreate.color_ids` has no `Field(min_length=1, max_length=7)`: a schema-level rejection would answer with Pydantic's default English error and never reach the Spanish `"El diseño debe tener entre 1 y 7 colores"` the spec requires. ADR-6 puts the 1–7 check at the application layer — this is exactly that, done in the request transaction before anything is flushed.
+- **SPA serving is a custom `Route` instead of `Mount("/", StaticFiles(...))`.** A root mount matches every path, so any route registered after `create_app()` (e.g. test_auth's dynamic probe route) is shadowed — this actually regressed a slice-C test during the first GREEN attempt. `_SPARoute` returns `Match.NONE` for non-HTTP scopes and for any `/api/*` path, so the REST tree always wins; everything else is served from `frontend/dist` with `html=True`. Behavior per REQ-04/ADR-2 unchanged (SPA at `/`, no CORS).
+- **`DesignOut` nests `colors: [{id, pantone_color_id}]`** instead of a flat `color_ids` list (create/update still take `color_ids`). The spec says "nest the colors / color ids"; the nested shape maps the ORM relationship via `from_attributes=True`, matching the `FormulaOut.ingredients` pattern exactly.
+- **Access-logs ordering adds `id desc` as a tiebreak** after `timestamp desc` — rows created in the same tick keep a deterministic order (spec only requires newest-first).
+
+## Issues Found
+
+- **`Mount("/")` shadows late-registered routes (resolved in-slice)**: the first 8.2 GREEN broke `test_require_roles_admits_admin_and_rejects_operator` (probe registered after `create_app()`). Fixed with `_SPARoute`; full suite green. Documented here so verify knows the ordering-sensitive shape.
+- **Known (carried, out of slice-E scope)**: JWT `secret_key` is 20 bytes → `InsecureKeyLengthWarning` for HS256 (noted since slice C; follow-up hardening 32+ bytes).
+- **No schema/migration changes** — `designs`/`access_logs` models remained exactly as slice B created them (constraint honored).
+
+## Verification Environment
+
+- Python 3.13.7 venv at `backend/.venv` — pytest 88/88 passing.
+- Runtime verified: uvicorn boot + `/openapi.json` route presence + `/` SPA serve + no-CORS preflight check (all in-slice).
+- `frontend/dist` exists (gitignored build output) → static mount active at app creation.
+
+## Next Steps
+
+- Verify phase for slice E: independent `pytest` re-run + runtime designs 1–7 write/cascade/audit handshake + `/access-logs` admin read against the seeded DB, then extend `verify-report.md`.
+- PR E (designs + audit + SPA serve) from `feat/pr-e-designs-audit` after slice D merges (stacked-to-main).
+- Slice F (frontend screens, tasks 9.x) is NOT implemented here — the static mount only serves whatever build exists.
