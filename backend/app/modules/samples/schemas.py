@@ -8,6 +8,10 @@ set at create time. ``SampleUpdate`` exposes the three mutable fields
 attempt to change it fails loudly in the router (400) instead of being
 silently dropped as an unknown extra field. ``SampleOut`` mirrors the ORM
 shape, including the optional ``formula_id`` set by a later promote.
+
+``SamplePromote`` mirrors ``FormulaCreate`` minus the ``pantone_color_id``:
+promoting a sample derives that id from the sample's ``pantone_target_id``
+(design ADR-4), never from the client.
 """
 
 from datetime import datetime
@@ -15,6 +19,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.enums import SampleStatus
+from app.modules.formulas.schemas import FormulaOut, IngredientIn
 
 
 class SampleCreate(BaseModel):
@@ -33,6 +38,12 @@ class SampleUpdate(BaseModel):
     pantone_target_id: int | None = None
 
 
+class SamplePromote(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    notes: str | None = Field(default=None, max_length=1000)
+    ingredients: list[IngredientIn] = Field(min_length=1)
+
+
 class SampleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,3 +55,16 @@ class SampleOut(BaseModel):
     notes: str | None
     created_by: int
     created_at: datetime
+
+
+class PromoteOut(BaseModel):
+    """Promote response: the newly created formula plus the linked sample.
+
+    Both are ORM-sourced, so ``from_attributes`` applies at each nested level
+    (``FormulaOut``/``SampleOut`` already configure it).
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    formula: FormulaOut
+    sample: SampleOut

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { listFormulas, listReusableSamples, searchPantone } from '../api/index.js'
+import SampleFicha from '../components/SampleFicha.jsx'
 import { useDebounce } from '../hooks/useDebounce.js'
 
 export default function SearchPage() {
@@ -117,19 +118,11 @@ export default function SearchPage() {
                 <p className="text-sm font-medium text-slate-700">
                   Muestras reutilizables ({reusableSamples[color.id].length})
                 </p>
-                <ul className="mt-1 flex gap-2">
-                  {reusableSamples[color.id]
-                    .filter((sample) => sample.photo_url)
-                    .map((sample) => (
-                      <li key={sample.id}>
-                        <img
-                          src={sample.photo_url}
-                          alt={`Muestra reutilizable de ${color.code}`}
-                          className="h-12 w-12 rounded border border-slate-200 object-cover"
-                        />
-                      </li>
-                    ))}
-                </ul>
+                <div className="mt-1 space-y-1">
+                  {reusableSamples[color.id].map((sample) => (
+                    <SampleFicha key={sample.id} sample={sample} colorCode={color.code} />
+                  ))}
+                </div>
               </div>
             )}
           </li>

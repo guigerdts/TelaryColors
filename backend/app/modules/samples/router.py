@@ -16,10 +16,18 @@
   "Photo Upload Validation"): size → declared allowlist → magic-byte
   agreement, stored under a server-generated ``uuid4().hex`` name
   (design ADR-3).
+- ``POST /samples/{sample_id}/promote`` atomically promotes a reusable
+  sample into a NEW formula (design ADR-4, spec "Atomic Promote"): 404 for
+  a missing sample, 409 unless the sample is ``archivada_reutilizable``.
+  One transaction creates the formula (its ``pantone_color_id`` derived from
+  the sample's ``pantone_target_id``), marks the sample ``aprobada`` + sets
+  ``formula_id``, and audits a single ``sample.promote`` row; any mid-way
+  failure rolls the transaction back (S14).
 
 These routes are authenticated (any user, admin OR operator — unlike the
-admin-only users router, per design roles). Every write action records an
-audit row with the acting user; read-only requests never log.
+admin-only users router, per design roles). Every domain write records an
+audit row with the acting user; read-only requests never log. The upload
+endpoint stores a file but writes no domain audit row of its own.
 """
 
 import uuid
@@ -33,9 +41,16 @@ from app.core.config import settings
 from app.core.deps import get_current_user, get_db
 from app.db.enums import SampleStatus
 from app.modules.access_logs.service import log_action
+from app.modules.formulas.models import Formula, FormulaIngredient
 from app.modules.pantone_colors.models import PantoneColor
 from app.modules.samples.models import Sample
-from app.modules.samples.schemas import SampleCreate, SampleOut, SampleUpdate
+from app.modules.samples.schemas import (
+    PromoteOut,
+    SampleCreate,
+    SampleOut,
+    SamplePromote,
+    SampleUpdate,
+)
 from app.modules.samples.uploads import UploadError, classify_upload
 from app.modules.users.models import User
 
@@ -168,3 +183,53 @@ def upload_sample_photo(
     directory.mkdir(parents=True, exist_ok=True)
     (directory / name).write_bytes(data)
     return {"photo_url": f"/uploads/{name}"}
+
+
+@router.post("/{sample_id}/promote", response_model=PromoteOut, status_code=status.HTTP_201_CREATED)
+def promote_sample(
+    sample_id: int,
+    payload: SamplePromote,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Atomically promote a reusable sample into a formula (design ADR-4).
+
+    One transaction creates a new ``Formula`` (its ``pantone_color_id`` derived
+    from the sample's ``pantone_target_id`` — never client-supplied), flushes to
+    assign the formula id, marks the sample ``aprobada`` and links ``formula_id``,
+    and writes exactly ONE ``sample.promote`` audit row. Any mid-way failure
+    rolls the whole transaction back so nothing persists (spec S14).
+    """
+    sample = _get_sample_or_404(db, sample_id)
+    if sample.status != SampleStatus.archivada_reutilizable:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La muestra debe estar archivada como reutilizable",
+        )
+    try:
+        formula = Formula(
+            pantone_color_id=sample.pantone_target_id,  # derive, never client-supplied
+            name=payload.name,
+            notes=payload.notes,
+            created_by=user.id,
+        )
+        formula.ingredients = [
+            FormulaIngredient(
+                colorant=ing.colorant,
+                quantity=ing.quantity,
+                unit=ing.unit,
+            )
+            for ing in payload.ingredients
+        ]
+        db.add(formula)
+        db.flush()  # assign formula.id before linking the sample
+        sample.status = SampleStatus.aprobada
+        sample.formula_id = formula.id
+        log_action(db, user.id, "sample.promote")
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(sample)
+    db.refresh(formula)
+    return {"formula": formula, "sample": sample}

@@ -74,12 +74,12 @@ Chain strategy: stacked-to-main
 
 ## Phase F: Ficha Visualization + Promote
 
-- [ ] F1 RED `test_samples.py`: happy promote → formula + `aprobada` + `formula_id` + **exactly one** `access_logs` row (S13)
-- [ ] F2 RED `test_samples.py`: promote failure (empty ingredients) → rollback, sample unchanged (S14)
-- [ ] F3 RED `test_samples.py`: promote on non-`archivada_reutilizable` → 409; missing → 404
-- [ ] F4 GREEN `modules/samples/router.py`: `POST /samples/{id}/promote` atomic (derive `pantone_color_id` from sample; one txn + one audit row; 409/404)
-- [ ] F5 RED `SampleFicha.test.jsx`: render thumbnails + promote click calls `promoteSample`
-- [ ] F6 GREEN `api/index.js` + `components/SampleFicha.jsx` + `pages/Search.jsx`: `promoteSample`, component, wire promote action
+- [x] F1 RED `test_samples.py`: happy promote → formula + `aprobada` + `formula_id` + **exactly one** `access_logs` row (S13)
+- [x] F2 RED `test_samples.py`: promote failure (empty ingredients) → rollback, sample unchanged (S14)
+- [x] F3 RED `test_samples.py`: promote on non-`archivada_reutilizable` → 409; missing → 404
+- [x] F4 GREEN `modules/samples/router.py`: `POST /samples/{id}/promote` atomic (derive `pantone_color_id` from sample; one txn + one audit row; 409/404)
+- [x] F5 RED `SampleFicha.test.jsx`: render thumbnails + promote click calls `promoteSample`
+- [x] F6 GREEN `api/index.js` + `components/SampleFicha.jsx` + `pages/Search.jsx`: `promoteSample`, component, wire promote action
 
 ## Notes
 
