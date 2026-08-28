@@ -29,6 +29,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import sqlalchemy as sa
 
 from app.core.config import settings
@@ -542,3 +543,172 @@ def test_delete_sample_returns_405(client, auth_headers) -> None:
 
     deleted = client.delete(f"/api/v1/samples/{sample_id}", headers=headers)
     assert deleted.status_code == 405
+
+
+# --- Slice F: atomic promote -----------------------------------------------
+#
+# Samples spec "Atomic Promote" (S13 happy-path, S14 rollback on failure) and
+# the 409/404 guards from design ADR-4. Promoting a sample creates a NEW
+# formula in one transaction, derives ``pantone_color_id`` from the sample's
+# ``pantone_target_id`` (never client-supplied), marks the sample ``aprobada``,
+# sets ``formula_id``, and writes exactly ONE ``sample.promote`` audit row.
+# Request body mirrors FormulaCreate minus ``pantone_color_id`` (derived).
+
+
+def _promote_payload(**overrides):
+    payload = {
+        "name": "Fórmula promovida",
+        "notes": "derivada de muestra",
+        "ingredients": [
+            {"colorant": "Amarillo", "quantity": "10", "unit": "g"},
+            {"colorant": "Negro", "quantity": "0.5", "unit": "g"},
+        ],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_promote_happy_path_creates_formula_and_links_sample(
+    client, auth_headers, session_factory
+) -> None:
+    """S13 Happy-path promote: a formula is created, the sample becomes
+    ``aprobada`` with ``formula_id`` set, and exactly ONE ``sample.promote``
+    audit row is written in the same transaction."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    response = client.post(
+        f"/api/v1/samples/{sample_id}/promote",
+        headers=headers,
+        json=_promote_payload(),
+    )
+    assert response.status_code == 201
+    body = response.json()
+
+    formula = body["formula"]
+    assert formula["pantone_color_id"] == color_id, (
+        "pantone_color_id derived from the sample's pantone_target_id"
+    )
+    assert formula["name"] == "Fórmula promovida"
+    assert {i["colorant"] for i in formula["ingredients"]} == {"Amarillo", "Negro"}
+    formula_id = formula["id"]
+
+    sample = body["sample"]
+    assert sample["id"] == sample_id
+    assert sample["status"] == "aprobada", "promote marks the sample aprobada"
+    assert sample["formula_id"] == formula_id, "sample links back to the new formula"
+
+    with session_factory() as db:
+        stored = db.get(Sample, sample_id)
+        assert stored.status.value == "aprobada"
+        assert stored.formula_id == formula_id
+        promote_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action == "sample.promote")
+        ).all()
+        assert len(promote_rows) == 1, "exactly ONE sample.promote audit row"
+        # create + promote => exactly two sample audit rows, same transactions
+        sample_rows = db.execute(
+            sa.select(AccessLog.id).where(AccessLog.action.like("sample.%"))
+        ).all()
+        assert len(sample_rows) == 2
+
+
+def test_promote_failure_rolls_back_within_transaction(
+    client, auth_headers, session_factory, monkeypatch
+) -> None:
+    """S14 Rollback on failure: a promote that fails MID-transaction persists
+    nothing. We monkeypatch the promote audit write to raise after the formula
+    insert + sample mutation, forcing the ``except: db.rollback()`` path — the
+    sample must stay ``archivada_reutilizable`` with no formula and no audit
+    row. (TestClient re-raises the server exception by default, so we assert
+    the exception propagated AND the transaction rolled back.)"""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    # Fail the audit write inside the promote transaction, after the formula
+    # INSERT and the sample mutation have already been staged.
+    def _boom(_db, _user_id, _action):
+        raise RuntimeError("simulated promote audit failure")
+
+    monkeypatch.setattr("app.modules.samples.router.log_action", _boom)
+
+    with pytest.raises(RuntimeError, match="simulated promote audit failure"):
+        client.post(
+            f"/api/v1/samples/{sample_id}/promote",
+            headers=headers,
+            json=_promote_payload(),
+        )
+
+    with session_factory() as db:
+        stored = db.get(Sample, sample_id)
+        assert stored.status.value == "archivada_reutilizable", "sample unchanged"
+        assert stored.formula_id is None, "no formula linked to the sample"
+        promote_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action == "sample.promote")
+        ).all()
+        assert len(promote_rows) == 0, "no promote audit row on rolled-back failure"
+        # No formula may survive the rollback either.
+        formulas = db.execute(sa.select(sa.func.count()).select_from(
+            sa.text("formulas")
+        )).scalar_one()
+        assert formulas == 0, "rolled-back formula must not persist"
+
+
+def test_promote_empty_ingredients_rejected_and_sample_unchanged(
+    client, auth_headers, session_factory
+) -> None:
+    """A promote with no ingredients is rejected (422) before any write, so the
+    sample stays ``archivada_reutilizable`` with no formula and no audit row."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+
+    response = client.post(
+        f"/api/v1/samples/{sample_id}/promote",
+        headers=headers,
+        json=_promote_payload(ingredients=[]),
+    )
+    assert response.status_code == 422
+
+    with session_factory() as db:
+        stored = db.get(Sample, sample_id)
+        assert stored.status.value == "archivada_reutilizable", "sample unchanged"
+        assert stored.formula_id is None, "no formula linked to the sample"
+        promote_rows = db.execute(
+            sa.select(AccessLog).where(AccessLog.action == "sample.promote")
+        ).all()
+        assert len(promote_rows) == 0, "no promote audit row on rejected promote"
+
+
+def test_promote_non_reusable_sample_returns_409(client, auth_headers) -> None:
+    """Promote is only allowed on an ``archivada_reutilizable`` sample: any
+    other status returns 409 (design ADR-4)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    sample_id = _create_sample(client, headers, color_id).json()["id"]
+    # Demote it to descartada so it is no longer reusable.
+    assert client.patch(
+        f"/api/v1/samples/{sample_id}", headers=headers,
+        json={"status": "descartada"},
+    ).status_code == 200
+
+    response = client.post(
+        f"/api/v1/samples/{sample_id}/promote",
+        headers=headers,
+        json=_promote_payload(),
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "La muestra debe estar archivada como reutilizable"
+
+
+def test_promote_missing_sample_returns_404(client, auth_headers) -> None:
+    """Promoting a sample that does not exist returns 404."""
+    headers = auth_headers("admin")
+    response = client.post(
+        "/api/v1/samples/99999/promote",
+        headers=headers,
+        json=_promote_payload(),
+    )
+    assert response.status_code == 404
