@@ -109,7 +109,8 @@ describe('api client', () => {
     // The body must be raw FormData — fetch derives the multipart boundary,
     // so we must NOT set a JSON content-type on it.
     expect(init.body).toBeInstanceOf(FormData)
-    expect(init.body.get('file')).toBe(file)
+    // Backend contract: multipart field is `photo` (router.py upload_sample_photo).
+    expect(init.body.get('photo')).toBe(file)
     expect(init.headers['Content-Type']).toBeUndefined()
     expect(res.photo_url).toBe('/uploads/shot.jpg')
   })

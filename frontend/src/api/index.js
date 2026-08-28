@@ -85,7 +85,7 @@ export const promoteSample = (id, payload) =>
 // JSON bodies). Only the Bearer token is attached.
 export async function uploadSamplePhoto(file) {
   const form = new FormData()
-  form.append('file', file)
+  form.append('photo', file)
   const headers = {}
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
