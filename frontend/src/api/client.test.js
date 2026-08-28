@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiFetch, setUnauthorizedHandler } from './client.js'
+import { listReusableSamples } from './index.js'
 import { clearToken, getToken, setToken } from '../auth/store.js'
 
 describe('api client', () => {
@@ -69,5 +70,25 @@ describe('api client', () => {
     expect(init.method).toBe('POST')
     expect(init.headers['Content-Type']).toBe('application/json')
     expect(JSON.parse(init.body).code).toBe('221 C')
+  })
+
+  it('listReusableSamples fetches by target pantone via query params', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => [] })
+
+    await listReusableSamples(7)
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples?pantone_target_id=7&status=archivada_reutilizable')
+  })
+
+  it('listReusableSamples interpolates each target id (not a constant)', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => [] })
+
+    await listReusableSamples(42)
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples?pantone_target_id=42&status=archivada_reutilizable')
   })
 })

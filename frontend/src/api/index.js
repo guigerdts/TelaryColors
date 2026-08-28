@@ -53,3 +53,11 @@ export const deleteDesign = (id) => apiFetch(`/designs/${id}`, { method: 'DELETE
 
 // --- Access logs (admin) ---
 export const listAccessLogs = () => apiFetch('/access-logs').then((r) => r.json())
+
+// --- Samples ---
+// Reusable (archived) samples for a target Pantone: newest-first, capped at 5
+// server-side. Query params, not a path — mirrors the backend listing contract.
+export const listReusableSamples = (pantoneTargetId) =>
+  apiFetch(`/samples?pantone_target_id=${encodeURIComponent(pantoneTargetId)}&status=archivada_reutilizable`).then(
+    (r) => r.json(),
+  )

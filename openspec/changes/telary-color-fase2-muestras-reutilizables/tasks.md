@@ -60,9 +60,9 @@ Chain strategy: stacked-to-main
 
 ## Phase D: Ficha Integration
 
-- [ ] D1 RED `api/client.test.js`: `listReusableSamples(id)` → `GET /samples?pantone_target_id=&status=archivada_reutilizable`
-- [ ] D2 GREEN `api/index.js`: add `listReusableSamples`
-- [ ] D3 GREEN `pages/Search.jsx`: fetch reusable samples per result; compose client-side ficha surface (no pantone-colors delta)
+- [x] D1 RED `api/client.test.js`: `listReusableSamples(id)` → `GET /samples?pantone_target_id=&status=archivada_reutilizable`
+- [x] D2 GREEN `api/index.js`: add `listReusableSamples`
+- [x] D3 GREEN `pages/Search.jsx`: fetch reusable samples per result; compose client-side ficha surface (no pantone-colors delta)
 
 ## Phase E: Frontend Registration
 
