@@ -1,5 +1,6 @@
 // Endpoint helpers over the shared /api/v1 client (see client.js).
-import { apiFetch } from './client.js'
+import { API_BASE, apiFetch } from './client.js'
+import { getToken } from '../auth/store.js'
 
 // --- Auth ---
 export async function login(username, password) {
@@ -61,3 +62,41 @@ export const listReusableSamples = (pantoneTargetId) =>
   apiFetch(`/samples?pantone_target_id=${encodeURIComponent(pantoneTargetId)}&status=archivada_reutilizable`).then(
     (r) => r.json(),
   )
+
+// Create / update a sample. POST defaults the status to archivada_reutilizable
+// server-side; PATCH accepts status/photo_url/notes only (pantone target is
+// immutable once created). SampleOut mirrors the backend contract.
+export const createSample = (payload) =>
+  apiFetch('/samples', { method: 'POST', body: payload }).then((r) => r.json())
+export const updateSample = (id, payload) =>
+  apiFetch(`/samples/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
+
+// Upload a sample photo as multipart/form-data. Deliberately does NOT go
+// through apiFetch: a FormData body must let fetch derive the multipart
+// boundary, so no JSON content-type is set here (the upload endpoint rejects
+// JSON bodies). Only the Bearer token is attached.
+export async function uploadSamplePhoto(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${API_BASE}/samples/upload`, {
+    method: 'POST',
+    headers,
+    body: form,
+  })
+
+  if (!res.ok) {
+    let detail = 'Error al subir la foto'
+    try {
+      const data = await res.json()
+      if (data && typeof data.detail === 'string') detail = data.detail
+    } catch {
+      /* keep default */
+    }
+    throw new Error(detail)
+  }
+  return res.json() // { photo_url }
+}

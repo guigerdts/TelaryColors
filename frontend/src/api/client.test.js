@@ -91,4 +91,39 @@ describe('api client', () => {
     const [url] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/v1/samples?pantone_target_id=42&status=archivada_reutilizable')
   })
+
+  it('uploadSamplePhoto posts multipart FormData and never a JSON content-type', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 201, json: async () => ({ photo_url: '/uploads/shot.jpg' }) })
+
+    const file = new File(['bytes'], 'foto.jpg', { type: 'image/jpeg' })
+    // Dynamic import keeps the rest of this file loadable while the export
+    // is still missing during the RED step.
+    const { uploadSamplePhoto } = await import('./index.js')
+
+    const res = await uploadSamplePhoto(file)
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/samples/upload')
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.method).toBe('POST')
+    // The body must be raw FormData — fetch derives the multipart boundary,
+    // so we must NOT set a JSON content-type on it.
+    expect(init.body).toBeInstanceOf(FormData)
+    expect(init.body.get('file')).toBe(file)
+    expect(init.headers['Content-Type']).toBeUndefined()
+    expect(res.photo_url).toBe('/uploads/shot.jpg')
+  })
+
+  it('uploadSamplePhoto still attaches the Bearer token', async () => {
+    setToken('jwt-xyz')
+    fetchMock.mockResolvedValue({ ok: true, status: 201, json: async () => ({ photo_url: '/uploads/shot.jpg' }) })
+
+    const file = new File(['bytes'], 'foto.jpg', { type: 'image/jpeg' })
+    const { uploadSamplePhoto } = await import('./index.js')
+
+    await uploadSamplePhoto(file)
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers.Authorization).toBe('Bearer jwt-xyz')
+  })
 })

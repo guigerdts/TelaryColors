@@ -9,6 +9,7 @@ const links = [
   { to: '/pantone', label: 'Pantone' },
   { to: '/formulas', label: 'Fórmulas' },
   { to: '/designs', label: 'Diseños' },
+  { to: '/muestras', label: 'Muestras' },
   { to: '/usuarios', label: 'Usuarios' },
 ]
 
