@@ -21,6 +21,7 @@ import app.modules.access_logs.models  # noqa: F401
 import app.modules.pantone_colors.models  # noqa: F401
 import app.modules.formulas.models  # noqa: F401
 import app.modules.designs.models  # noqa: F401
+import app.modules.samples.models  # noqa: F401
 
 # this is the Alembic Config object
 config = context.config
