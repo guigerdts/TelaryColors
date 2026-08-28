@@ -1,17 +1,17 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:8227d357292fa8a35717ab4770a2be64151b712cd44c882b9aba9d6f7b8c94b8
+evidence_revision: sha256:854da29ea53c017325ba3ff9d5f93c6e64b25bd5fe75eb7f68e231c9f9b8f4aa
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 10/10
-scenarios: 16/16
-test_command: cd /root/TelaryColor/backend && ./.venv/bin/python -m pytest tests/test_designs.py tests/test_access_logs.py
+requirements: 32/32
+scenarios: 54/54
+test_command: cd /root/TelaryColor/frontend && npm test
 test_exit_code: 0
-test_output_hash: sha256:7124d9f71d2bbc05ad8657ac20e699aa2ffd8c0e679bc5e69b1f8577733bee39
-build_command: cd /root/TelaryColor/backend && DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python -m alembic upgrade head
+test_output_hash: sha256:0949f39571f5dfa7a758719480bd22bdc4f158d306aaeca522900007080bc7fa
+build_command: cd /root/TelaryColor/frontend && npm run build
 build_exit_code: 0
-build_output_hash: sha256:f88ce7928af8bb72e66cdeee9242c48f70d978320adf06288b8844b642a82dc6
+build_output_hash: sha256:0f45c45a1d5252e653a8243b23a3ee584ce4d165298c61f7a4865cb83bb27921
 ```
 
 ## Verification Report
@@ -802,3 +802,187 @@ Coverage analysis skipped — no coverage tool detected (`pytest-cov` not instal
 - Handshake DB: fresh `/tmp/telary_verify_slicee.db` bootstrapped via `alembic upgrade head` (exit 0, output sha256 `f88ce792…`, byte-identical to slices B/C/D) + `python -m app.seed` (exit 0 → 1 admin, 0 audit rows); operator provisioned via real `POST /users`
 - Commands executed by verifier: `./.venv/bin/python -m pytest -q tests/test_designs.py tests/test_access_logs.py` (exit 0, stdout sha256 `7124d9f7…`), `./.venv/bin/python -m pytest -q` (exit 0, stdout sha256 `c21d6f88…`), `PYTHONPATH=/root/TelaryColor/backend DATABASE_URL=sqlite:////tmp/telary_verify_slicee.db ./.venv/bin/python /tmp/telary_slicee_handshake.py` (exit 0, 75/75, stdout sha256 `6ea2a7e6…`), `alembic upgrade head` fresh DB (exit 0, output sha256 `f88ce792…`), direct SQLite/ORM probes
 - Evidence hashes: focused stdout `sha256:7124d9f7…`; full-suite stdout `sha256:c21d6f88…`; handshake stdout `sha256:6ea2a7e6…`; migration output `sha256:f88ce792…`; evidence revision `sha256:8227d357…`
+
+## Verification Report — Slice F (Frontend SPA + Single-Origin Integration)
+
+**Change**: telary-color-mvp-fase1-arquitectura-base
+**Slice**: F (tasks 9.1, 9.2, 9.3, 10.1) — Frontend SPA: auth store + API client + route guard (9.1), search/pantone/formulas/designs pages with debounced search and 1–7 color picker (9.2/9.3), single-origin integration with the backend REST tree (10.1).
+**Version**: users spec ("Minimal Admin UI Page") + designs spec ("Minimal Designs Page", frontend) + base spec (Strict TDD frontend red-green scenario; REQ-04 re-proven) — auth/pantone/formulas specs' Spanish-UI clauses assessed cross-cutting
+**Mode**: Strict TDD
+**Date**: 2026-08-28
+
+```yaml
+# Slice F verdict (latest assessment — top envelope reflects these counts)
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:854da29ea53c017325ba3ff9d5f93c6e64b25bd5fe75eb7f68e231c9f9b8f4aa
+verdict: pass
+blockers: 0
+critical_findings: 0
+requirements: 3/3
+scenarios: 3/3
+test_exit_code: 0
+build_exit_code: 0
+```
+
+### Assessment Universe (slice F scope note)
+
+The envelope totals are the requirements/scenarios whose observable behavior ships in tasks 9.1–10.1 and is proven at runtime here: **3 requirements / 3 scenarios** = users spec "Minimal Admin UI Page" (1 scenario) + designs spec "Minimal Designs Page" (1 scenario: UI-enforced 1–7 cardinality) + base spec "Strict TDD" frontend red-green scenario (1 scenario; the backend half was proven in slices A–E). Cross-cutting expectations re-proven but NOT inflated into the counts: base REQ-04 single-origin (the slice F build served at `/`), the auth/pantone/formulas Spanish-UI clauses (every screen renders Spanish labels with English identifiers), and the auth OAuth2-password login flow exercised by the SPA wiring.
+
+### Completeness
+| Metric | Value |
+|--------|-------|
+| Tasks total (slice F) | 4 |
+| Tasks complete | 4 |
+| Tasks incomplete | 0 |
+
+All slice F tasks (9.1, 9.2, 9.3, 10.1) are marked `[x]` in `tasks.md`; cumulative change-wide 25/25. Slice F landed as a single work-unit commit `ff3f9fe` (feat(frontend)) after the documented crash recovery; HEAD is `ff3f9fe`, working tree clean at verification time. TDD evidence is recorded in apply-progress (Slice F section, table + per-task notes). Note: the slice F apply-progress docs commit is not among the last 6 commits — the frontend code commit is the authoritative change unit verified here, and the apply-progress file (committed earlier in the sequence) documents the slice's TDD cycle.
+
+### Build & Tests Execution (independent re-runs, not trusted from apply-progress)
+
+**Frontend tests (slice F acceptance)**: ✅ 17 passed, 0 failed, 0 skipped (7 files)
+```text
+cd /root/TelaryColor/frontend && npm test
+Test Files  7 passed (7)
+Tests       17 passed (17)
+Duration    78.79s (transform 836ms, setup 9.93s, import 1.73s, tests 1.84s, environment 59.77s)
+exit 0 — stdout sha256:0949f39571f5dfa7a758719480bd22bdc4f158d306aaeca522900007080bc7fa
+```
+Distribution: `client.test.js` 4, `store.test.js` 3, `useDebounce.test.js` 3, `ProtectedRoute.test.jsx` 2, `DesignColorPicker.test.jsx` 3, `Search.test.jsx` 1, `App.test.jsx` 1. The suite runs serially (`fileParallelism: false` in vite.config.js — documented deviation); aarch64 jsdom environment setup dominates wall time (59.77s of 78.79s; per-file test time 1.84s).
+
+**Production build**: ✅ Passed
+```text
+cd /root/TelaryColor/frontend && npm run build
+✓ 39 modules transformed.
+dist/index.html                 0.57 kB │ gzip: 0.33 kB
+dist/assets/index-rBpErd17.css 13.96 kB │ gzip: 3.64 kB
+dist/assets/index-Ca9xScJm.js 252.56 kB │ gzip: 77.83 kB
+✓ built in 606ms
+exit 0 — stdout sha256:0f45c45a1d5252e653a8243b23a3ee584ce4d165298c61f7a4865cb83bb27921
+```
+`dist/` contains `index.html`, `assets/`, `icons/`, `manifest.webmanifest`.
+
+**Backend regression**: ✅ 88 passed, 0 failed, 0 skipped
+```text
+cd /root/TelaryColor/backend && .venv/bin/python -m pytest tests/ -q
+88 passed, 170 warnings in 86.80s (0:01:26)
+exit 0 — stdout sha256:44783da678500774808e50290697cd66eaf5d1cc299e77a5135d52a5f4112c82
+```
+Zero regressions vs the slices A–E 88-test baseline — the frontend slice does not disturb the backend contract.
+
+**Runtime handshake (independent E2E, task 10.1)**: ✅ 13/13 checks passed
+Bootstrap on the documented path (relative `sqlite:///./data/app.db`, so the server MUST run from `backend/`):
+```text
+cd /root/TelaryColor/backend && rm -f data/app.db* && mkdir -p data
+.venv/bin/alembic upgrade head   → exit 0, "Running upgrade -> 0001_initial"
+.venv/bin/python -m app.seed     → exit 0 (1 admin)
+.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+Checks (13/13): uvicorn ready; `GET /docs` → 200; login `admin`/`telary-admin` (OAuth2 form) → `access_token` 124 chars, `token_type=bearer`, user `admin` role `admin`; `GET /api/v1/auth/me` with Bearer → 200; `POST /api/v1/pantone-colors {"code":"888C","gamut":"C","paint_type":"reactiva"}` → 201 (id 1); `GET /api/v1/pantone-colors?q=888` → array containing `888C`; `GET /` → 200 serving the freshly built SPA (`dist/index.html`, "Telary Color" title present) — REQ-04 single origin re-proven with the slice F build; the `/api/v1/*` probes above all resolved while the SPA route is active (REST tree unshadowed); server killed; ephemeral `backend/data/app.db*` removed and `data/` empty. stdout sha256 (handshake): `379f97cc…`.
+
+### Spec Compliance Matrix
+| Requirement | Scenario | Evidence (runtime-tested) | Status |
+|-------------|----------|---------------------------|--------|
+| users: Minimal Admin UI Page | Admin manages users in UI (list/create/role-change, Spanish) | Static source inspection: `AdminUsers.jsx` Spanish labels + calls `listUsers`/`createUser`/`updateUser` → the real `/api/v1/users` endpoints; API layer proven at runtime (this slice's login/me handshake + slice C users-CRUD handshake). No committed AdminUsers page test yet (SUGGESTION 1) | ✅ COMPLIANT (source + handshake evidence) |
+| designs: Minimal Designs Page (Frontend) | UI enforces cardinality — the 8th color cannot be selected | Committed `DesignColorPicker.test.jsx` (3 cases: 7th selectable at 6 selected, 8th disabled at 7, disabled after live `userEvent` selection) + static wiring `Designs.jsx` → picker with `MAX_DESIGN_COLORS = 7` | ✅ COMPLIANT (committed test) |
+| base: Strict TDD | Frontend red-green — SPA behaviors locked by tests | Independent `npm test`: 17/17 pass, 7 files, exit 0 | ✅ COMPLIANT (committed test) |
+
+**Compliance summary**: 3/3 scenarios compliant in the slice F assessment universe; 0 UNTESTED; 0 FAILING. The users-UI scenario is proven by source inspection plus runtime API evidence (same treatment as slice E REQ-04); the committed-suite gap is documented SUGGESTION 1.
+
+**Cross-cutting (proven end-to-end, not inflated into counts)**: REQ-04 single-origin — built SPA served at `/` while `/api/v1/*` resolves (handshake); Spanish user-facing UI text on every screen (auth + pantone + formulas spec clauses) with English code identifiers; OAuth2 password-form login from the SPA (`api/index.js login` → `/api/v1/auth/login`), Bearer attach + 401-clears-token + redirect in `client.js`.
+
+### Correctness (Static Evidence)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| API client bearer attach + JSON | ✅ Implemented | `apiFetch` sets `Authorization: Bearer` from the store and JSON content-type; 401 → `clearToken()` + injected handler (default `window.location.assign('/login')`) |
+| Token persistence (ADR-3) | ✅ Implemented | `auth/store.js` localStorage key `telary_color_token`; load/save/clear |
+| Route guard | ✅ Implemented | `ProtectedRoute` → `<Navigate to="/login">` without a token; committed tests cover both branches |
+| Auth provider + login | ✅ Implemented | `AuthProvider` login/logout/profile state; login posts OAuth2 form-encoded body (auth spec clause) |
+| Debounced search (design: 250ms) | ✅ Implemented | `useDebounce` 250ms; `Search.jsx` debounces before the `?q=` query; committed tests assert no-call-before and exactly-one-call-after |
+| Designs picker 1–7 (ADR-6 UI side) | ✅ Implemented | `DesignColorPicker` `MAX_DESIGN_COLORS = 7`, disables every unselected color at saturation; committed tests |
+| Router shape | ✅ Implemented | `/login` public; `/search`, `/pantone`, `/formulas`, `/designs`, `/usuarios` guarded inside `Layout`; fallback → `/search` |
+| Spanish UI / English identifiers | ✅ Implemented | All screens Spanish (Buscar color, Colores Pantone, Fórmulas, Diseños, Usuarios, Iniciar sesión); identifiers English |
+| Admin users page | ✅ Implemented | `AdminUsers.jsx` lists users, create form, role-change select, audit section (additive; admin-only data, 403 swallowed gracefully) — additive superset, no spec break |
+| Single-origin URLs | ✅ Implemented | Relative `/api/v1/*` paths only (no hardcoded origins); dev proxy `/api` → 127.0.0.1:8000 in vite config; prod served by `_SPARoute` (slice E) |
+
+### Coherence (Design)
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| ADR-3: bearer token in localStorage | ✅ Yes | `store.js` + `client.js` exactly; cleared on 401 |
+| ADR-6: UI disables the 8th color | ✅ Yes | `MAX_DESIGN_COLORS = 7` + disabled state; mirrors the backend 422 boundary |
+| Design: search debounce 250ms | ✅ Yes | `useDebounce(250)`; test asserts no call at 100ms / one call after 350ms |
+| Design: minimal admin users page | ✅ Yes | Single page, Spanish, list/create/role-change via the user-management endpoints |
+| Design: guard + redirect to /login | ✅ Yes | `ProtectedRoute`; committed two-branch tests |
+| Single work-unit commit (RED+GREEN together) | ⚠️ Deviation (documented) | apply-progress records the crash recovery; RED scenarios authored first, GREEN verified in the same recovery session; the commit graph shows one `feat(frontend)` commit `ff3f9fe` (RED/GREEN not separately committed as in backend slices) — transparency note (TDD table), not a code defect |
+| `fileParallelism: false` | ⚠️ Deviation (documented, env necessity) | aarch64 jsdom boot is slow; serial execution keeps the suite green without timeout thrash |
+| Audit-log section inside AdminUsers | ⚠️ Deviation (additive) | users spec doesn't require audit display; extra section reads admin-only data; graceful on 403 |
+
+### TDD Compliance (Strict TDD module)
+| Check | Result | Details |
+|-------|--------|--------|
+| TDD Evidence reported | ✅ | apply-progress Slice F section records the TDD cycle for 9.1/9.2/9.3 (table + per-task notes incl. the crash-recovery deviation) |
+| All tasks have tests | ✅ | 3/3 — 9.1: store/client/ProtectedRoute tests; 9.2: useDebounce + Search tests; 9.3: DesignColorPicker tests. Task 10.1 (integration) is proven by the runtime handshake, matching the documented acceptance basis |
+| RED confirmed (test files exist) | ✅ | All 7 test files exist and contain the described behaviors (verified by inspection before the run) |
+| RED committed before GREEN | ⚠️ Note | Single work-unit commit `ff3f9fe` (documented crash recovery in apply-progress); RED-before-GREEN is author-time reported, not separable in the commit graph — mirrors the slice B note (2.3 RED observed but not committed separately) |
+| GREEN confirmed (tests pass) | ✅ | Independent `npm test`: 17/17 pass, 7 files, exit 0; `npm run build` exit 0 |
+| Triangulation adequate | ✅ | designs scenario: 3 cases with DIFFERENT expected outcomes (7th selectable / 8th disabled / disabled after live click); client: 4 behaviors (URL, header, method, 401-clear) over the fetch mock; debounce: no-call-at-100ms, one-call-after-350ms, reset-on-change — no multi-behavior scenario rests on a single test. Search's 1 committed test covers the spec's single search scenario (debounce + render), matching apply-progress' scenario count of 1 |
+| Safety Net for modified files | ✅ | All slice F test files are new in `ff3f9fe` (N/A legitimate) |
+
+**TDD Compliance**: 6/6 checks passed (1 documented note on RED-commit separability, above).
+
+### Test Layer Distribution
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Unit | 10 | 3 | vitest + jsdom (client fetch-mocked, store localStorage, useDebounce fake timers) |
+| Integration | 7 | 4 | vitest + jsdom + MemoryRouter/userEvent (guard, picker, search render, app shell) |
+| E2E | 13 checks | 1 | independent runtime handshake (real app + migrated/seeded DB + built SPA) |
+| **Total (slice F)** | **17 committed** | **7** | |
+
+### Changed File Coverage
+Coverage analysis skipped — no coverage provider configured (`@vitest/coverage-v8` not installed; no `--coverage` script). Not a failure.
+
+### Assertion Quality
+- `client.test.js` (4): asserts request URL `/api/v1/pantone-colors`, exact `Authorization: Bearer jwt-abc` header, method, content-type/JSON body, and 401 → token cleared + handler invoked once — all real `apiFetch` behavior against a fetch mock.
+- `store.test.js` (3): physical localStorage key/value assertions for load/save/clear on the production store module.
+- `useDebounce.test.js` (3): fake timers — intermediate value at 100ms (< 250ms ⇒ not yet debounced), exactly one call after 350ms, and reset-on-debounce-change; real hook code path.
+- `ProtectedRoute.test.jsx` (2): real render under `MemoryRouter` — positive branch renders the child, negative branch redirects to `/login` with the protected content absent.
+- `DesignColorPicker.test.jsx` (3): `userEvent`-driven — 7th color selectable at initial 6, 8th color disabled at initial 7, disabled after a live click saturates — three distinct expected outcomes over the real picker.
+- `Search.test.jsx` (1): fetch-mocked — no request at 100ms, exactly one request with `?q=221` after 350ms, result rendered.
+- `App.test.jsx` (1): asserts the SPA shell heading renders through the real router.
+- No tautologies, ghost loops, type-only-only assertions, smoke-only checks, or implementation-detail coupling found. Mocks: `fetch` (client/Search), jsdom-native localStorage, fake timers, `userEvent` — the production modules under test execute their real paths.
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+### Quality Metrics
+**Linter**: ➖ Not available (no eslint configured in package.json)
+**Type Checker**: ➖ Not available (no tsc; `vite build` = esbuild transpile + rollup — catches syntax/import/export errors but does not type-check)
+**Coverage**: ➖ Not available (@vitest/coverage-v8 not installed)
+
+### Issues Found
+**CRITICAL**: None
+
+**WARNING**:
+1. Carried from slice E (unchanged, re-verified this slice): `InsecureKeyLengthWarning` (PyJWT, RFC 7518 §3.2) — configured `secret_key` (20 bytes) below the 32-byte HS256 minimum; tokens sign/verify correctly and `config.py` documents the production override. Follow-up: ≥32-byte key via env/`.env` + filterwarnings entry.
+2. Carried from slice E (unchanged, re-verified this slice): `_SPARoute` ordering-sensitive shape — re-proven in the slice F handshake (`GET /` serves the built SPA 200 while all `/api/v1/*` probes resolve). Bounded maintenance risk (future non-API routes appended after the mount would be shadowed), not a current defect.
+
+**SUGGESTION**:
+1. No committed vitest renders `AdminUsers.jsx` — the users-UI scenario rests on source inspection + API-handshake evidence. Add a page-level test (render, Spanish heading, create submission → `POST /users` with the form values, role change → `PATCH /users/{id}`) to lock it (mirrors slice E SUGGESTION 2's rationale).
+2. Login/Pantone/Formulas/Designs pages lack page-level committed tests (the guard, picker, search page, and API client ARE covered). Page-level tests would lock the Spanish UI + endpoint wiring for the remaining screens.
+3. Apply-progress Slice F table counts "Search 2" but the committed `Search.test.jsx` has 1 test; the 17-test total = 16 slice-F tests + 1 slice-A `App.test.jsx`. Cosmetic doc drift worth correcting.
+4. The vitest run emits jsdom's "Not implemented: navigation to another Document" notice — expected jsdom limitation (`window.location.assign` is not navigable in jsdom); the redirect is asserted via the injectable unauthorized handler in `client.test.js`. Informational; a `vi.stubGlobal('location', …)` in test-setup would silence it.
+5. Carried: StarletteDeprecationWarning (httpx → httpx2); `unique=True, index=True` duplicate auto-indexes in SQLite (optional future cleanup).
+
+### DEFERRED (out of slice F scope — NOT defects)
+- base: PWA offline caching / service worker — explicitly NOT part of Fase 1 (verified slice A; no SW by design).
+- Nothing else: slice F completes the implementation work units; the remaining SDD phase is archive.
+
+### Verdict
+**PASS** — Slice F (tasks 9.1, 9.2, 9.3, 10.1) is complete and proven: frontend acceptance 17/17 (7 files, exit 0, stdout sha256 `0949f395…`, 78.79s); production build exit 0 (39 modules, `dist/` emitted, stdout sha256 `0f45c45a…`); backend regression 88/88 (exit 0, stdout sha256 `44783da6…`, zero regressions vs slices A–E); independent 13/13-check runtime handshake on the documented path (fresh migrate + seed, uvicorn from `backend/` with the relative `sqlite:///./data/app.db`, `/docs` 200, OAuth2 login → bearer JWT, `/auth/me` 200, pantone `888C` create 201 + `?q=888` search hit, `GET /` serving the freshly built SPA with the "Telary Color" title and the REST tree unshadowed — REQ-04 re-proven with the slice F build; ephemeral DB removed). Spec universe 3/3 requirements, 3/3 scenarios (users Admin UI, designs UI-enforced cardinality, base Strict-TDD frontend red-green) with cross-cutting Spanish-UI, single-origin, and login-flow expectations re-proven. TDD evidence 6/6 with one documented note (single work-unit commit after crash recovery — RED-before-GREEN author-time reported, not separately committed). Two carried WARNINGs (JWT 20B secret; `_SPARoute` ordering shape — both re-verified non-blocking); the rest are SUGGESTIONs or cross-slice deferrals.
+
+### Verification Environment (slice F)
+- Workspace: /root/TelaryColor (git branch `feat/pr-f-frontend`, HEAD `ff3f9fe` — `feat(frontend): add SPA screens, auth store and API client`; slice E verification docs at `bfd5368`)
+- Slice F candidate tree: `git rev-parse HEAD^{tree}` = `12671c22f0e9a9768e8207634f74dec1285581e3`; envelope `evidence_revision` = sha256 of that tree hash string (`854da29e…`)
+- Frontend toolchain: node v22.23.1, npm 10.9.8; react 19, react-router-dom 7, vite 8, vitest 4, jsdom 30; `fileParallelism: false` (aarch64 jsdom environment boot ≈ 60s; documented deviation)
+- Backend: `backend/.venv` (Python 3.13.7); pytest suite run as `tests/ -q`
+- Handshake DB: ephemeral `backend/data/app.db` (relative URL `sqlite:///./data/app.db`) bootstrapped via `alembic upgrade head` (exit 0) + `python -m app.seed` (exit 0 → 1 admin); removed after the run (`data/` empty, uvicorn process verified dead)
+- Commands executed by verifier: `cd /root/TelaryColor/frontend && npm test` (exit 0, stdout sha256 `0949f395…`), `cd /root/TelaryColor/frontend && npm run build` (exit 0, stdout sha256 `0f45c45a…`), `cd /root/TelaryColor/backend && .venv/bin/python -m pytest tests/ -q` (exit 0, stdout sha256 `44783da6…`), runtime handshake from `backend/` (13/13, stdout sha256 `379f97cc…`)
+- Evidence hashes: test stdout `sha256:0949f395…`; build stdout `sha256:0f45c45a…`; regression stdout `sha256:44783da6…`; handshake stdout `sha256:379f97cc…`; evidence revision `sha256:854da29e…`

@@ -13,6 +13,10 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    globals: true, // lets @testing-library/react register its auto-cleanup
     setupFiles: './src/test-setup.js',
+    // Run one test file at a time: several parallel jsdom environments spin
+    // up slowly on the aarch64 dev box and time out the forks workers.
+    fileParallelism: false,
   },
 })
