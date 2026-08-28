@@ -66,11 +66,11 @@ Chain strategy: stacked-to-main
 
 ## Phase E: Frontend Registration
 
-- [ ] E1 RED `SampleRegistration.test.jsx`: ≤3 taps, photo optional, `capture="environment"`
-- [ ] E2 RED `api/client.test.js`: `uploadSamplePhoto` sends FormData, no JSON content-type
-- [ ] E3 GREEN `api/index.js`: `uploadSamplePhoto`, `createSample`, `updateSample`
-- [ ] E4 GREEN `pages/SampleRegistration.jsx`: mobile-first form (Pantone target → optional photo → status+save)
-- [ ] E5 GREEN `router/AppRouter.jsx` + `components/Layout.jsx`: `/muestras` route + nav link
+- [x] E1 RED `SampleRegistration.test.jsx`: ≤3 taps, photo optional, `capture="environment"`
+- [x] E2 RED `api/client.test.js`: `uploadSamplePhoto` sends FormData, no JSON content-type
+- [x] E3 GREEN `api/index.js`: `uploadSamplePhoto`, `createSample`, `updateSample`
+- [x] E4 GREEN `pages/SampleRegistration.jsx`: mobile-first form (Pantone target → optional photo → status+save)
+- [x] E5 GREEN `router/AppRouter.jsx` + `components/Layout.jsx`: `/muestras` route + nav link
 
 ## Phase F: Ficha Visualization + Promote
 

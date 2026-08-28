@@ -17,6 +17,7 @@ import PantonePage from '../pages/Pantone.jsx'
 import FormulasPage from '../pages/Formulas.jsx'
 import DesignsPage from '../pages/Designs.jsx'
 import AdminUsersPage from '../pages/AdminUsers.jsx'
+import SampleRegistrationPage from '../pages/SampleRegistration.jsx'
 
 function UnauthorizedRedirector() {
   const navigate = useNavigate()
@@ -49,6 +50,7 @@ export default function AppRouter() {
             <Route path="/formulas" element={<FormulasPage />} />
             <Route path="/designs" element={<DesignsPage />} />
             <Route path="/usuarios" element={<AdminUsersPage />} />
+            <Route path="/muestras" element={<SampleRegistrationPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/search" replace />} />
         </Routes>
