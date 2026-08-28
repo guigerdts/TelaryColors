@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment / secrets — commit .env.example, never .env
+.env
+
+# Backend runtime data (SQLite DB + WAL files)
+backend/data/
+
+# Node / frontend build output
+node_modules/
+frontend/dist/
+
+# Local tooling caches
+.codegraph/
+.atl/
+
+# Logs
+*.log

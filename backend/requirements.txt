@@ -1,0 +1,15 @@
+# Telary Color backend — pinned dependencies (Python 3.13 venv).
+# Install: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Run: .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+# NOTE: never use the PATH `uvicorn` binary (broken Termux stub).
+
+fastapi==0.141.1
+uvicorn==0.52.4
+python-multipart==0.0.32
+sqlalchemy==2.0.52
+alembic==1.19.1
+bcrypt==5.0.0
+PyJWT==2.13.0
+pydantic-settings==2.15.0
+pytest==9.1.1
+httpx==0.28.1
