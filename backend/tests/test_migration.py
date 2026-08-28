@@ -1,9 +1,10 @@
-"""Migration acceptance: a single initial Alembic migration builds the 7
-tables and is idempotent.
+"""Migration acceptance: the base migration builds the 7 original tables and
+the additive ``0002_samples`` migration adds ``samples``, all idempotent.
 
-Covers the base spec "Single Initial Migration": running ``alembic upgrade
-head`` on a clean database creates all seven domain tables, and re-running it
-reports no pending changes (nothing is added/removed on the second pass).
+Covers the base spec "Data Layer" + "Single Initial Migration": running
+``alembic upgrade head`` on a clean database creates all eight domain tables,
+and re-running it reports no pending changes (nothing is added/removed on the
+second pass).
 """
 
 import os
@@ -14,7 +15,7 @@ from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
-# The seven domain tables from the Data Model section of design.md.
+# The eight domain tables from the Data Model section of design.md.
 EXPECTED_TABLES = {
     "users",
     "access_logs",
@@ -23,6 +24,7 @@ EXPECTED_TABLES = {
     "formula_ingredients",
     "designs",
     "design_colors",
+    "samples",
 }
 
 
@@ -50,7 +52,7 @@ def _table_names(db_path: str) -> set[str]:
         conn.close()
 
 
-def test_upgrade_head_creates_all_seven_tables(tmp_path) -> None:
+def test_upgrade_head_creates_all_eight_tables(tmp_path) -> None:
     db = tmp_path / "app.db"
     result = _run_alembic(f"sqlite:///{db}", "upgrade", "head")
 
