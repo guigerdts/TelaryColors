@@ -13,22 +13,33 @@ module layout — mirrors the samples router pattern).
   ADR-6 — stock moves only through transactions), and a real change audits
   exactly one ``inventory.item.update`` row. There is NO DELETE route —
   items are never hard-deleted (405).
+- ``POST /inventory/items/{item_id}/transactions`` atomically registers one
+  stock movement in a single transaction — txn row + ``current_stock`` signed
+  delta + exactly one ``inventory.transaction`` audit row (promote_sample
+  pattern, design ADR-2/6); the notes policy is validated service-level
+  BEFORE the mutation txn, so a 400 leaves zero residues (design ADR-3).
 
 Read-only requests never log; every domain write records one audit row with
 the acting user (access-logs spec; samples/design convention).
 """
+
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
+from app.db.enums import TransactionType
 from app.modules.access_logs.service import log_action
-from app.modules.inventory.models import InventoryItem
+from app.modules.formulas.models import Formula
+from app.modules.inventory.models import InventoryItem, InventoryTransaction
 from app.modules.inventory.schemas import (
     InventoryItemCreate,
     InventoryItemOut,
     InventoryItemUpdate,
+    InventoryTransactionCreate,
+    InventoryTransactionOut,
 )
 from app.modules.users.models import User
 
@@ -136,3 +147,87 @@ def update_item(
     db.commit()
     db.refresh(item)
     return InventoryItemOut.from_item(item)
+
+
+@router.post(
+    "/items/{item_id}/transactions",
+    response_model=InventoryTransactionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_transaction(
+    item_id: int,
+    payload: InventoryTransactionCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> InventoryTransaction:
+    """Atomically register one stock movement (inventory spec "Atomic Stock
+    Transaction", design ADR-2/3/6).
+
+    One transaction inserts the ``inventory_transactions`` row (flush assigns
+    its id), applies the signed delta ``item.current_stock += quantity``
+    (design ADR-6 — ``entrada`` +, ``consumo``/``ajuste`` −; PATCH never
+    touches stock, so transactions are the only mover), and writes exactly ONE
+    ``inventory.transaction`` audit row — copied from ``promote_sample``
+    (samples/router.py): add + flush, mutate the related row, log in the same
+    transaction, commit; any mid-way failure rolls everything back so nothing
+    persists (spec S7).
+
+    The notes policy is validated service-level BEFORE the mutation txn opens
+    (design ADR-3): ``ajuste`` always requires a non-empty note, and a
+    resulting stock below zero requires a note with the exact rejection
+    message; because the decision happens before any DB write, a 400 leaves
+    zero residues (no txn row, no stock change, no audit row).
+    """
+    item = _get_item_or_404(db, item_id)
+    if payload.formula_id is not None and db.get(Formula, payload.formula_id) is None:
+        # Reject a dangling formula reference before any write (C.7 contract).
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fórmula no encontrada",
+        )
+    resulting = item.current_stock + payload.quantity  # in-memory, pre-txn
+    violation = _notes_policy_violation(payload.transaction_type, payload.notes, resulting)
+    if violation is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=violation
+        )
+    try:
+        txn = InventoryTransaction(
+            inventory_item_id=item.id,
+            transaction_type=payload.transaction_type,
+            quantity=payload.quantity,
+            formula_id=payload.formula_id,
+            user_id=user.id,
+            notes=payload.notes,
+        )
+        db.add(txn)
+        db.flush()  # assign txn.id before the audit in the same transaction
+        item.current_stock = resulting
+        log_action(db, user.id, "inventory.transaction")
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(item)
+    db.refresh(txn)
+    return txn
+
+
+def _notes_policy_violation(
+    transaction_type: TransactionType,
+    notes: str | None,
+    resulting: Decimal,
+) -> str | None:
+    """Return the 400 detail for a notes-policy violation, else ``None``
+    (design ADR-3 — evaluated service-level, before the mutation txn opens).
+
+    ``ajuste`` always requires a non-empty note; a resulting stock below zero
+    requires a non-empty note with the EXACT spec message. Other types and
+    in-stock movements may omit notes.
+    """
+    has_notes = bool((notes or "").strip())
+    if transaction_type == TransactionType.ajuste and not has_notes:
+        return "las transacciones de tipo ajuste requieren una nota"
+    if resulting < 0 and not has_notes:
+        return "las transacciones que dejan stock negativo requieren una nota"
+    return None

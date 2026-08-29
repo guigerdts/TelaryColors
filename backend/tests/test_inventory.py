@@ -23,6 +23,7 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
 import sqlalchemy as sa
 
 from app.modules.access_logs.models import AccessLog
