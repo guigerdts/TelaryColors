@@ -108,3 +108,14 @@ export async function uploadSamplePhoto(file) {
   }
   return res.json() // { photo_url }
 }
+
+// --- Inventory ---
+// Item list/create/update. InventoryItemOut carries the derived inventory_status
+// computed BY THE BACKEND (derive_status — design ADR-1/4): the UI displays it
+// as-is and never recomputes ok/bajo_umbral. PATCH deliberately never sends
+// current_stock — stock only moves through transactions (design ADR-6).
+export const listInventoryItems = () => apiFetch('/inventory/items').then((r) => r.json())
+export const createInventoryItem = (payload) =>
+  apiFetch('/inventory/items', { method: 'POST', body: payload }).then((r) => r.json())
+export const updateInventoryItem = (id, payload) =>
+  apiFetch(`/inventory/items/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
