@@ -26,7 +26,7 @@ from pathlib import Path
 import sqlalchemy as sa
 
 from app.modules.access_logs.models import AccessLog
-from app.modules.inventory.models import InventoryItem
+from app.modules.inventory.models import InventoryItem, InventoryTransaction
 from app.modules.users.models import User
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -282,3 +282,285 @@ def test_list_items_carries_per_item_status(client, auth_headers) -> None:
     by_id = {row["id"]: row for row in listing.json()}
     assert by_id[low_id]["inventory_status"] == "bajo_umbral"
     assert by_id[high_id]["inventory_status"] == "ok"
+
+
+# --- Slice C: atomic stock transaction + notes policy (RED first) -----------
+#
+# Inventory spec "Atomic Stock Transaction" (S6 happy path, S7 rollback) and
+# "Negative Stock and Notes Policy" (S8 negative w/ note, S9 negative w/o note,
+# S10 ajuste w/o notes, S11 in-stock w/o note); design ADR-2 (ONE atomic
+# endpoint — txn row + stock delta + audit in a single transaction, verbatim
+# promote_sample pattern), ADR-3 (notes policy validated service-level BEFORE
+# the mutation txn — a 400 leaves zero residues), ADR-6 (signed delta:
+# ``current_stock += quantity``; the client sends the stock change, so
+# ``entrada`` carries a positive delta and ``consumo``/``ajuste`` negative
+# ones). Every test asserts the DB state, not just the HTTP status, so a
+# partial write is impossible to miss.
+
+TRANSACTION_AUDIT_ACTION = "inventory.transaction"
+
+
+def _stock_of(session_factory, item_id: int) -> Decimal:
+    with session_factory() as db:
+        item = db.get(InventoryItem, item_id)
+        assert item is not None
+        return item.current_stock
+
+
+def _transaction_row_count(session_factory) -> int:
+    with session_factory() as db:
+        return db.execute(
+            sa.select(sa.func.count()).select_from(InventoryTransaction)
+        ).scalar_one()
+
+
+def _transaction_audit_rows(session_factory) -> list:
+    with session_factory() as db:
+        return db.execute(
+            sa.select(AccessLog.user_id).where(
+                AccessLog.action == TRANSACTION_AUDIT_ACTION
+            )
+        ).all()
+
+
+def test_transaction_happy_path_persists_stock_delta_and_one_audit(
+    client, auth_headers, session_factory
+) -> None:
+    """S6 Happy path: 201 with the txn row + the stock delta + EXACTLY ONE
+    ``inventory.transaction`` audit row persisted atomically (ADR-2)."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+    admin_id = _admin_id(session_factory)
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={"transaction_type": "entrada", "quantity": 5},
+    )
+
+    assert response.status_code == 201
+    txn = response.json()
+    assert txn["transaction_type"] == "entrada"
+    assert txn["inventory_item_id"] == item_id
+    assert Decimal(txn["quantity"]) == Decimal("5")
+    assert txn["formula_id"] is None
+    assert txn["notes"] is None
+
+    with session_factory() as db:
+        stored = db.get(InventoryTransaction, txn["id"])
+        assert stored is not None
+        assert stored.inventory_item_id == item_id
+        assert stored.user_id == admin_id
+        assert stored.quantity == Decimal("5")
+    assert _stock_of(session_factory, item_id) == Decimal("15"), (
+        "current_stock must apply the signed delta (10 + 5)"
+    )
+    audit_rows = _transaction_audit_rows(session_factory)
+    assert len(audit_rows) == 1, (
+        "exactly ONE inventory.transaction audit row on the happy path"
+    )
+    assert audit_rows[0][0] == admin_id
+
+
+def test_transaction_failure_rolls_back_within_transaction(
+    client, auth_headers, session_factory, monkeypatch
+) -> None:
+    """S7 Rollback: an audit write monkeypatched to raise AFTER the txn insert
+    and the stock mutation have been staged must leave NOTHING persisted — no
+    txn row, stock unchanged, no audit row. Mirrors Fase 2's
+    ``test_promote_failure_rolls_back_within_transaction`` technique exactly
+    (TestClient re-raises the server exception, so we assert the propagation
+    AND the rollback)."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    def _boom(_db, _user_id, _action):
+        raise RuntimeError("simulated inventory.transaction audit failure")
+
+    monkeypatch.setattr("app.modules.inventory.router.log_action", _boom)
+
+    with pytest.raises(RuntimeError, match="simulated inventory.transaction audit failure"):
+        client.post(
+            f"/api/v1/inventory/items/{item_id}/transactions",
+            headers=headers,
+            json={"transaction_type": "consumo", "quantity": -3},
+        )
+
+    assert _stock_of(session_factory, item_id) == Decimal("10"), (
+        "rolled-back failure must leave current_stock unchanged"
+    )
+    assert _transaction_row_count(session_factory) == 0, (
+        "rolled-back failure must leave no transaction row"
+    )
+    assert _transaction_audit_rows(session_factory) == [], (
+        "rolled-back failure must leave no inventory.transaction audit row"
+    )
+
+
+def test_negative_resulting_stock_without_notes_rejected(
+    client, auth_headers, session_factory
+) -> None:
+    """S9: a consumo that would leave stock negative without notes is rejected
+    with 400 and the EXACT message; nothing persists (ADR-3 pre-txn 400)."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={"transaction_type": "consumo", "quantity": -15},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "las transacciones que dejan stock negativo requieren una nota"
+    )
+    assert _stock_of(session_factory, item_id) == Decimal("10"), (
+        "rejected transaction must leave current_stock untouched"
+    )
+    assert _transaction_row_count(session_factory) == 0, (
+        "rejected transaction must write no transaction row"
+    )
+    assert _transaction_audit_rows(session_factory) == [], (
+        "rejected transaction must write no audit row"
+    )
+
+
+def test_ajuste_without_notes_rejected_even_when_stock_stays_positive(
+    client, auth_headers, session_factory
+) -> None:
+    """S10: an ajuste with empty notes is rejected with 400 even when the
+    resulting stock stays at or above zero; nothing persists (ADR-3)."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={"transaction_type": "ajuste", "quantity": -2},
+    )
+
+    assert response.status_code == 400
+    assert _stock_of(session_factory, item_id) == Decimal("10"), (
+        "rejected ajuste must leave current_stock untouched"
+    )
+    assert _transaction_row_count(session_factory) == 0, (
+        "rejected ajuste must write no transaction row"
+    )
+    assert _transaction_audit_rows(session_factory) == [], (
+        "rejected ajuste must write no audit row"
+    )
+
+
+def test_negative_resulting_stock_with_note_succeeds(
+    client, auth_headers, session_factory
+) -> None:
+    """S8: a consumo leaving stock NEGATIVE is permitted with a non-empty note
+    — negative stock is allowed, the note carries the explanation."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={
+            "transaction_type": "consumo",
+            "quantity": -15,
+            "notes": "compra en tránsito, stock negativo temporal",
+        },
+    )
+
+    assert response.status_code == 201
+    assert Decimal(response.json()["quantity"]) == Decimal("-15")
+    assert response.json()["notes"] == "compra en tránsito, stock negativo temporal"
+    assert _stock_of(session_factory, item_id) == Decimal("-5"), (
+        "negative resulting stock must persist (10 - 15)"
+    )
+    assert _transaction_row_count(session_factory) == 1
+    assert len(_transaction_audit_rows(session_factory)) == 1
+
+
+def test_in_stock_consumo_without_note_succeeds(
+    client, auth_headers, session_factory
+) -> None:
+    """S11: a consumo keeping stock at or above zero persists without notes —
+    notes are mandatory only for negative resulting stock and for ajuste."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={"transaction_type": "consumo", "quantity": -3},
+    )
+
+    assert response.status_code == 201
+    assert _stock_of(session_factory, item_id) == Decimal("7"), (
+        "in-stock consumo without notes must persist (10 - 3)"
+    )
+    assert _transaction_row_count(session_factory) == 1
+    assert len(_transaction_audit_rows(session_factory)) == 1
+
+
+def test_transaction_with_unknown_formula_id_rejected(
+    client, auth_headers, session_factory
+) -> None:
+    """C.7 contract: a transaction carrying a formula_id that does not exist is
+    rejected (400) before any write — no dangling FK reference, nothing
+    persists."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/transactions",
+        headers=headers,
+        json={"transaction_type": "consumo", "quantity": -3, "formula_id": 99999},
+    )
+
+    assert response.status_code == 400
+    assert _stock_of(session_factory, item_id) == Decimal("10")
+    assert _transaction_row_count(session_factory) == 0
+    assert _transaction_audit_rows(session_factory) == []
+
+
+def test_signed_delta_entrada_adds_consumo_ajuste_subtract(
+    client, auth_headers, session_factory
+) -> None:
+    """ADR-6 signed-delta semantics: the client sends the stock CHANGE and the
+    server applies ``current_stock += quantity`` — entrada +5 ADDS (10 → 15),
+    consumo −3 SUBTRACTS (15 → 12), ajuste −2 SUBTRACTS (12 → 10). Each leg is
+    its own atomic transaction with one audit row."""
+    headers = auth_headers("admin")
+    item_id = _create_item(client, headers, current_stock=10)["id"]
+
+    legs = [
+        ({"transaction_type": "entrada", "quantity": 5}, Decimal("15"), None),
+        ({"transaction_type": "consumo", "quantity": -3}, Decimal("12"), None),
+        (
+            {
+                "transaction_type": "ajuste",
+                "quantity": -2,
+                "notes": "corrección de inventario",
+            },
+            Decimal("10"),
+            "corrección de inventario",
+        ),
+    ]
+    for payload, expected_stock, expected_notes in legs:
+        response = client.post(
+            f"/api/v1/inventory/items/{item_id}/transactions",
+            headers=headers,
+            json=payload,
+        )
+        assert response.status_code == 201, f"leg {payload} must succeed"
+        assert _stock_of(session_factory, item_id) == expected_stock, (
+            f"leg {payload['transaction_type']} must apply its signed delta"
+        )
+        assert response.json()["notes"] == expected_notes
+
+    assert _transaction_row_count(session_factory) == 3, (
+        "each leg must persist its own transaction row"
+    )
+    assert len(_transaction_audit_rows(session_factory)) == 3, (
+        "each leg must write exactly one inventory.transaction audit row"
+    )
