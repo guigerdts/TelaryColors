@@ -1,0 +1,1 @@
+"""ORM model package for the inventory module."""
