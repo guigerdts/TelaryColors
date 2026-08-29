@@ -1,5 +1,5 @@
-// AppRouter — verifies the /muestras route and its mobile-first registration
-// page are reachable from the shared layout's navigation (design ADR: nav link).
+// AppRouter — verifies the /muestras and /inventario routes and their pages
+// are reachable from the shared layout's navigation (design ADR: nav link).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 
@@ -8,13 +8,20 @@ import { setToken } from '../auth/store.js'
 
 const COLORS = [{ id: 1, code: '221 C', gamut: 'C', paint_type: 'reactiva' }]
 
-describe('AppRouter /muestras route', () => {
+describe('AppRouter guarded routes', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
     setToken('jwt-routing')
     fetchMock.mockClear()
-    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, status: 200, json: async () => COLORS }))
+    fetchMock.mockImplementation((url) => {
+      const u = String(url)
+      if (u.includes('/inventory/items')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => COLORS })
+    })
+    vi.stubGlobal('fetch', fetchMock)
   })
 
   afterEach(() => {
@@ -40,5 +47,25 @@ describe('AppRouter /muestras route', () => {
     // The registration page's heading + its primary action are on the route.
     expect(screen.getByRole('heading', { name: /registrar muestra/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /registrar muestra/i })).toBeTruthy()
+  })
+
+  it('renders an Inventario nav link in the shared layout', () => {
+    render(<App />)
+
+    // The authenticated layout renders the top navigation.
+    const link = screen.getByRole('link', { name: /inventario/i })
+    expect(link).toHaveAttribute('href', '/inventario')
+  })
+
+  it('navigating to /inventario renders the inventory list page', async () => {
+    render(<App />)
+
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('link', { name: /inventario/i }))
+    await act(async () => {})
+
+    // The inventory page's heading + its create action are on the route.
+    expect(screen.getByRole('heading', { name: /inventario/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /crear item/i })).toBeTruthy()
   })
 })
