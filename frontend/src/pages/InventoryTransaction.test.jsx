@@ -15,6 +15,21 @@ import InventoryTransactionPage from './InventoryTransaction.jsx'
 
 const FORMULA_UUID = 'a3f1c6a0-0000-4000-8000-000000000001'
 
+// Inventory items the form lets the operator pick as the transaction target.
+const ITEMS = [
+  {
+    id: 2,
+    name: 'Colorante Amarillo 109',
+    item_type: 'colorante',
+    unit: 'kg',
+    supplier: 'Química Rosario',
+    supply_city: 'Rosario',
+    current_stock: '12.0000',
+    reorder_threshold: '5.0000',
+    inventory_status: 'ok',
+  },
+]
+
 // Render the page at a given URL so `useSearchParams` (react-router v7) sees
 // the real query string — this drives the `?formula_id=` prefill contract.
 function renderAt(url) {
@@ -32,10 +47,13 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
 
   beforeEach(() => {
     fetchMock.mockClear()
-    // Default: every inventory POST succeeds (201). Individual tests override
-    // this to assert payloads or simulate backend 400s.
+    // Default: the item list loads on mount; inventory POSTs succeed (201).
+    // Individual tests override the POST branch to assert or to simulate 400s.
     fetchMock.mockImplementation((url, init) => {
       const method = init?.method ?? 'GET'
+      if (String(url).includes('/inventory/items') && method === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ITEMS })
+      }
       if (String(url).includes('/transactions')) {
         return Promise.resolve({
           ok: true,
@@ -53,10 +71,12 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the type selector, quantity, notes and a save action on one screen', async () => {
+  it('renders the item, type selector, quantity, notes and a save action on one screen', async () => {
     renderAt('/inventario/transaccion')
     await act(async () => {})
 
+    // The operator picks WHICH inventory item receives this movement.
+    expect(screen.getByLabelText(/item/i)).toBeTruthy()
     expect(screen.getByLabelText(/tipo/i)).toBeTruthy()
     expect(screen.getByLabelText(/cantidad/i)).toBeTruthy()
     expect(screen.getByLabelText(/notas/i)).toBeTruthy()
@@ -67,17 +87,19 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     ['entrada', 'entrada'],
     ['consumo', 'consumo'],
     ['ajuste', 'ajuste'],
-  ])('sends a %s with the SAME positive quantity the operator typed (no sign reinterpretation)', async (type) => {
+  ])('sends a %s to the selected item with the SAME positive quantity the operator typed (no sign reinterpretation)', async (type) => {
     renderAt('/inventario/transaccion')
     await act(async () => {})
 
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: type } })
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
 
+    // The transaction targets the selected item via the path id.
     const call = fetchMock.mock.calls.find(
-      ([url, init]) => init?.method === 'POST' && String(url).includes('/transactions'),
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/inventory/items/2/transactions'),
     )
     expect(call).toBeTruthy()
     const body = JSON.parse(call[1].body)
@@ -92,6 +114,7 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     await act(async () => {})
 
     // The preloaded formula flows through the submit payload.
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
@@ -124,6 +147,9 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
   it('shows the backend negative-stock message verbatim (consumo sin nota)', async () => {
     fetchMock.mockImplementation((url, init) => {
       const method = init?.method ?? 'GET'
+      if (String(url).includes('/inventory/items') && method === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ITEMS })
+      }
       if (String(url).includes('/transactions')) {
         return Promise.resolve({
           ok: false,
@@ -139,6 +165,7 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     renderAt('/inventario/transaccion')
     await act(async () => {})
 
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: 'consumo' } })
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '50' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
@@ -153,6 +180,9 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
   it('shows the backend ajuste-sin-nota message verbatim', async () => {
     fetchMock.mockImplementation((url, init) => {
       const method = init?.method ?? 'GET'
+      if (String(url).includes('/inventory/items') && method === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ITEMS })
+      }
       if (String(url).includes('/transactions')) {
         return Promise.resolve({
           ok: false,
@@ -166,6 +196,7 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     renderAt('/inventario/transaccion')
     await act(async () => {})
 
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: 'ajuste' } })
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))

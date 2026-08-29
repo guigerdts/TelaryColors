@@ -119,3 +119,16 @@ export const createInventoryItem = (payload) =>
   apiFetch('/inventory/items', { method: 'POST', body: payload }).then((r) => r.json())
 export const updateInventoryItem = (id, payload) =>
   apiFetch(`/inventory/items/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
+
+// Register a stock movement on an item. The payload carries a POSITIVE
+// quantity and the transaction_type (entrada/consumo/ajuste); the backend
+// applies the ADR-6 signed delta (entrada +, consumo/ajuste −) — the frontend
+// never reinterprets the sign. Returns the created transaction.
+export const registerInventoryTransaction = (itemId, payload) =>
+  apiFetch(`/inventory/items/${itemId}/transactions`, { method: 'POST', body: payload }).then((r) =>
+    r.json(),
+  )
+
+// Per-item transaction history, newest-first, with traceability fields.
+export const listInventoryTransactions = (itemId) =>
+  apiFetch(`/inventory/items/${itemId}/transactions`).then((r) => r.json())
