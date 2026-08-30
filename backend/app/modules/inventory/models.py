@@ -11,9 +11,12 @@ ADR-6: PATCH never touches it), and every movement writes a row in
 ``inventory_transactions`` carries a signed ``quantity`` delta
 (``current_stock += quantity``; ``entrada`` +, ``consumo``/``ajuste`` −, design
 ADR-6), an optional ``formula_id`` linking a ``consumo`` to the production that
-caused it, and the authenticated ``user_id`` that registered it. ``notes`` is
-free text, required by policy for ``ajuste`` and for negative resulting stock
-(enforced service-level in slice C, spec "Negative Stock and Notes Policy").
+caused it, an optional ``design_id`` tagging a ``consumo`` with the design it
+was made for (inventory spec "Design Reference on Consumption Transactions" —
+nullable, never required, legacy rows unaffected), and the authenticated
+``user_id`` that registered it. ``notes`` is free text, required by policy for
+``ajuste`` and for negative resulting stock (enforced service-level in slice C,
+spec "Negative Stock and Notes Policy").
 
 Column types mirror Fase 1/2 conventions: enums as VARCHAR
 (``native_enum=False``), quantities as fixed-precision ``Numeric`` (design
@@ -25,10 +28,11 @@ from decimal import Decimal
 
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Numeric, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, utcnow
 from app.db.enums import ItemType, TransactionType
+from app.modules.designs.models import Design
 
 
 class InventoryItem(Base):
@@ -71,6 +75,11 @@ class InventoryTransaction(Base):
     formula_id: Mapped[int | None] = mapped_column(
         ForeignKey("formulas.id"), nullable=True
     )
+    design_id: Mapped[int | None] = mapped_column(
+        ForeignKey("designs.id"), nullable=True
+    )
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+
+    design: Mapped[Design | None] = relationship()

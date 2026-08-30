@@ -17,10 +17,10 @@ Scenarios covered:
 """
 
 import sqlalchemy as sa
+import pytest
 
 from app.modules.access_logs.models import AccessLog
 from app.modules.designs.models import Design, DesignColor
-from app.modules.pantone_colors.models import PantoneColor
 from app.modules.users.models import User
 
 
@@ -287,3 +287,64 @@ def test_read_only_requests_are_not_audited(
     with session_factory() as db:
         after = db.scalar(sa.select(sa.func.count()).select_from(AccessLog))
     assert after == before
+
+
+def test_design_model_maps_client_and_notes() -> None:
+    """The ``Design`` ORM model exposes mapped ``client``/``notes`` columns
+    (designs spec "Client Field"/"Notes Field" — sliced to the data layer;
+    the router wiring lands in Slice D)."""
+    column_names = {column.name for column in Design.__table__.columns}
+    assert {"client", "notes"} <= column_names
+
+
+def test_formula_design_unique_pair_rejected_at_database(
+    session_factory, seeded_users
+) -> None:
+    """The ``FormulaDesign`` model enforces ``UNIQUE(formula_id, design_id)``
+    as a real database constraint, not an application check: committing a
+    second row for the same pair raises ``IntegrityError`` (formula-designs
+    spec "Duplicate pair rejected at data layer"; designs spec "Design
+    Fields").
+
+    The test engine runs with ``PRAGMA foreign_keys=ON`` (app/db/session.py),
+    so the parents (pantone color, formula, design) are seeded first: the
+    first insert must succeed and only the duplicate pair must be rejected.
+    """
+    from app.db.enums import DesignSource, PaintType
+    from app.modules.designs.models import Design, FormulaDesign
+    from app.modules.formulas.models import Formula
+    from app.modules.pantone_colors.models import PantoneColor
+
+    with session_factory() as db:
+        color = PantoneColor(paint_type=PaintType.reactiva, code="221C")
+        db.add(color)
+        db.flush()
+        design = Design(
+            name="Diseno Test", paint_type=PaintType.reactiva, created_by=1
+        )
+        db.add(design)
+        db.flush()
+        formula = Formula(
+            pantone_color_id=color.id, name="Formula Test", created_by=1
+        )
+        db.add(formula)
+        db.flush()
+
+        db.add(
+            FormulaDesign(
+                formula_id=formula.id,
+                design_id=design.id,
+                source=DesignSource.auto,
+            )
+        )
+        db.commit()
+
+        db.add(
+            FormulaDesign(
+                formula_id=formula.id,
+                design_id=design.id,
+                source=DesignSource.manual,
+            )
+        )
+        with pytest.raises(sa.exc.IntegrityError):
+            db.commit()
