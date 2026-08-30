@@ -38,3 +38,8 @@ class TransactionType(str, Enum):
     entrada = "entrada"
     consumo = "consumo"
     ajuste = "ajuste"
+
+
+class DesignSource(str, Enum):
+    auto = "auto"
+    manual = "manual"

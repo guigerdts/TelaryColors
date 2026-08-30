@@ -31,12 +31,16 @@ class DesignCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     paint_type: PaintType
     color_ids: list[int]
+    client: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=1000)
 
 
 class DesignUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     paint_type: PaintType | None = None
     color_ids: list[int] | None = None
+    client: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=1000)
 
 
 class DesignOut(BaseModel):
@@ -45,6 +49,8 @@ class DesignOut(BaseModel):
     id: int
     name: str
     paint_type: PaintType
+    client: str | None
+    notes: str | None
     created_by: int
     created_at: datetime
     updated_at: datetime
