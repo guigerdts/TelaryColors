@@ -18,6 +18,15 @@ module layout — mirrors the samples router pattern).
   delta + exactly one ``inventory.transaction`` audit row (promote_sample
   pattern, design ADR-2/6); the notes policy is validated service-level
   BEFORE the mutation txn, so a 400 leaves zero residues (design ADR-3).
+- ``GET /inventory/items/{item_id}/transactions`` lists one item's movement
+  history newest-first (``created_at DESC, id DESC``) with full traceability
+  fields (design Interfaces/Contracts — type, qty, formula_id, user, notes,
+  ts).
+- ``GET /inventory/reorder-alerts`` lists items strictly below their reorder
+  threshold (design ADR-1), grouped by ``supply_city`` then ``supplier`` for
+  buy-route planning; every group item's derived status reads
+  ``bajo_umbral`` through the SAME ``derive_status`` used by item read/list
+  (design ADR-1/4).
 
 Read-only requests never log; every domain write records one audit row with
 the acting user (access-logs spec; samples/design convention).
@@ -39,7 +48,9 @@ from app.modules.inventory.schemas import (
     InventoryItemOut,
     InventoryItemUpdate,
     InventoryTransactionCreate,
+    InventoryTransactionHistoryOut,
     InventoryTransactionOut,
+    ReorderAlertGroup,
 )
 from app.modules.users.models import User
 
@@ -211,6 +222,87 @@ def register_transaction(
     db.refresh(item)
     db.refresh(txn)
     return txn
+
+
+@router.get(
+    "/items/{item_id}/transactions",
+    response_model=list[InventoryTransactionHistoryOut],
+)
+def list_item_transactions(
+    item_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[InventoryTransactionHistoryOut]:
+    """Per-item transaction history, newest-first (inventory spec
+    "Transaction History", design Interfaces/Contracts).
+
+    Rows are ordered ``created_at DESC, id DESC`` — ``utcnow`` has second
+    precision, so the id tie-break keeps the order deterministic for movements
+    registered in the same second. Each row carries the full traceability
+    fields (type, quantity, formula_id, the acting user's username, notes,
+    timestamp). A missing item 404s with the module's exact detail; read-only
+    requests never audit (module convention).
+    """
+    _get_item_or_404(db, item_id)
+    rows = db.execute(
+        select(InventoryTransaction, User.username)
+        .join(User, User.id == InventoryTransaction.user_id)
+        .where(InventoryTransaction.inventory_item_id == item_id)
+        .order_by(
+            InventoryTransaction.created_at.desc(),
+            InventoryTransaction.id.desc(),
+        )
+    ).all()
+    return [
+        InventoryTransactionHistoryOut(
+            id=txn.id,
+            transaction_type=txn.transaction_type,
+            quantity=txn.quantity,
+            formula_id=txn.formula_id,
+            user=username,
+            notes=txn.notes,
+            created_at=txn.created_at,
+        )
+        for txn, username in rows
+    ]
+
+
+@router.get("/reorder-alerts", response_model=list[ReorderAlertGroup])
+def list_reorder_alerts(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[ReorderAlertGroup]:
+    """Items below their reorder threshold, grouped for buy-route planning
+    (inventory spec "Reorder Alerts by City and Supplier", design ADR-1/4).
+
+    The selection predicate is the ADR-1 strict inequality (``current_stock <
+    reorder_threshold`` — the ``==`` boundary still reads ok), and every
+    reported item's ``inventory_status`` is computed by the SAME
+    ``derive_status`` shared with item list/read, so an alerted item always
+    reads ``bajo_umbral`` and a threshold crossing flips the alert with no
+    schema change. Groups are ordered by ``supply_city`` then ``supplier``;
+    the response is ``[]`` when nothing is below threshold.
+    """
+    items = db.scalars(
+        select(InventoryItem)
+        .where(InventoryItem.current_stock < InventoryItem.reorder_threshold)
+        .order_by(
+            InventoryItem.supply_city,
+            InventoryItem.supplier,
+            InventoryItem.id,
+        )
+    ).all()
+    grouped: dict[tuple[str, str], list[InventoryItemOut]] = {}
+    for item in items:
+        grouped.setdefault((item.supply_city, item.supplier), []).append(
+            InventoryItemOut.from_item(item)
+        )
+    return [
+        ReorderAlertGroup(
+            supply_city=city, supplier=supplier, items=item_list
+        )
+        for (city, supplier), item_list in grouped.items()
+    ]
 
 
 def _notes_policy_violation(

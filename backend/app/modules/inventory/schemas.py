@@ -98,3 +98,36 @@ class InventoryTransactionOut(BaseModel):
     user_id: int
     notes: str | None
     created_at: datetime
+
+
+class InventoryTransactionHistoryOut(BaseModel):
+    """One per-item history row (design Interfaces/Contracts: type, qty,
+    formula_id, user, notes, ts; spec "Transaction History").
+
+    ``user`` is the acting user's username — the traceability identity who
+    registered the movement. ``created_at`` is the design's "ts" shorthand,
+    named to match every other timestamp field in this module.
+    """
+
+    id: int
+    transaction_type: TransactionType
+    quantity: Decimal
+    formula_id: int | None
+    user: str
+    notes: str | None
+    created_at: datetime
+
+
+class ReorderAlertGroup(BaseModel):
+    """One (``supply_city``, ``supplier``) group of items strictly below their
+    reorder threshold (design ADR-1 — reorder alert read flow).
+
+    Every item's ``inventory_status`` is computed by the SAME ``derive_status``
+    shared with item list/read (ADR-1/4), so a group item always reads
+    ``bajo_umbral`` and a threshold crossing flips the alert with no schema
+    change.
+    """
+
+    supply_city: str
+    supplier: str
+    items: list[InventoryItemOut]
