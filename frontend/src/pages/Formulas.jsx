@@ -1,6 +1,7 @@
 // Formulas page — Spanish UI. Lists formulas with their nested ingredients
 // (gram-normalized) and lets an operator create a new formula for a color.
 import { useEffect, useState } from 'react'
+import { NavLink } from 'react-router-dom'
 
 import { createFormula, listFormulas, listPantone } from '../api/index.js'
 
@@ -172,6 +173,15 @@ export default function FormulasPage() {
                 </li>
               ))}
             </ul>
+            {/* Register a consumption tied to this production: the txn form
+                auto-preloads formula_id via ?formula_id= (spec "Happy-path
+                consumo with formula"; design ?formula_id= mechanism). */}
+            <NavLink
+              to={`/inventario/transaccion?formula_id=${formula.id}`}
+              className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline"
+            >
+              Registrar consumo
+            </NavLink>
           </li>
         ))}
       </ul>
