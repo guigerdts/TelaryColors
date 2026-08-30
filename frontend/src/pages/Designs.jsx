@@ -45,18 +45,22 @@ export default function DesignsPage() {
       {message && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       <form onSubmit={onCreate} className="space-y-4 rounded border border-slate-200 bg-white p-4">
         <h3 className="font-semibold text-slate-700">Nuevo diseño</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Nombre</span>
+            <span className="block text-xs font-medium text-slate-600">Nombre *</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
@@ -64,7 +68,7 @@ export default function DesignsPage() {
             <select
               value={paintType}
               onChange={(e) => setPaintType(e.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             >
               <option value="reactiva">reactiva</option>
               <option value="pigmento">pigmento</option>
@@ -76,7 +80,7 @@ export default function DesignsPage() {
 
         <button
           type="submit"
-          className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
         >
           Crear diseño
         </button>
@@ -87,7 +91,7 @@ export default function DesignsPage() {
           <li key={design.id} className="rounded border border-slate-200 bg-white p-3">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-slate-800">{design.name}</p>
-              <span className="text-xs uppercase text-slate-400">{design.paint_type}</span>
+              <span className="text-xs uppercase text-slate-600">{design.paint_type}</span>
             </div>
             <p className="text-xs text-slate-500">{design.colors.length} colores</p>
           </li>
