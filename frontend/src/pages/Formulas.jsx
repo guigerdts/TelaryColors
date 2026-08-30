@@ -65,27 +65,27 @@ export default function FormulasPage() {
       {message && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <form onSubmit={onCreate} className="space-y-3 rounded border border-slate-200 bg-white p-4">
         <h3 className="font-semibold text-slate-700">Nueva fórmula</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Nombre</span>
+            <span className="block text-xs font-medium text-slate-600">Nombre *</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Color Pantone</span>
+            <span className="block text-xs font-medium text-slate-600">Color Pantone *</span>
             <select
               value={pantoneColorId}
               onChange={(e) => setPantoneColorId(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             >
               <option value="">Seleccionar…</option>
               {colors.map((c) => (
@@ -103,7 +103,7 @@ export default function FormulasPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
 
@@ -115,7 +115,7 @@ export default function FormulasPage() {
                 value={ing.colorant}
                 onChange={(e) => setIngredient(index, 'colorant', e.target.value)}
                 placeholder="Colorante"
-                className="flex-1 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                className="flex-1 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
               />
               <input
                 value={ing.quantity}
@@ -124,12 +124,12 @@ export default function FormulasPage() {
                 type="number"
                 step="any"
                 min="0"
-                className="w-28 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-28 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
               />
               <select
                 value={ing.unit}
                 onChange={(e) => setIngredient(index, 'unit', e.target.value)}
-                className="rounded border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                className="rounded border border-slate-300 px-2 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
               >
                 <option value="g">g</option>
                 <option value="kg">kg</option>
@@ -146,7 +146,7 @@ export default function FormulasPage() {
           <button
             type="button"
             onClick={addIngredient}
-            className="text-sm text-indigo-600 hover:underline"
+            className="text-sm text-accent-281c hover:underline"
           >
             + Agregar ingrediente
           </button>
@@ -154,7 +154,7 @@ export default function FormulasPage() {
 
         <button
           type="submit"
-          className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
         >
           Crear fórmula
         </button>
@@ -178,7 +178,7 @@ export default function FormulasPage() {
                 consumo with formula"; design ?formula_id= mechanism). */}
             <NavLink
               to={`/inventario/transaccion?formula_id=${formula.id}`}
-              className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline"
+              className="mt-2 inline-block text-sm font-medium text-accent-281c hover:underline"
             >
               Registrar consumo
             </NavLink>
