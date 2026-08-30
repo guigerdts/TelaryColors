@@ -1,6 +1,6 @@
 """Alembic environment — single script_directory shared by all revisions.
 
-Imports every module's models so ``Base.metadata`` holds all seven tables
+Imports every module's models so ``Base.metadata`` holds all domain tables
 before autogenerate/compare runs. The target URL resolution order is:
 1. ``DATABASE_URL`` env var (tests set this to a temp file), else
 2. ``app.core.config.settings.database_url`` (default ``backend/data/app.db``).
@@ -22,6 +22,7 @@ import app.modules.pantone_colors.models  # noqa: F401
 import app.modules.formulas.models  # noqa: F401
 import app.modules.designs.models  # noqa: F401
 import app.modules.samples.models  # noqa: F401
+import app.modules.inventory.models  # noqa: F401
 
 # this is the Alembic Config object
 config = context.config
