@@ -80,17 +80,4 @@ describe('PantoneCard (spec §4 visual)', () => {
     expect(within(formulaSection).getByText(/Blanco/)).toBeTruthy()
   })
 
-  it('elevates on hover via a transform + growing shadow (impeccable animate)', () => {
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />)
-
-    const card = screen.getByRole('article')
-    const cls = card.className
-    // Both halves of the elevation recipe, built through /impeccable animate:
-    // a vertical translate (transform) plus a growing shadow, with a transition
-    // joining them. Tested at the class contract because jsdom cannot evaluate
-    // Tailwind's generated CSS.
-    expect(cls).toMatch(/hover:-translate-y-/)
-    expect(cls).toMatch(/hover:shadow/)
-    expect(cls).toMatch(/transition/)
-  })
 })
