@@ -1,0 +1,221 @@
+// Inventory page — Spanish UI. Lists inventory items with the binary stock
+// status computed BY THE BACKEND (inventory_status from InventoryItemOut /
+// derive_status — design ADR-1/4): the badge text comes straight from the
+// served payload, so this page NEVER recomputes ok/bajo_umbral from
+// current_stock vs reorder_threshold. The form creates or edits an item's six
+// tracked fields (name, item_type, unit, supplier, supply_city,
+// reorder_threshold); current_stock is intentionally absent — stock only
+// moves through transactions (design ADR-6).
+import { useEffect, useState } from 'react'
+
+import { createInventoryItem, listInventoryItems, updateInventoryItem } from '../api/index.js'
+
+const emptyItem = {
+  name: '',
+  item_type: 'colorante',
+  unit: '',
+  supplier: '',
+  supply_city: '',
+  reorder_threshold: '',
+}
+
+// Display-only mapping from the served enum value to its badge tone. This is
+// NOT a stock computation — the value itself always comes from the API.
+const statusTone = {
+  ok: 'bg-green-100 text-green-700',
+  bajo_umbral: 'bg-amber-100 text-amber-700',
+}
+
+export default function InventoryPage() {
+  const [items, setItems] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState(emptyItem)
+  const [message, setMessage] = useState(null)
+  const [error, setError] = useState(null)
+
+  const refresh = () => {
+    listInventoryItems().then(setItems).catch((err) => setError(err.message))
+  }
+
+  useEffect(() => {
+    refresh()
+  }, [])
+
+  const setField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+
+  const startEdit = (item) => {
+    setEditingId(item.id)
+    setForm({
+      name: item.name,
+      item_type: item.item_type,
+      unit: item.unit,
+      supplier: item.supplier,
+      supply_city: item.supply_city,
+      reorder_threshold: Number(item.reorder_threshold),
+    })
+  }
+
+  const resetForm = () => {
+    setEditingId(null)
+    setForm(emptyItem)
+  }
+
+  const onSubmit = async (event) => {
+    event.preventDefault()
+    setMessage(null)
+    setError(null)
+    try {
+      const payload = {
+        name: form.name,
+        item_type: form.item_type,
+        unit: form.unit,
+        supplier: form.supplier,
+        supply_city: form.supply_city,
+        // The API receives a number; the backend enforces ge=0 (schemas.py).
+        reorder_threshold: Number(form.reorder_threshold),
+      }
+      if (editingId === null) {
+        await createInventoryItem(payload)
+        setMessage('Item creado')
+      } else {
+        await updateInventoryItem(editingId, payload)
+        setMessage('Item actualizado')
+      }
+      resetForm()
+      refresh()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-slate-800">Inventario</h2>
+
+      {message && (
+        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+      )}
+      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      <form onSubmit={onSubmit} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+        <h3 className="font-semibold text-slate-700">
+          {editingId === null ? 'Nuevo item' : 'Editar item'}
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Nombre</span>
+            <input
+              value={form.name}
+              onChange={(e) => setField('name', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Tipo</span>
+            <select
+              value={form.item_type}
+              onChange={(e) => setField('item_type', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="colorante">Colorante</option>
+              <option value="insumo_pasta_madre">Insumo pasta madre</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Unidad</span>
+            <input
+              value={form.unit}
+              onChange={(e) => setField('unit', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Proveedor</span>
+            <input
+              value={form.supplier}
+              onChange={(e) => setField('supplier', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Ciudad de provisión</span>
+            <input
+              value={form.supply_city}
+              onChange={(e) => setField('supply_city', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Umbral de reposición</span>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={form.reorder_threshold}
+              onChange={(e) => setField('reorder_threshold', e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            {editingId === null ? 'Crear item' : 'Guardar cambios'}
+          </button>
+          {editingId !== null && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+      </form>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-slate-500">Sin items de inventario</p>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {items.map((item) => (
+            <li key={item.id} className="rounded border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={() => startEdit(item)}
+                className="block w-full p-3 text-left"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-800">{item.name}</span>
+                  {/* Served status verbatim — never recomputed client-side (ADR-1/4). */}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      statusTone[item.inventory_status] ?? 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {item.inventory_status}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {item.item_type} · {item.supplier} · {item.supply_city}
+                </p>
+                <p className="mt-1 text-xs text-slate-600">
+                  Stock: <span className="font-medium">{item.current_stock}</span> {item.unit} ·
+                  Umbral: <span className="font-medium">{item.reorder_threshold}</span> {item.unit}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
