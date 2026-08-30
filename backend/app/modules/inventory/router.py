@@ -39,8 +39,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
-from app.db.enums import TransactionType
+from app.db.enums import DesignSource, TransactionType
 from app.modules.access_logs.service import log_action
+from app.modules.designs.models import Design
+from app.modules.formula_designs.router import upsert_formula_design
 from app.modules.formulas.models import Formula
 from app.modules.inventory.models import InventoryItem, InventoryTransaction
 from app.modules.inventory.schemas import (
@@ -196,6 +198,13 @@ def register_transaction(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Fórmula no encontrada",
         )
+    if payload.design_id is not None and db.get(Design, payload.design_id) is None:
+        # Reject a dangling design tag before any write (design data flow:
+        # validate formula_id & design_id exist, 400 otherwise).
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Diseño no encontrado",
+        )
     resulting = item.current_stock + payload.quantity  # in-memory, pre-txn
     violation = _notes_policy_violation(payload.transaction_type, payload.notes, resulting)
     if violation is not None:
@@ -208,12 +217,32 @@ def register_transaction(
             transaction_type=payload.transaction_type,
             quantity=payload.quantity,
             formula_id=payload.formula_id,
+            design_id=payload.design_id,
             user_id=user.id,
             notes=payload.notes,
         )
         db.add(txn)
         db.flush()  # assign txn.id before the audit in the same transaction
         item.current_stock = resulting
+        # Auto design link (design D6/D7, inventory spec "Automatic link from
+        # tagged consumption"): a ``consumo`` carrying both IDs upserts a
+        # ``formula_designs`` row with ``source=auto`` in THIS transaction.
+        # The idempotent helper returns the existing pair (never duplicates,
+        # never violates the real UNIQUE) and audits ``formula_design.create``
+        # only for a genuinely new pair. Runs BEFORE the inventory.transaction
+        # audit, so a later failure rolls the link back with everything else.
+        if (
+            payload.transaction_type == TransactionType.consumo
+            and payload.formula_id is not None
+            and payload.design_id is not None
+        ):
+            upsert_formula_design(
+                db,
+                formula_id=payload.formula_id,
+                design_id=payload.design_id,
+                source=DesignSource.auto,
+                user_id=user.id,
+            )
         log_action(db, user.id, "inventory.transaction")
         db.commit()
     except Exception:

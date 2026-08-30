@@ -14,6 +14,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.db.enums import Unit
+from app.modules.designs.schemas import DesignOut
 
 
 class IngredientIn(BaseModel):
@@ -68,3 +69,13 @@ class FormulaOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     ingredients: list[IngredientOut]
+
+
+class FormulaDetailOut(FormulaOut):
+    """``GET /formulas/{id}/detail`` response (formula-designs spec "Formula
+    Detail Endpoint", design D6): the formula plus its linked designs merged
+    across ``auto`` and ``manual`` sources, deduplicated — a design linked by
+    both sources appears exactly once (real DISTINCT on the ``designs`` query).
+    """
+
+    designs: list[DesignOut]

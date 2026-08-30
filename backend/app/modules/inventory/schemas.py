@@ -96,6 +96,7 @@ class InventoryTransactionOut(BaseModel):
     transaction_type: TransactionType
     quantity: Decimal
     formula_id: int | None
+    design_id: int | None = None
     user_id: int
     notes: str | None
     created_at: datetime
