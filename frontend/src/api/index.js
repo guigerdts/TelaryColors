@@ -132,3 +132,9 @@ export const registerInventoryTransaction = (itemId, payload) =>
 // Per-item transaction history, newest-first, with traceability fields.
 export const listInventoryTransactions = (itemId) =>
   apiFetch(`/inventory/items/${itemId}/transactions`).then((r) => r.json())
+
+// Reorder alerts, grouped server-side by supply_city + supplier (design:
+// GET /inventory/reorder-alerts does the SQL GROUP BY — the browser renders
+// the served group structure as-is and never regroups, re-sorts, or re-keys
+// it client-side). Each item carries its served inventory_status (ADR-1/4).
+export const listReorderAlerts = () => apiFetch('/inventory/reorder-alerts').then((r) => r.json())

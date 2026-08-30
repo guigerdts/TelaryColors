@@ -1,5 +1,6 @@
-// AppRouter — verifies the /muestras and /inventario routes and their pages
-// are reachable from the shared layout's navigation (design ADR: nav link).
+// AppRouter — verifies the /muestras, /inventario and /inventario/alertas
+// routes and their pages are reachable from the shared layout's navigation
+// (design ADR: nav link).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 
@@ -16,7 +17,7 @@ describe('AppRouter guarded routes', () => {
     fetchMock.mockClear()
     fetchMock.mockImplementation((url) => {
       const u = String(url)
-      if (u.includes('/inventory/items')) {
+      if (u.includes('/inventory/items') || u.includes('/inventory/reorder-alerts')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [] })
       }
       return Promise.resolve({ ok: true, status: 200, json: async () => COLORS })
@@ -67,5 +68,24 @@ describe('AppRouter guarded routes', () => {
     // The inventory page's heading + its create action are on the route.
     expect(screen.getByRole('heading', { name: /inventario/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /crear item/i })).toBeTruthy()
+  })
+
+  it('renders an Alertas nav link in the shared layout', () => {
+    render(<App />)
+
+    // The authenticated layout renders the top navigation.
+    const link = screen.getByRole('link', { name: /alertas/i })
+    expect(link).toHaveAttribute('href', '/inventario/alertas')
+  })
+
+  it('navigating to /inventario/alertas renders the reorder alerts page', async () => {
+    render(<App />)
+
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('link', { name: /alertas/i }))
+    await act(async () => {})
+
+    // The alerts page's heading is on the route.
+    expect(screen.getByRole('heading', { name: /alertas de reposición/i })).toBeTruthy()
   })
 })
