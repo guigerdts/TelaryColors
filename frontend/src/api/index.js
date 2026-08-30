@@ -46,6 +46,17 @@ export const listFormulas = () => apiFetch('/formulas').then((r) => r.json())
 export const createFormula = (payload) => apiFetch('/formulas', { method: 'POST', body: payload }).then((r) => r.json())
 export const deleteFormula = (id) => apiFetch(`/formulas/${id}`, { method: 'DELETE' })
 
+// Rich formula ficha: the formula plus its deduplicated linked designs in one
+// call (design D3 / GET /formulas/{id}/detail). No separate requests for the
+// formula and the designs — they arrive together.
+export const getFormulaDetail = (id) => apiFetch(`/formulas/${id}/detail`).then((r) => r.json())
+
+// Manually link an existing design to a formula (formula-designs spec, source
+// manual). Only existing designs — no inline creation (creation lives in
+// /designs).
+export const linkDesignToFormula = (id, payload) =>
+  apiFetch(`/formulas/${id}/designs`, { method: 'POST', body: payload }).then((r) => r.json())
+
 // --- Designs ---
 export const listDesigns = () => apiFetch('/designs').then((r) => r.json())
 export const createDesign = (payload) => apiFetch('/designs', { method: 'POST', body: payload }).then((r) => r.json())
