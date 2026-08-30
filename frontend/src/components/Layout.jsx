@@ -35,8 +35,8 @@ export default function Layout() {
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `rounded px-3 py-1.5 text-sm font-medium transition ${
-                    isActive ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  `rounded px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-accent-281c ${
+                    isActive ? 'bg-accent-281c text-white' : 'text-slate-600 hover:bg-slate-100'
                   }`
                 }
               >
