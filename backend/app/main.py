@@ -23,6 +23,7 @@ from app.modules.access_logs.router import router as access_logs_router
 from app.modules.auth.router import router as auth_router
 from app.modules.designs.router import router as designs_router
 from app.modules.formulas.router import router as formulas_router
+from app.modules.inventory.router import router as inventory_router
 from app.modules.pantone_colors.router import router as pantone_router
 from app.modules.samples.router import router as samples_router
 from app.modules.samples.uploads import _UploadsRoute
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(pantone_router, prefix=API_PREFIX)
     app.include_router(formulas_router, prefix=API_PREFIX)
     app.include_router(designs_router, prefix=API_PREFIX)
+    app.include_router(inventory_router, prefix=API_PREFIX)
     app.include_router(access_logs_router, prefix=API_PREFIX)
     app.include_router(samples_router, prefix=API_PREFIX)
     # Guarded /uploads static mount BEFORE the SPA catch-all (design ADR-2):

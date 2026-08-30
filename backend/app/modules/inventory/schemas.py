@@ -1,25 +1,23 @@
 """Pydantic schemas for the inventory API (inventory spec, design module layout).
 
-Slice A defines the data-model shapes only: ``InventoryItemCreate`` accepts the
-tracked fields (``current_stock`` is the initial value and defaults to zero),
-``InventoryItemUpdate`` exposes the mutable fields and deliberately omits
-``current_stock`` (stock only moves through transactions — design ADR-6),
-``InventoryItemOut`` mirrors the ORM row, and the transaction schemas carry the
-signed ``quantity`` delta plus the nullable ``formula_id`` linking a ``consumo``
-to its production.
-
-The derived ``inventory_status`` field (``ok``/``bajo_umbral``, design ADR-1/4)
-and the ``derive_status`` helper are added in slice B together with the read
-endpoints that use them, driven by their own RED tests; they are computed at
-read time and never stored.
+``InventoryItemCreate`` accepts the tracked fields (``current_stock`` is the
+initial value and defaults to zero), ``InventoryItemUpdate`` exposes the mutable
+fields and deliberately omits ``current_stock`` (stock only moves through
+transactions — design ADR-6), ``InventoryItemOut`` mirrors the ORM row plus the
+derived ``inventory_status`` computed by ``derive_status`` at read time
+(design ADR-1/4 — never stored, flips with no migration), and the transaction
+schemas carry the signed ``quantity`` delta plus the nullable ``formula_id``
+linking a ``consumo`` to its production.
 """
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.enums import ItemType, TransactionType
+from app.modules.inventory.models import InventoryItem
 
 
 class InventoryItemCreate(BaseModel):
@@ -54,8 +52,32 @@ class InventoryItemOut(BaseModel):
     supply_city: str
     current_stock: Decimal
     reorder_threshold: Decimal
+    # Computed at read time by ``derive_status`` (design ADR-1/4); the default
+    # is replaced by ``from_item`` — it exists only so ``model_validate(item)``
+    # succeeds on an ORM row (which has no such attribute).
+    inventory_status: Literal["ok", "bajo_umbral"] = "ok"
     created_at: datetime
     updated_at: datetime
+
+    @classmethod
+    def from_item(cls, item: InventoryItem) -> "InventoryItemOut":
+        """Serialize an ORM row, computing its derived stock status (ADR-1/4)."""
+        return cls.model_validate(item).model_copy(
+            update={"inventory_status": derive_status(item)}
+        )
+
+
+def derive_status(item: InventoryItem) -> Literal["ok", "bajo_umbral"]:
+    """Binary stock status at read time (design ADR-1/4).
+
+    At or above the reorder threshold reads ``ok`` — inclusive, so
+    ``current_stock == reorder_threshold`` is still ``ok`` (spec scenario
+    "Indicator flips without schema change"); only strictly below reads
+    ``bajo_umbral``. Computed on read, never stored; a threshold crossing
+    flips the status with no migration or recalc job. Shared by the item
+    list/read endpoints and the slice-D reorder alerts.
+    """
+    return "ok" if item.current_stock >= item.reorder_threshold else "bajo_umbral"
 
 
 class InventoryTransactionCreate(BaseModel):
