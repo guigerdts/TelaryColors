@@ -23,6 +23,7 @@ from app.modules.access_logs.router import router as access_logs_router
 from app.modules.auth.router import router as auth_router
 from app.modules.designs.router import router as designs_router
 from app.modules.formulas.router import router as formulas_router
+from app.modules.formula_designs.router import router as formula_designs_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.pantone_colors.router import router as pantone_router
 from app.modules.samples.router import router as samples_router
@@ -63,7 +64,7 @@ class _SPARoute(Route):
 def _mount_spa(app: FastAPI) -> None:
     """Serve the SPA build at ``/`` when a build exists (single-origin).
 
-    The route is appended LAST so the REST routes keep matching first.
+    The route is appended last so the REST routes keep matching first.
     CORS is never enabled — browser and API share one origin (ADR-2).
     """
     if FRONTEND_DIST.is_dir():
@@ -84,11 +85,12 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix=API_PREFIX)
     app.include_router(pantone_router, prefix=API_PREFIX)
     app.include_router(formulas_router, prefix=API_PREFIX)
+    app.include_router(formula_designs_router, prefix=API_PREFIX)
     app.include_router(designs_router, prefix=API_PREFIX)
     app.include_router(inventory_router, prefix=API_PREFIX)
     app.include_router(access_logs_router, prefix=API_PREFIX)
     app.include_router(samples_router, prefix=API_PREFIX)
-    # Guarded /uploads static mount BEFORE the SPA catch-all (design ADR-2):
+    # Guarded /uploads static mount before the SPA catch-all (design ADR-2):
     # neither tree can shadow the other, in either registration order.
     app.router.routes.append(_UploadsRoute())
     _mount_spa(app)
