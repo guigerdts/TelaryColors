@@ -48,6 +48,7 @@ export const suggestPantoneHex = (code, gamut) =>
 // --- Formulas ---
 export const listFormulas = () => apiFetch('/formulas').then((r) => r.json())
 export const createFormula = (payload) => apiFetch('/formulas', { method: 'POST', body: payload }).then((r) => r.json())
+export const updateFormula = (id, payload) => apiFetch(`/formulas/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
 export const deleteFormula = (id) => apiFetch(`/formulas/${id}`, { method: 'DELETE' })
 
 // Rich formula ficha: the formula plus its deduplicated linked designs in one
