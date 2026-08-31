@@ -1,7 +1,12 @@
-// Pantone colors page — Spanish UI. CRUD over /pantone-colors.
+// Pantone colors page — Spanish UI. CRUD over /pantone-colors. The catalog
+// renders as PantoneCards (Slice F) instead of the legacy Fase 1 table, and
+// the create form's gamut selector offers the real options C/TPX/U (validated,
+// never free text — pantone-card spec "Gamut Selector").
 import { useCallback, useEffect, useState } from 'react'
 
 import { createPantone, deletePantone, listPantone } from '../api/index.js'
+import PantoneCard from '../components/PantoneCard.jsx'
+import { GAMUT_OPTIONS, isValidGamut } from '../lib/gamut.js'
 
 export default function PantonePage() {
   const [colors, setColors] = useState([])
@@ -25,6 +30,12 @@ export default function PantonePage() {
     event.preventDefault()
     setMessage(null)
     setError(null)
+    // The gamut selector is validated: only C/TPX/U are expressible, so an
+    // out-of-range value can never be submitted as free text.
+    if (!isValidGamut(gamut)) {
+      setError('Gamut inválido: use C, TPX o U')
+      return
+    }
     try {
       await createPantone({ code, gamut, paint_type: paintType })
       setCode('')
@@ -62,17 +73,23 @@ export default function PantonePage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required
-            placeholder="221 C"
+            placeholder="221"
             className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
           />
         </label>
         <label className="space-y-1">
           <span className="block text-xs font-medium text-slate-600">Gamut</span>
-          <input
+          <select
             value={gamut}
             onChange={(e) => setGamut(e.target.value)}
-            className="w-20 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
-          />
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+          >
+            {GAMUT_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="space-y-1">
           <span className="block text-xs font-medium text-slate-600">Tipo</span>
@@ -93,34 +110,21 @@ export default function PantonePage() {
         </button>
       </form>
 
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b text-xs uppercase text-slate-400">
-            <th className="py-2">Código</th>
-            <th>Gamut</th>
-            <th>Tipo</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {colors.map((color) => (
-            <tr key={color.id} className="border-b border-slate-100 text-slate-700">
-              <td className="py-2 font-medium">{color.code}</td>
-              <td>{color.gamut}</td>
-              <td>{color.paint_type}</td>
-              <td className="text-right">
-                <button
-                  type="button"
-                  onClick={() => onDelete(color.id)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {colors.map((color) => (
+          <li key={color.id} className="relative">
+            <PantoneCard pantone={color} />
+            <button
+              type="button"
+              aria-label={`eliminar ${color.code}`}
+              onClick={() => onDelete(color.id)}
+              className="absolute right-3 top-3 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-red-700"
+            >
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
