@@ -108,7 +108,7 @@ export default function InventoryPage() {
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
@@ -117,7 +117,7 @@ export default function InventoryPage() {
               value={form.item_type}
               onChange={(e) => setField('item_type', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             >
               <option value="colorante">Colorante</option>
               <option value="insumo_pasta_madre">Insumo pasta madre</option>
@@ -129,7 +129,7 @@ export default function InventoryPage() {
               value={form.unit}
               onChange={(e) => setField('unit', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
@@ -138,7 +138,7 @@ export default function InventoryPage() {
               value={form.supplier}
               onChange={(e) => setField('supplier', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
@@ -147,7 +147,7 @@ export default function InventoryPage() {
               value={form.supply_city}
               onChange={(e) => setField('supply_city', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
           <label className="space-y-1">
@@ -159,14 +159,14 @@ export default function InventoryPage() {
               value={form.reorder_threshold}
               onChange={(e) => setField('reorder_threshold', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
           </label>
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
           >
             {editingId === null ? 'Crear item' : 'Guardar cambios'}
           </button>
@@ -191,6 +191,9 @@ export default function InventoryPage() {
               <button
                 type="button"
                 onClick={() => startEdit(item)}
+                aria-label={`Ver/editar ${item.name} — ${
+                  item.inventory_status === 'bajo_umbral' ? 'bajo nivel de stock' : 'stock ok'
+                }`}
                 className="block w-full p-3 text-left"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -207,10 +210,16 @@ export default function InventoryPage() {
                 <p className="text-xs text-slate-500">
                   {item.item_type} · {item.supplier} · {item.supply_city}
                 </p>
-                <p className="mt-1 text-xs text-slate-600">
-                  Stock: <span className="font-medium">{item.current_stock}</span> {item.unit} ·
-                  Umbral: <span className="font-medium">{item.reorder_threshold}</span> {item.unit}
-                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
+                  <span>
+                    Stock: <span className="font-medium tabular-nums">{item.current_stock}</span>{' '}
+                    {item.unit}
+                  </span>
+                  <span>
+                    Umbral: <span className="font-medium tabular-nums">{item.reorder_threshold}</span>{' '}
+                    {item.unit}
+                  </span>
+                </div>
               </button>
             </li>
           ))}

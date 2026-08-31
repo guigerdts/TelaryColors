@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* Shared theme — Fase 4 retrofit (spec base "Shared Theme with Brand Accent
+   281C"; design D5). 281C (#00205B) is the brand ACCENT: primary buttons,
+   active links, focus rings. It is intentionally NOT a dominant background —
+   neutral slate surfaces and white cards stay untouched. */
+@theme {
+  --color-accent-281c: #00205B;
+}

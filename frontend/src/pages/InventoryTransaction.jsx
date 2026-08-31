@@ -79,7 +79,7 @@ export default function InventoryTransactionPage() {
       {message && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       <form onSubmit={onSave} className="space-y-3 rounded border border-slate-200 bg-white p-4">
         <label className="block space-y-1">
@@ -88,7 +88,7 @@ export default function InventoryTransactionPage() {
             value={itemId}
             onChange={(e) => setItemId(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="">Seleccionar…</option>
             {items.map((item) => (
@@ -104,7 +104,7 @@ export default function InventoryTransactionPage() {
           <select
             value={transactionType}
             onChange={(e) => setTransactionType(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="entrada">Entrada</option>
             <option value="consumo">Consumo</option>
@@ -121,22 +121,30 @@ export default function InventoryTransactionPage() {
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Fórmula</span>
-          <input
-            value={formulaId}
-            onChange={(e) => setFormulaId(e.target.value)}
-            // Prefilled from ?formula_id= -> read-only so the production link
-            // cannot be edited; otherwise optional manual entry.
-            disabled={Boolean(prefilledFormulaId)}
-            placeholder="Opcional"
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
-          />
-        </label>
+        <div>
+          <label className="block space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Fórmula</span>
+            <input
+              value={formulaId}
+              onChange={(e) => setFormulaId(e.target.value)}
+              // Prefilled from ?formula_id= -> read-only so the production link
+              // cannot be edited; otherwise optional manual entry.
+              disabled={Boolean(prefilledFormulaId)}
+              aria-describedby={prefilledFormulaId ? 'formula-field-hint' : undefined}
+              placeholder="Opcional"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 disabled:bg-slate-100 disabled:text-slate-500"
+            />
+          </label>
+          {prefilledFormulaId && (
+            <p id="formula-field-hint" className="mt-1 text-xs text-slate-500">
+              Fórmula prefijada desde la ficha — no editable
+            </p>
+          )}
+        </div>
 
         <label className="block space-y-1">
           <span className="block text-xs font-medium text-slate-600">Notas</span>
@@ -144,14 +152,14 @@ export default function InventoryTransactionPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
 
         <button
           type="submit"
           disabled={!itemId || saving}
-          className="w-full rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? 'Guardando…' : 'Registrar transacción'}
         </button>

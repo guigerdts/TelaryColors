@@ -69,7 +69,11 @@ export default function SampleRegistrationPage() {
       {message && (
         <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       <form onSubmit={onSave} className="space-y-3 rounded border border-slate-200 bg-white p-4">
         <label className="block space-y-1">
@@ -78,7 +82,7 @@ export default function SampleRegistrationPage() {
             value={pantoneTargetId}
             onChange={(e) => setPantoneTargetId(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="">Seleccionar…</option>
             {colors.map((c) => (
@@ -97,7 +101,7 @@ export default function SampleRegistrationPage() {
             /* Rear-camera hint: the mobile browser opens the back camera. */
             capture="environment"
             onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-600 hover:file:bg-indigo-100"
+            className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-accent-281c/10 file:px-3 file:py-2.5 file:text-sm file:font-medium file:text-accent-281c hover:file:bg-accent-281c/15"
           />
         </label>
 
@@ -106,7 +110,7 @@ export default function SampleRegistrationPage() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="archivada_reutilizable">Archivada reutilizable</option>
             <option value="aprobada">Aprobada</option>
@@ -120,14 +124,14 @@ export default function SampleRegistrationPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
 
         <button
           type="submit"
           disabled={!pantoneTargetId || saving}
-          className="w-full rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? 'Guardando…' : 'Registrar muestra'}
         </button>

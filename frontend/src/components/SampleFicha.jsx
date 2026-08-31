@@ -30,7 +30,7 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
       <button
         type="button"
         onClick={handlePromote}
-        className="rounded border border-indigo-500 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
+        className="rounded border border-accent-281c/60 px-2 py-1 text-xs text-accent-281c hover:bg-accent-281c/10"
       >
         Promover
       </button>
