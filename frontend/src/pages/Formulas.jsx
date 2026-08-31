@@ -342,9 +342,9 @@ export default function FormulasPage() {
           aria-modal="true"
           aria-labelledby={modalTitleId}
           tabIndex={-1}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 outline-none sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 outline-none animate-overlay-in sm:items-center"
         >
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl animate-panel-in">
             <h3 id={modalTitleId} className="text-lg font-semibold text-slate-800">
               {pendingSubmit === 'edit' ? 'Guardar cambios' : 'Confirmar nueva fórmula'}
             </h3>

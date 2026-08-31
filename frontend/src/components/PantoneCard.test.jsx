@@ -101,4 +101,21 @@ describe('PantoneCard (spec §4 visual)', () => {
     expect(dateText.textContent).toMatch(/2026/)
   })
 
+  it('guards hover/active motion behind motion-safe so it respects prefers-reduced-motion', () => {
+    // Phase A flagged the card as animating on hover while ignoring the OS
+    // reduce-motion preference. Regression: the lift/scale must be expressed
+    // with the motion-safe: variant (and never a bare hover:/active: that a
+    // reduced-motion user cannot opt out of globally).
+    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />)
+
+    const card = screen.getByRole('article')
+    const cls = card.className
+    expect(cls).toMatch(/motion-safe:hover:-translate-y-1/)
+    expect(cls).toMatch(/motion-safe:active:scale-\[0\.98\]/)
+    // No unprotected hover/active motion: these would run even under reduce.
+    // Use a lookbehind so `motion-safe:hover:…` is NOT flagged as a bare hover.
+    expect(cls).not.toMatch(/(?<!motion-safe:)hover:-translate-y-1/)
+    expect(cls).not.toMatch(/(?<!motion-safe:)hover:shadow-lg/)
+    expect(cls).not.toMatch(/(?<!motion-safe:)active:scale-\[0\.98\]/)
+  })
 })

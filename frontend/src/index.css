@@ -6,4 +6,31 @@
    neutral slate surfaces and white cards stay untouched. */
 @theme {
   --color-accent-281c: #00205B;
+
+  /* Restrained motion (impeccable animate, Operate mode): overlay fade + panel
+     rise for modal/dialog entrances, natural deceleration, nothing decorative. */
+  --animate-overlay-in: overlay-in 200ms ease-out;
+  --animate-panel-in: panel-in 250ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* Accessibility: honor the OS reduce-motion preference app-wide. Suppresses
+   every transition/animation (hover lifts, modal entrances) for users who ask
+   for less movement. Phase A flagged PantoneCard's hover/scale as ignoring
+   this — the global override plus motion-safe variants fix it everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

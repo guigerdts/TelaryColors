@@ -23,7 +23,7 @@ export default function PantoneCard({ pantone, formula, designs = [] }) {
   return (
     <article
       role="article"
-      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg active:scale-[0.98] active:shadow-md"
+      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-lg motion-safe:active:scale-[0.98] motion-safe:active:shadow-md"
     >
       {/* Solid color block — full card width representation of the Pantone. */}
       <div

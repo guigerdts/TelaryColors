@@ -143,7 +143,7 @@ export default function Layout() {
             {profileOpen && (
               <div
                 role="menu"
-                className="absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                className="absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg animate-panel-in"
               >
                 <div className="border-b border-slate-100 px-3 py-2">
                   <p className="text-xs font-semibold text-slate-400">Cuenta</p>
@@ -225,7 +225,7 @@ export default function Layout() {
               className="fixed inset-0 z-[-1] cursor-default"
               onClick={() => setMoreOpen(false)}
             />
-            <div className="border-t border-slate-200 bg-white">
+            <div className="border-t border-slate-200 bg-white animate-panel-in">
               {visibleSecondary.map((link) => (
                 <NavLink
                   key={link.to}
