@@ -120,7 +120,7 @@ export default function PantonePage() {
             onChange={(e) => setCode(e.target.value)}
             required
             placeholder="221"
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
         <label className="space-y-1">
@@ -128,7 +128,7 @@ export default function PantonePage() {
           <select
             value={gamut}
             onChange={(e) => setGamut(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             {GAMUT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -142,7 +142,7 @@ export default function PantonePage() {
           <select
             value={paintType}
             onChange={(e) => setPaintType(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="reactiva">reactiva</option>
             <option value="pigmento">pigmento</option>
@@ -154,7 +154,7 @@ export default function PantonePage() {
             value={hex}
             onChange={(e) => setHex(e.target.value)}
             placeholder="#00205b"
-            className="w-28 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-28 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
         <button
@@ -183,7 +183,7 @@ export default function PantonePage() {
                 type="button"
                 aria-label={`editar ${color.code}`}
                 onClick={() => onEdit(color)}
-                className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-indigo-700"
+                className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white opacity-90 hover:brightness-90"
               >
                 Editar
               </button>

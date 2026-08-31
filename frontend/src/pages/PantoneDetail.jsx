@@ -108,7 +108,7 @@ export default function PantoneDetail({ formulaId, pantone }) {
               aria-label="Vincular diseño existente"
               value={designId}
               onChange={(e) => setDesignId(e.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             >
               {designs.map((design) => (
                 <option key={design.id} value={design.id}>

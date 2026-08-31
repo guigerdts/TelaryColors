@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
         <label className="space-y-1">
@@ -78,7 +78,7 @@ export default function AdminUsersPage() {
           <input
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
         <label className="space-y-1">
@@ -88,7 +88,7 @@ export default function AdminUsersPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           />
         </label>
         <label className="space-y-1">
@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
           >
             <option value="operator">operador</option>
             <option value="admin">admin</option>

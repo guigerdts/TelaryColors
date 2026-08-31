@@ -160,4 +160,33 @@ describe('FormulasPage', () => {
     expect(screen.getByRole('button', { name: /crear fórmula/i })).toBeTruthy()
     expect(screen.getByText('Cambios guardados')).toBeTruthy()
   })
+
+  it('confirmation modal is an ARIA dialog: labelled title, Escape close, focus restore', async () => {
+    renderPage()
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: 'A11y' } })
+    fireEvent.change(screen.getByLabelText(/color pantone/i), { target: { value: '1' } })
+    const createBtn = screen.getByRole('button', { name: /crear fórmula/i })
+    createBtn.focus()
+    fireEvent.click(createBtn)
+    await act(async () => {})
+
+    const dialog = screen.getByRole('dialog')
+    // aria-labelledby points at the dialog's title element.
+    const title = dialog.querySelector('h3')
+    expect(title).toBeTruthy()
+    expect(dialog).toHaveAttribute('aria-labelledby', title.id)
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    // Focus moved into the dialog so the trap has a start point.
+    expect(dialog.contains(document.activeElement) || document.activeElement === dialog).toBe(true)
+
+    // Escape closes the dialog without saving.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await act(async () => {})
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(api.createFormula).not.toHaveBeenCalled()
+    // Focus was restored to the element that opened the dialog.
+    expect(document.activeElement).toBe(createBtn)
+  })
 })
