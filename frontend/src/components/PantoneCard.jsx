@@ -1,0 +1,76 @@
+// PantoneCard — the central component of the app (FASE4 spec §4, pantone-card
+// spec). Renders a solid color block spanning the card width, a white strip with
+// the PANTONE® wordmark + code+gamut + HEX, then the color formula in
+// grams/kilo and the linked designs/clients as SEPARATE dimensions (design D2 /
+// user confirmation: design_colors composition vs formula_designs usage are
+// distinct and never merged).
+//
+// Hover elevation is built through the /impeccable animate playbook: a vertical
+// translate (transform) combined with a growing box-shadow through a transition
+// (natural deceleration), not a hand-hardcoded static shadow.
+//
+// Presentational: the caller supplies `pantone` (code/gamut/hex) and the already
+// fetched `formula` + `designs` (the ficha owns the single detail call).
+export default function PantoneCard({ pantone, formula, designs = [] }) {
+  const code = pantone?.code ?? ''
+  const gamut = pantone?.gamut ?? ''
+  const pmsCode = `PMS ${code} ${gamut}`.trim()
+  const hex = pantone?.hex
+  const pmsCodeLabel = `Pantone ${pmsCode}`
+
+  return (
+    <article
+      role="article"
+      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
+    >
+      {/* Solid color block — full card width representation of the Pantone. */}
+      <div
+        role="img"
+        aria-label={pmsCodeLabel}
+        className="h-24 w-full"
+        style={{ backgroundColor: hex || '#334155' }}
+      />
+
+      {/* White strip: wordmark + code+gamut + HEX. */}
+      <div className="flex items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-3">
+        <span className="text-xs font-black tracking-[0.12em] text-slate-800">PANTONE®</span>
+        <span className="text-sm font-semibold text-slate-700">{pmsCode}</span>
+        {hex && <span className="font-mono text-xs text-slate-500">{hex.toUpperCase()}</span>}
+      </div>
+
+      {/* Formula — color composition in grams/kilo (design_colors dimension). */}
+      <section aria-label="Fórmula (g/kg)" className="px-4 py-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Fórmula (g/kg)
+        </h3>
+        <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+          {formula?.ingredients?.map((ing) => (
+            <li key={ing.id} className="flex justify-between gap-2 text-sm text-slate-700">
+              <span>{ing.colorant}</span>
+              <span className="whitespace-nowrap font-medium">{Number(ing.quantity_g)} g</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Designs that use this formula (formula_designs dimension) — separate. */}
+      <section aria-label="Diseños que usan esta fórmula" className="border-t border-slate-200 px-4 py-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Diseños que usan esta fórmula
+        </h3>
+        {designs.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">Sin diseños vinculados</p>
+        ) : (
+          <ul className="mt-2 space-y-1">
+            {designs.map((design) => (
+              <li key={design.id} className="text-sm text-slate-700">
+                <span className="font-medium">{design.name}</span>
+                {design.client && <span className="text-slate-500"> · {design.client}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </article>
+  )
+}
