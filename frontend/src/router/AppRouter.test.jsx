@@ -34,7 +34,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     // The authenticated layout renders the top navigation.
-    const link = screen.getByRole('link', { name: /muestras/i })
+    const link = screen.getAllByRole('link', { name: /muestras/i })[0]
     expect(link).toHaveAttribute('href', '/muestras')
   })
 
@@ -42,7 +42,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     await act(async () => {})
-    fireEvent.click(screen.getByRole('link', { name: /muestras/i }))
+    fireEvent.click(screen.getAllByRole('link', { name: /muestras/i })[0])
     await act(async () => {})
 
     // The registration page's heading + its primary action are on the route.
@@ -54,7 +54,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     // The authenticated layout renders the top navigation.
-    const link = screen.getByRole('link', { name: /inventario/i })
+    const link = screen.getAllByRole('link', { name: /inventario/i })[0]
     expect(link).toHaveAttribute('href', '/inventario')
   })
 
@@ -62,7 +62,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     await act(async () => {})
-    fireEvent.click(screen.getByRole('link', { name: /inventario/i }))
+    fireEvent.click(screen.getAllByRole('link', { name: /inventario/i })[0])
     await act(async () => {})
 
     // The inventory page's heading + its create action are on the route.
@@ -74,7 +74,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     // The authenticated layout renders the top navigation.
-    const link = screen.getByRole('link', { name: /alertas/i })
+    const link = screen.getAllByRole('link', { name: /alertas/i })[0]
     expect(link).toHaveAttribute('href', '/inventario/alertas')
   })
 
@@ -82,7 +82,7 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
 
     await act(async () => {})
-    fireEvent.click(screen.getByRole('link', { name: /alertas/i }))
+    fireEvent.click(screen.getAllByRole('link', { name: /alertas/i })[0])
     await act(async () => {})
 
     // The alerts page's heading is on the route.

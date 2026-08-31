@@ -12,9 +12,11 @@ build the mount is skipped (html=True needs the directory to exist), so
 API-only deployments and the test suite are unaffected.
 """
 
+import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from starlette.responses import FileResponse
 from starlette.routing import Match, Route
 from starlette.staticfiles import StaticFiles
 
@@ -37,28 +39,56 @@ FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 
 class _SPARoute(Route):
-    """Serve the built SPA at ``/`` without ever shadowing the REST tree.
+    """Serve the built SPA at ``/`` with client-side-routing fallback.
 
-    A plain ``Mount("/", StaticFiles(...))`` matches every path, so any
-    route registered after it (e.g. tests' dynamic routes) is shadowed.
-    This route instead yields (``Match.NONE``) for non-HTTP scopes and for
-    any path under ``/api/`` or ``/uploads/``, letting the router keep
-    walking to the API and uploads routes; everything else is served from
-    ``frontend/dist`` with ``html=True`` (directory requests return
-    ``index.html``). The ``/uploads/`` guard mirrors ``_UploadsRoute`` so
-    the SPA catch-all can never capture upload paths even if the upload
-    route is re-ordered (ADR-2 double guard, order-independent).
+    A plain ``Mount("/", StaticFiles(...))`` matches every path, so any route
+    registered after it (e.g. tests' dynamic routes) is shadowed. This route
+    instead yields (``Match.NONE``) for non-HTTP scopes and for any path under
+    ``/api/`` or ``/uploads/``, letting the router keep walking to the API and
+    uploads routes; everything else is served from ``frontend/dist``.
+
+    Unlike a bare ``StaticFiles(html=True)`` — which only turns *directory*
+    requests into ``index.html`` and returns 404 for arbitrary client-routed
+    paths such as ``/search`` or ``/formulas`` — this handler resolves the
+    requested path against the build directory through a safe, path-traversal
+    guarded ``lookup_path`` and serves it when it is a real file (e.g. the
+    bundled ``/assets/*.js`` and ``/assets/*.css``), otherwise it falls back to
+    ``index.html`` so React Router handles the route (SPA refresh / deep-link
+    fallback, bugfix). The ``/uploads/`` guard mirrors ``_UploadsRoute`` so the
+    SPA catch-all can never capture upload paths even if the upload route is
+    re-ordered (ADR-2 double guard, order-independent).
     """
+
+    def __init__(self, dist_dir: Path):
+        self._static = StaticFiles(directory=dist_dir)
+        self._index = dist_dir / "index.html"
+        super().__init__(
+            "/{path:path}",
+            self._handle,
+            name="spa",
+            include_in_schema=False,
+        )
 
     def matches(self, scope):
         if scope.get("type") != "http":
             return Match.NONE, scope
         path = scope["path"]
-        if path.startswith("/api/") or path == "/uploads" or path.startswith(
+        if path.startswith("/api") or path == "/uploads" or path.startswith(
             "/uploads/"
         ):
             return Match.NONE, scope
         return super().matches(scope)
+
+    async def _handle(self, request: Request) -> FileResponse:
+        # ``{path:path}`` capture; root ("/") yields "".
+        # URL-decode and strip the leading slash to mirror StaticFiles.
+        captured = request.path_params.get("path", "") or ""
+        relative = captured.lstrip("/")
+        full_path, stat = self._static.lookup_path(relative)
+        if stat is not None and os.path.isfile(full_path):
+            return self._static.file_response(full_path, stat, request.scope)
+        # No real file matched: client-routed path → SPA fallback.
+        return FileResponse(self._index)
 
 
 def _mount_spa(app: FastAPI) -> None:
@@ -68,14 +98,7 @@ def _mount_spa(app: FastAPI) -> None:
     CORS is never enabled — browser and API share one origin (ADR-2).
     """
     if FRONTEND_DIST.is_dir():
-        app.router.routes.append(
-            _SPARoute(
-                "/{path:path}",
-                StaticFiles(directory=FRONTEND_DIST, html=True),
-                name="spa",
-                include_in_schema=False,
-            )
-        )
+        app.router.routes.append(_SPARoute(FRONTEND_DIST))
 
 
 def create_app() -> FastAPI:

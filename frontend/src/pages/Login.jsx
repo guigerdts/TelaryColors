@@ -78,7 +78,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full rounded bg-accent-281c py-2 text-sm font-semibold text-white transition hover:brightness-90 disabled:opacity-50"
         >
           {submitting ? 'Ingresando…' : 'Ingresar'}
         </button>

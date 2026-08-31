@@ -104,7 +104,7 @@ export default function PantonePage() {
         </label>
         <button
           type="submit"
-          className="rounded bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded bg-accent-281c px-4 py-1.5 text-sm font-semibold text-white hover:brightness-90"
         >
           Agregar
         </button>

@@ -107,40 +107,45 @@ export default function FormulasPage() {
           />
         </label>
 
-        <div className="space-y-2">
+          <div className="space-y-2">
           <span className="text-xs font-medium text-slate-600">Ingredientes</span>
           {ingredients.map((ing, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div
+              key={index}
+              className="flex flex-col gap-2 rounded border border-slate-200 bg-slate-50 p-2 sm:flex-row sm:items-center"
+            >
               <input
                 value={ing.colorant}
                 onChange={(e) => setIngredient(index, 'colorant', e.target.value)}
                 placeholder="Colorante"
-                className="flex-1 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+                className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 sm:flex-1"
               />
-              <input
-                value={ing.quantity}
-                onChange={(e) => setIngredient(index, 'quantity', e.target.value)}
-                placeholder="Cantidad"
-                type="number"
-                step="any"
-                min="0"
-                className="w-28 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-              />
-              <select
-                value={ing.unit}
-                onChange={(e) => setIngredient(index, 'unit', e.target.value)}
-                className="rounded border border-slate-300 px-2 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-              >
-                <option value="g">g</option>
-                <option value="kg">kg</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => removeIngredient(index)}
-                className="text-xs text-red-600 hover:underline"
-              >
-                Quitar
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={ing.quantity}
+                  onChange={(e) => setIngredient(index, 'quantity', e.target.value)}
+                  placeholder="Cantidad"
+                  type="number"
+                  step="any"
+                  min="0"
+                  className="w-24 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 sm:w-28"
+                />
+                <select
+                  value={ing.unit}
+                  onChange={(e) => setIngredient(index, 'unit', e.target.value)}
+                  className="rounded border border-slate-300 px-2 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+                >
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeIngredient(index)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  Quitar
+                </button>
+              </div>
             </div>
           ))}
           <button
