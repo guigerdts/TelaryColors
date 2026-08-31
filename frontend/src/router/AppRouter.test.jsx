@@ -28,6 +28,8 @@ describe('AppRouter guarded routes', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     localStorage.clear()
+    // Restore the URL after tests that pushState a deep-link route.
+    window.history.pushState({}, '', '/')
   })
 
   it('renders a Muestras nav link in the shared layout', () => {
@@ -87,5 +89,21 @@ describe('AppRouter guarded routes', () => {
 
     // The alerts page's heading is on the route.
     expect(screen.getByRole('heading', { name: /alertas de reposición/i })).toBeTruthy()
+  })
+
+  it('navigating to /inventario/transaccion?formula_id=X renders the transaction form, not a redirect to /search', async () => {
+    // Regression: the "Registrar consumo" NavLink from a formula points here with
+    // ?formula_id= (spec "Happy-path consumo with formula"). Before wiring the
+    // route, any unregistered path fell through to the wildcard -> /search, so
+    // the primary consumption workflow was unreachable. Now it must render the
+    // form (P0 regression).
+    window.history.pushState({}, '', '/inventario/transaccion?formula_id=7')
+    render(<App />)
+    await act(async () => {})
+
+    // The transaction form is on the route — NOT redirected to /search.
+    expect(screen.getByRole('heading', { name: /registrar transacción/i })).toBeTruthy()
+    // The ?formula_id= prefill marks the formula as read-only with its hint.
+    expect(screen.getByText(/fórmula prefijada desde la ficha/i)).toBeTruthy()
   })
 })

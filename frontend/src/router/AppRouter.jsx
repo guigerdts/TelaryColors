@@ -17,6 +17,7 @@ import PantonePage from '../pages/Pantone.jsx'
 import FormulasPage from '../pages/Formulas.jsx'
 import InventoryPage from '../pages/Inventory.jsx'
 import InventoryAlertsPage from '../pages/InventoryAlerts.jsx'
+import InventoryTransactionPage from '../pages/InventoryTransaction.jsx'
 import DesignsPage from '../pages/Designs.jsx'
 import AdminUsersPage from '../pages/AdminUsers.jsx'
 import SampleRegistrationPage from '../pages/SampleRegistration.jsx'
@@ -52,6 +53,10 @@ export default function AppRouter() {
             <Route path="/formulas" element={<FormulasPage />} />
             <Route path="/inventario" element={<InventoryPage />} />
             <Route path="/inventario/alertas" element={<InventoryAlertsPage />} />
+            <Route
+              path="/inventario/transaccion"
+              element={<InventoryTransactionPage />}
+            />
             <Route path="/designs" element={<DesignsPage />} />
             <Route path="/usuarios" element={<AdminUsersPage />} />
             <Route path="/muestras" element={<SampleRegistrationPage />} />
