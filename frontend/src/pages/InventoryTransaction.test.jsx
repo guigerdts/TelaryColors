@@ -8,12 +8,16 @@
 // formula field is read-only/hidden so it cannot be edited. Backend 400
 // messages are surfaced verbatim (design ADR-3) — never a generic error.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
 import InventoryTransactionPage from './InventoryTransaction.jsx'
 
 const FORMULA_UUID = 'a3f1c6a0-0000-4000-8000-000000000001'
+
+// Existing designs offered by the optional consumo design selector (F.4). Only
+// these get linked — never free text / inline creation (user confirmation 2).
+const DESIGNS = [{ id: 31, name: 'Colección Aromo', client: 'Telary Home', notes: null }]
 
 // Inventory items the form lets the operator pick as the transaction target.
 const ITEMS = [
@@ -203,5 +207,66 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     await act(async () => {})
 
     expect(screen.getByText('las transacciones de ajuste requieren una nota')).toBeTruthy()
+  })
+
+  it('omits design_id from the payload when the operator picks no design (consumo sin diseño → no link)', async () => {
+    renderAt('/inventario/transaccion')
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: 'consumo' } })
+    fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
+    // The design selector exists but is left unselected — no design_id is sent.
+    fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/transactions'),
+    )
+    expect(call).toBeTruthy()
+    // Omitting the design MUST NOT silently link anything — no design_id field.
+    const body = JSON.parse(call[1].body)
+    expect(body).not.toHaveProperty('design_id')
+  })
+
+  it('sends design_id when the operator selects an existing design', async () => {
+    fetchMock.mockImplementation((url, init) => {
+      const u = String(url)
+      const method = init?.method ?? 'GET'
+      if (u.includes('/inventory/items') && method === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ITEMS })
+      }
+      if (u.includes('/designs') && method === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => DESIGNS })
+      }
+      if (u.includes('/transactions')) {
+        return Promise.resolve({
+          ok: true,
+          status: 201,
+          json: async () => ({ id: 1, ...JSON.parse(init.body) }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+
+    renderAt('/inventario/transaccion')
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: 'consumo' } })
+    fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
+    const design = screen.getByLabelText(/diseño/i)
+    // Only existing designs are offered (the selector is populated from
+    // listDesigns — never free text / inline creation).
+    expect(within(design).getAllByRole('option').map((o) => o.textContent)).toContain('Colección Aromo')
+    fireEvent.change(design, { target: { value: '31' } })
+    fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/transactions'),
+    )
+    expect(call).toBeTruthy()
+    expect(JSON.parse(call[1].body).design_id).toBe(31)
   })
 })
