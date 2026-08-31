@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 
 import SearchPage from './Search.jsx'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Slice F: the search results render as PantoneCards, so code and gamut are
+// separate (codigo/gamut) and the card renders "PMS 221 C" with the PANTONE®
+// wordmark — not the legacy flat box with raw "221 C".
 const COLORS = [
-  { id: 1, code: '221 C', gamut: 'C', paint_type: 'reactiva' },
-  { id: 2, code: '2210 C', gamut: 'C', paint_type: 'pigmento' },
+  { id: 1, code: '221', gamut: 'C', paint_type: 'reactiva' },
+  { id: 2, code: '2210', gamut: 'C', paint_type: 'pigmento' },
 ]
 
 const FORMULAS = [{ id: 10, pantone_color_id: 1, name: 'Fórmula 221', ingredients: [] }]
@@ -68,9 +71,27 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
     expect(searchCalls).toHaveLength(1)
     expect(String(searchCalls[0][0])).toMatch(/\/api\/v1\/pantone-colors\?q=221/)
 
-    // The returned colors are rendered (along with any matching formulas).
-    expect(screen.getByText(/221 C/)).toBeTruthy()
-    expect(screen.getByText(/2210 C/)).toBeTruthy()
+    // The returned colors are rendered as PantoneCards (wordmark + PMS code
+    // with gamut) plus any matching formulas.
+    expect(screen.getByText(/PMS 221 C/)).toBeTruthy()
+    expect(screen.getByText(/PMS 2210 C/)).toBeTruthy()
+  })
+
+  it('renders each search result as a PantoneCard, not the legacy flat box', async () => {
+    render(<SearchPage />)
+    const input = screen.getByLabelText(/buscar color/i)
+    await act(async () => {})
+    fetchMock.mockClear()
+
+    fireEvent.change(input, { target: { value: '221' } })
+    await act(async () => {
+      await sleep(350)
+    })
+
+    // Each result is a semantic article card carrying the PANTONE® wordmark.
+    const cards = screen.getAllByRole('article')
+    expect(cards).toHaveLength(2)
+    expect(within(cards[0]).getByText('PANTONE®')).toBeTruthy()
   })
 
   it('fetches and renders reusable samples for each search result', async () => {
