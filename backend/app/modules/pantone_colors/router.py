@@ -143,5 +143,16 @@ def delete_pantone_color(
         )
     db.delete(color)
     log_action(db, user.id, "pantone.delete")
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # formulas.pantone_color_id references the color (FK, no cascade on
+        # delete, and PRAGMA foreign_keys=ON is enforced by the engine):
+        # removing it would silently orphan real formulas. Same pattern as
+        # the users router — reject with a clear 409, never a raw 500.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar: el color tiene fórmulas asociadas",
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

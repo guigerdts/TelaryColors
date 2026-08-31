@@ -269,3 +269,37 @@ def test_write_actions_are_audited(client, auth_headers, session_factory) -> Non
         assert ("pantone.create", admin_id) in actions
         assert ("pantone.update", admin_id) in actions
         assert ("pantone.delete", admin_id) in actions
+
+
+def test_delete_pantone_with_linked_formula_returns_409_not_persisted(
+    client, auth_headers, session_factory
+) -> None:
+    """DELETE on a pantone referenced by a formula → 409 with a clear message;
+    the pantone is NOT deleted (FK integrity, formulas.pantone_color_id).
+    """
+    headers = auth_headers("admin")
+
+    # Seed a pantone and a formula that links to it.
+    created = _create(client, headers, code="287C", gamut="C")
+    assert created.status_code == 201
+    color_id = created.json()["id"]
+
+    formula = client.post(
+        "/api/v1/formulas",
+        headers=headers,
+        json={
+            "name": "Fórmula de prueba",
+            "pantone_color_id": color_id,
+            "ingredients": [{"colorant": "Rojo", "quantity": "10", "unit": "g"}],
+        },
+    )
+    assert formula.status_code == 201
+
+    # Deleting the referenced pantone must be rejected with a clear 409.
+    deleted = client.delete(f"/api/v1/pantone-colors/{color_id}", headers=headers)
+    assert deleted.status_code == 409
+    assert deleted.json()["detail"] == "No se puede eliminar: el color tiene fórmulas asociadas"
+
+    # The pantone must NOT be deleted — integrity preserved.
+    with session_factory() as db:
+        assert db.get(PantoneColor, color_id) is not None
