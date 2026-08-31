@@ -4,7 +4,7 @@
 // never free text — pantone-card spec "Gamut Selector").
 import { useCallback, useEffect, useState } from 'react'
 
-import { createPantone, deletePantone, listPantone } from '../api/index.js'
+import { createPantone, deletePantone, listPantone, suggestPantoneHex } from '../api/index.js'
 import PantoneCard from '../components/PantoneCard.jsx'
 import { GAMUT_OPTIONS, isValidGamut } from '../lib/gamut.js'
 
@@ -13,6 +13,7 @@ export default function PantonePage() {
   const [code, setCode] = useState('')
   const [gamut, setGamut] = useState('C')
   const [paintType, setPaintType] = useState('reactiva')
+  const [hex, setHex] = useState('')
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
 
@@ -26,6 +27,16 @@ export default function PantonePage() {
     refresh()
   }, [refresh])
 
+  // Auto-suggest hex when code changes and hex field is empty.
+  useEffect(() => {
+    if (!code || hex) return
+    suggestPantoneHex(code, gamut)
+      .then((data) => {
+        if (data?.hex_color) setHex(data.hex_color)
+      })
+      .catch(() => {})
+  }, [code, gamut, hex])
+
   const onCreate = async (event) => {
     event.preventDefault()
     setMessage(null)
@@ -37,8 +48,9 @@ export default function PantonePage() {
       return
     }
     try {
-      await createPantone({ code, gamut, paint_type: paintType })
+      await createPantone({ code, gamut, paint_type: paintType, hex_color: hex || null })
       setCode('')
+      setHex('')
       setMessage('Color creado')
       refresh()
     } catch (err) {
@@ -101,6 +113,15 @@ export default function PantonePage() {
             <option value="reactiva">reactiva</option>
             <option value="pigmento">pigmento</option>
           </select>
+        </label>
+        <label className="space-y-1">
+          <span className="block text-xs font-medium text-slate-600">HEX</span>
+          <input
+            value={hex}
+            onChange={(e) => setHex(e.target.value)}
+            placeholder="#00205b"
+            className="w-28 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+          />
         </label>
         <button
           type="submit"

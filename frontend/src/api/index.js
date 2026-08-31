@@ -40,6 +40,10 @@ export const listPantone = () => apiFetch('/pantone-colors').then((r) => r.json(
 export const createPantone = (payload) => apiFetch('/pantone-colors', { method: 'POST', body: payload }).then((r) => r.json())
 export const updatePantone = (id, payload) => apiFetch(`/pantone-colors/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
 export const deletePantone = (id) => apiFetch(`/pantone-colors/${id}`, { method: 'DELETE' })
+export const suggestPantoneHex = (code, gamut) =>
+  apiFetch(`/pantone-colors/hex?code=${encodeURIComponent(code)}&gamut=${encodeURIComponent(gamut)}`).then(
+    (r) => r.json(),
+  )
 
 // --- Formulas ---
 export const listFormulas = () => apiFetch('/formulas').then((r) => r.json())

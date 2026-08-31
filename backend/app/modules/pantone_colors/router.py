@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
 from app.modules.access_logs.service import log_action
 from app.modules.pantone_colors.models import PantoneColor
+from app.modules.pantone_colors.hex_dataset import suggest_hex
 from app.modules.pantone_colors.schemas import (
+    HexSuggestionOut,
     PantoneColorCreate,
     PantoneColorOut,
     PantoneColorUpdate,
@@ -40,6 +42,15 @@ def list_pantone_colors(
     if q:
         query = query.where(PantoneColor.code.ilike(q + "%"))
     return db.scalars(query.order_by(PantoneColor.code)).all()
+
+
+@router.get("/hex", response_model=HexSuggestionOut)
+def suggest_hex_color(
+    code: str = "",
+    gamut: str = "",
+    _user: User = Depends(get_current_user),
+) -> dict:
+    return {"hex_color": suggest_hex(code, gamut)}
 
 
 @router.get("/{color_id}", response_model=PantoneColorOut)
@@ -68,6 +79,7 @@ def create_pantone_color(
             code=payload.code,
             gamut=payload.gamut,
             paint_type=payload.paint_type,
+            hex_color=payload.hex_color,
         )
         db.add(color)
         db.flush()  # assign the id / surface uniqueness before auditing
@@ -102,6 +114,8 @@ def update_pantone_color(
         color.gamut = payload.gamut
     if payload.paint_type is not None:
         color.paint_type = payload.paint_type
+    if payload.hex_color is not None:
+        color.hex_color = payload.hex_color
     log_action(db, user.id, "pantone.update")
     try:
         db.commit()

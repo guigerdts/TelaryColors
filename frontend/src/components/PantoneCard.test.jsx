@@ -11,7 +11,7 @@ import { render, screen, within } from '@testing-library/react'
 
 import PantoneCard from './PantoneCard.jsx'
 
-const PANTONE = { code: '211', gamut: 'C', hex: '#E63950' }
+const PANTONE = { code: '211', gamut: 'C', hex_color: '#E63950' }
 
 const DETAIL = {
   id: 7,
@@ -78,6 +78,27 @@ describe('PantoneCard (spec §4 visual)', () => {
     // Formula still renders, and it lives outside the empty designs section.
     const formulaSection = screen.getByRole('region', { name: 'Fórmula (g/kg)' })
     expect(within(formulaSection).getByText(/Blanco/)).toBeTruthy()
+  })
+
+  it('renders placeholder text when hex_color is null', () => {
+    const pantoneNoHex = { code: '211', gamut: 'C', hex_color: null }
+    render(<PantoneCard pantone={pantoneNoHex} formula={DETAIL} designs={[]} />)
+
+    expect(screen.getByText('Sin color asignado')).toBeTruthy()
+    // Should NOT show a hex code.
+    expect(screen.queryByText('#E63950')).toBeNull()
+  })
+
+  it('renders the creation date when created_at is present', () => {
+    const pantoneWithDate = { ...PANTONE, created_at: '2026-08-31T18:05:00Z' }
+    render(<PantoneCard pantone={pantoneWithDate} formula={DETAIL} designs={[]} />)
+
+    // es-CO locale should render the date containing 31 and 2026.
+    // Use a tolerant regex since Intl formatting varies by ICU version.
+    const dateText = screen.getByText(/Creado/)
+    expect(dateText).toBeTruthy()
+    expect(dateText.textContent).toMatch(/31/)
+    expect(dateText.textContent).toMatch(/2026/)
   })
 
 })

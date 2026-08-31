@@ -30,4 +30,5 @@ class PantoneColor(Base):
         SAEnum(PaintType, native_enum=False, length=20),
         nullable=False,
     )
+    hex_color: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)

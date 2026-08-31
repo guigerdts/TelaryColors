@@ -304,6 +304,53 @@ def test_0004_downgrade_is_additive_safe(tmp_path) -> None:
         conn.close()
 
 
+def test_0005_adds_hex_color_column(tmp_path) -> None:
+    """``0005`` adds the nullable ``hex_color`` column to ``pantone_colors``
+    (hex_color spec: store real HEX per Pantone)."""
+    db = tmp_path / "app.db"
+    result = _run_alembic(f"sqlite:///{db}", "upgrade", "head")
+    assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
+
+    columns = _column_names(str(db), "pantone_colors")
+    assert "hex_color" in columns
+
+
+def test_0005_downgrade_drops_hex_color(tmp_path) -> None:
+    """Downgrade drops ``hex_color`` and all 0004 additions (reaching the 0003
+    baseline in one ``downgrade -1`` step); every Fase 1/2/3 table and row
+    survives (additive-safe pattern)."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    # Precondition: hex_color exists after upgrade.
+    assert "hex_color" in _column_names(str(db), "pantone_colors")
+
+    # Seed Fase 1/2/3 rows.
+    counts = _seed_pre_0004_rows(str(db))
+
+    # Downgrade by one: remove 0005 and 0004 in one step (reaches 0003).
+    downgrade = _run_alembic(url, "downgrade", "-1")
+    assert downgrade.returncode == 0, (
+        f"alembic downgrade -1 failed:\n{downgrade.stdout}\n{downgrade.stderr}"
+    )
+
+    # hex_color is gone.
+    assert "hex_color" not in _column_names(str(db), "pantone_colors")
+
+    # All Fase 1/2/3 tables still exist with their seeded rows intact.
+    conn = sqlite3.connect(db)
+    try:
+        for table, expected in counts.items():
+            assert table in _table_names(str(db)), f"{table} was dropped"
+            actual = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            assert actual == expected, (
+                f"{table} lost rows in downgrade: {actual} != {expected}"
+            )
+    finally:
+        conn.close()
+
+
 def test_formula_designs_duplicate_pair_rejected_at_database(tmp_path) -> None:
     """A second ``(formula_id, design_id)`` row fails a real uniqueness
     violation at the database (formula-designs spec scenario "Duplicate pair

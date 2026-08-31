@@ -160,6 +160,91 @@ def test_default_gamut_is_C(client, auth_headers) -> None:
     assert response.json()["gamut"] == "C"
 
 
+def test_create_with_hex_color(client, auth_headers, session_factory) -> None:
+    """POST with hex_color stores it and returns it in PantoneColorOut."""
+    headers = auth_headers("admin")
+    response = _create(client, headers, code="281C", hex_color="#00205b")
+    assert response.status_code == 201
+    body = response.json()
+    assert body["hex_color"] == "#00205b"
+
+    with session_factory() as db:
+        color = db.get(PantoneColor, body["id"])
+        assert color.hex_color == "#00205b"
+
+
+def test_create_without_hex_color(client, auth_headers, session_factory) -> None:
+    """POST without hex_color stores None."""
+    headers = auth_headers("admin")
+    response = _create(client, headers, code="186C")
+    assert response.status_code == 201
+    body = response.json()
+    assert body["hex_color"] is None
+
+    with session_factory() as db:
+        color = db.get(PantoneColor, body["id"])
+        assert color.hex_color is None
+
+
+def test_pantone_color_out_includes_hex_color(client, auth_headers) -> None:
+    """GET /{id} returns hex_color in the response."""
+    headers = auth_headers("admin")
+    created = _create(client, headers, code="287C", hex_color="#003087")
+    assert created.status_code == 201
+    color_id = created.json()["id"]
+
+    read = client.get(f"/api/v1/pantone-colors/{color_id}", headers=headers)
+    assert read.status_code == 200
+    assert read.json()["hex_color"] == "#003087"
+
+
+def test_update_sets_hex_color(client, auth_headers, session_factory) -> None:
+    """PATCH with hex_color sets it; PATCH without hex_color leaves it untouched."""
+    headers = auth_headers("admin")
+    created = _create(client, headers, code="1235C")
+    assert created.status_code == 201
+    color_id = created.json()["id"]
+    assert created.json()["hex_color"] is None
+
+    # Set hex_color via PATCH.
+    updated = client.patch(
+        f"/api/v1/pantone-colors/{color_id}",
+        headers=headers,
+        json={"hex_color": "#ffb81c"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["hex_color"] == "#ffb81c"
+
+    # PATCH without hex_color leaves it untouched.
+    updated2 = client.patch(
+        f"/api/v1/pantone-colors/{color_id}",
+        headers=headers,
+        json={"paint_type": "pigmento"},
+    )
+    assert updated2.status_code == 200
+    assert updated2.json()["hex_color"] == "#ffb81c"
+
+    with session_factory() as db:
+        color = db.get(PantoneColor, color_id)
+        assert color.hex_color == "#ffb81c"
+
+
+def test_suggest_hex_endpoint(client, auth_headers) -> None:
+    """GET /pantone-colors/hex?code=211&gamut=C returns the hex suggestion."""
+    headers = auth_headers("admin")
+    response = client.get("/api/v1/pantone-colors/hex?code=211&gamut=C", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["hex_color"] == "#f57eb6"
+
+
+def test_suggest_hex_endpoint_no_match(client, auth_headers) -> None:
+    """GET /pantone-colors/hex with unknown code returns hex_color=None."""
+    headers = auth_headers("admin")
+    response = client.get("/api/v1/pantone-colors/hex?code=99999&gamut=C", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["hex_color"] is None
+
+
 def test_write_actions_are_audited(client, auth_headers, session_factory) -> None:
     headers = auth_headers("admin")
     with session_factory() as db:

@@ -22,6 +22,7 @@ class PantoneColorOut(BaseModel):
     code: str
     gamut: str
     paint_type: PaintType
+    hex_color: str | None = None
     created_at: datetime
 
 
@@ -29,9 +30,15 @@ class PantoneColorCreate(BaseModel):
     code: str = Field(min_length=1, max_length=50)
     gamut: str = Field(default="C", min_length=1, max_length=10)
     paint_type: PaintType
+    hex_color: str | None = None
 
 
 class PantoneColorUpdate(BaseModel):
     code: str | None = Field(default=None, min_length=1, max_length=50)
     gamut: str | None = Field(default=None, min_length=1, max_length=10)
     paint_type: PaintType | None = None
+    hex_color: str | None = None
+
+
+class HexSuggestionOut(BaseModel):
+    hex_color: str | None = None

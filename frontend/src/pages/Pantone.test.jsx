@@ -73,4 +73,62 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     // be expressed in the UI (pantone-card spec: only the real options allowed).
     expect(options).toEqual(['C', 'TPX', 'U'])
   })
+
+  it('includes hex_color=null when submitting without a hex value', async () => {
+    render(<PantonePage />)
+    await act(async () => {})
+
+    // Fill in required fields but leave HEX empty.
+    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
+    fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+    await act(async () => {})
+
+    const postCall = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/pantone-colors'),
+    )
+    expect(postCall).toBeTruthy()
+    const body = JSON.parse(postCall[1].body)
+    expect(body.hex_color).toBeNull()
+  })
+
+  it('includes hex_color when submitting with a typed hex value', async () => {
+    render(<PantonePage />)
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
+    fireEvent.change(screen.getByLabelText(/hex/i), { target: { value: '#00205b' } })
+    fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+    await act(async () => {})
+
+    const postCall = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/pantone-colors'),
+    )
+    expect(postCall).toBeTruthy()
+    const body = JSON.parse(postCall[1].body)
+    expect(body.hex_color).toBe('#00205b')
+  })
+
+  it('triggers suggestPantoneHex when code changes and hex is empty', async () => {
+    // Make the hex endpoint return a suggestion.
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/pantone-colors/hex')) return okJson({ hex_color: '#00205b' })
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+      if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+      return okJson([])
+    })
+
+    render(<PantonePage />)
+    await act(async () => {})
+
+    // Type a code — this should trigger the suggest effect.
+    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
+    await act(async () => {})
+
+    const suggestCall = fetchMock.mock.calls.find(
+      ([url]) => String(url).includes('/pantone-colors/hex'),
+    )
+    expect(suggestCall).toBeTruthy()
+    expect(String(suggestCall[0])).toContain('code=281')
+  })
 })

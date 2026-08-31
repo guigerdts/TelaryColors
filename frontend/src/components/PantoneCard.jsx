@@ -9,13 +9,15 @@
 // translate (transform) combined with a growing box-shadow through a transition
 // (natural deceleration), not a hand-hardcoded static shadow.
 //
-// Presentational: the caller supplies `pantone` (code/gamut/hex) and the already
-// fetched `formula` + `designs` (the ficha owns the single detail call).
+// Presentational: the caller supplies `pantone` (code/gamut/hex_color) and the
+// already fetched `formula` + `designs` (the ficha owns the single detail call).
+import { formatDateTime } from '../lib/datetime.js'
+
 export default function PantoneCard({ pantone, formula, designs = [] }) {
   const code = pantone?.code ?? ''
   const gamut = pantone?.gamut ?? ''
   const pmsCode = `PMS ${code} ${gamut}`.trim()
-  const hex = pantone?.hex
+  const hex = pantone?.hex_color
   const pmsCodeLabel = `Pantone ${pmsCode}`
 
   return (
@@ -35,7 +37,11 @@ export default function PantoneCard({ pantone, formula, designs = [] }) {
       <div className="flex items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <span className="text-xs font-black tracking-[0.12em] text-slate-800">PANTONE®</span>
         <span className="text-sm font-semibold text-slate-700">{pmsCode}</span>
-        {hex && <span className="font-mono text-xs text-slate-500">{hex.toUpperCase()}</span>}
+        {hex ? (
+          <span className="font-mono text-xs text-slate-500">{hex.toUpperCase()}</span>
+        ) : (
+          <span className="text-xs text-slate-400">Sin color asignado</span>
+        )}
       </div>
 
       {/* Formula — color composition in grams/kilo (design_colors dimension). */}
@@ -71,6 +77,12 @@ export default function PantoneCard({ pantone, formula, designs = [] }) {
           </ul>
         )}
       </section>
+      {/* Creation date — es-CO locale, when available. */}
+      {pantone?.created_at && (
+        <p className="px-4 py-2 text-xs text-slate-400">
+          Creado {formatDateTime(pantone.created_at)}
+        </p>
+      )}
     </article>
   )
 }
