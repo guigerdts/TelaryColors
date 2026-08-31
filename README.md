@@ -51,7 +51,22 @@ cd backend
 .venv/bin/python -m alembic upgrade head
 ```
 
-Estado actual: 4 migraciones (0001→0004), todas aditivas, sin conflicto posible.
+Estado actual: 5 migraciones (0001→0005), todas aditivas, sin conflicto posible.
+
+> **Lección aprendida (obligatorio para fixes directos):** aplicar la migración
+> es un paso OBLIGATORIO de cualquier deploy que toque el modelo de datos,
+> aunque el fix venga por fuera del ciclo SDD. El ciclo SDD lo verifica con
+> `test_migration.py` (`EXPECTED_TABLES`), pero un fix directo que añade una
+> columna puede comitearse y desplegarse SIN que la columna exista en la DB
+> real: el código (modelo/schema/router) la conoce, el esquema físico no, y
+> cualquier SELECT/INSERT estalla con `no such column` → HTTP 500.
+>
+> Síntoma típico de esto: un banner de error rojo vacío o una creación que
+> falla en silencio en UI, mientras el endpoint devuelve 500. Antes de dar por
+> desplegado cualquier cambio de modelo, correr `alembic upgrade head` y confirmar
+> con `.venv/bin/python -c "import sqlite3; c=sqlite3.connect('data/app.db');
+> print(c.execute('select * from alembic_version').fetchall())"` que la versión
+> llegó a la esperada.
 
 ### Arranque
 
