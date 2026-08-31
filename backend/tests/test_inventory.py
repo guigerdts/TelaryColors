@@ -2,9 +2,12 @@
 
 Slice A covers the additive ``0003_inventory`` migration: ``upgrade head`` must
 create ``inventory_items`` + ``inventory_transactions`` beside the originals, and
-``downgrade`` one step must drop ONLY the new tables and indexes, leaving every
-Fase 1/2 table intact (inventory spec scenarios "Migration adds tables" and
-"Downgrade is additive-safe").
+downgrading back to the pre-inventory revision (``0002_samples``) must drop ONLY
+the new tables and indexes, leaving every Fase 1/2 table intact (inventory spec
+scenarios "Migration adds tables" and "Downgrade is additive-safe"). The
+downgrade target is the pre-inventory revision rather than ``-1`` because later
+additive revisions (``0004_designs``) now sit above ``0003_inventory`` in the
+chain; ``-1`` from head lands ON ``0003_inventory``.
 
 Slice B covers the item CRUD endpoints (inventory spec "Inventory Item CRUD")
 and the derived binary stock status (spec "Binary Stock Status at Read Time",
@@ -97,8 +100,13 @@ def test_downgrade_drops_only_new_inventory_tables(tmp_path) -> None:
     up = _run_alembic(f"sqlite:///{db}", "upgrade", "head")
     assert up.returncode == 0, f"upgrade head failed:\n{up.stderr}"
 
-    down = _run_alembic(f"sqlite:///{db}", "downgrade", "-1")
-    assert down.returncode == 0, f"downgrade -1 failed:\n{down.stdout}\n{down.stderr}"
+    # Downgrade to the PRE-inventory revision: with 0004_designs now above
+    # 0003_inventory, "-1" from head lands on 0003 (inventory still exists);
+    # the inventory downgrade is proven by going back to 0002_samples.
+    down = _run_alembic(f"sqlite:///{db}", "downgrade", "0002_samples")
+    assert down.returncode == 0, (
+        f"downgrade 0002_samples failed:\n{down.stdout}\n{down.stderr}"
+    )
 
     tables_after = _table_names(str(db))
     # Only the new inventory tables (and their indexes) drop.
