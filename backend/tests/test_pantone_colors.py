@@ -295,11 +295,50 @@ def test_delete_pantone_with_linked_formula_returns_409_not_persisted(
     )
     assert formula.status_code == 201
 
-    # Deleting the referenced pantone must be rejected with a clear 409.
+    # Deleting the referenced pantone must be rejected with a clear 409 that
+    # names the linked formula.
     deleted = client.delete(f"/api/v1/pantone-colors/{color_id}", headers=headers)
     assert deleted.status_code == 409
-    assert deleted.json()["detail"] == "No se puede eliminar: el color tiene fórmulas asociadas"
+    detail = deleted.json()["detail"]
+    assert "No se puede eliminar" in detail
+    assert str(formula.json()["id"]) in detail
+    assert formula.json()["name"] in detail
 
     # The pantone must NOT be deleted — integrity preserved.
+    with session_factory() as db:
+        assert db.get(PantoneColor, color_id) is not None
+
+
+def test_delete_pantone_with_linked_formula_returns_409_with_formula_list(
+    client, auth_headers, session_factory
+) -> None:
+    """DELETE on a pantone referenced by a formula returns 409 whose detail
+    LISTS the linked formula id and name so the user knows what to reassign.
+    """
+    headers = auth_headers("admin")
+    created = _create(client, headers, code="295C", gamut="C")
+    assert created.status_code == 201
+    color_id = created.json()["id"]
+
+    formula = client.post(
+        "/api/v1/formulas",
+        headers=headers,
+        json={
+            "name": "Fórmula test 409",
+            "pantone_color_id": color_id,
+            "ingredients": [{"colorant": "Azul", "quantity": "5", "unit": "g"}],
+        },
+    )
+    assert formula.status_code == 201
+    formula_id = formula.json()["id"]
+    formula_name = formula.json()["name"]
+
+    deleted = client.delete(f"/api/v1/pantone-colors/{color_id}", headers=headers)
+    assert deleted.status_code == 409
+    detail = deleted.json()["detail"]
+    assert str(formula_id) in detail
+    assert formula_name in detail
+
+    # The pantone must NOT be deleted.
     with session_factory() as db:
         assert db.get(PantoneColor, color_id) is not None

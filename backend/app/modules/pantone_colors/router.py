@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db, get_current_user
 from app.modules.access_logs.service import log_action
+from app.modules.formulas.models import Formula
 from app.modules.pantone_colors.models import PantoneColor
 from app.modules.pantone_colors.hex_dataset import suggest_hex
 from app.modules.pantone_colors.schemas import (
@@ -141,15 +142,32 @@ def delete_pantone_color(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Color Pantone no encontrado",
         )
+    # Actionable pre-check: SQLite's IntegrityError does NOT expose which
+    # formula rows caused the FK failure, so surface them explicitly before
+    # deleting. The FK is indexed (cheap SELECT), and this list tells the
+    # user exactly what to reassign/delete first.
+    linked = db.scalars(
+        select(Formula).where(Formula.pantone_color_id == color_id)
+    ).all()
+    if linked:
+        formulas_desc = ", ".join(f"{f.id} ({f.name})" for f in linked)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "No se puede eliminar: el color está asociado a las fórmulas: "
+                f"{formulas_desc}"
+            ),
+        )
     db.delete(color)
     log_action(db, user.id, "pantone.delete")
     try:
         db.commit()
     except IntegrityError:
-        # formulas.pantone_color_id references the color (FK, no cascade on
-        # delete, and PRAGMA foreign_keys=ON is enforced by the engine):
-        # removing it would silently orphan real formulas. Same pattern as
-        # the users router — reject with a clear 409, never a raw 500.
+        # Safety-net fallback: a concurrent formula insert could race with the
+        # pre-check above; formulas.pantone_color_id references the color (FK,
+        # no cascade on delete, PRAGMA foreign_keys=ON enforced by the engine),
+        # so removing it would silently orphan real formulas. Reject with a
+        # clear 409, never a raw 500.
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
