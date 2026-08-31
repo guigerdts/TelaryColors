@@ -18,9 +18,12 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db, get_current_user
 from app.modules.access_logs.service import log_action
+from app.modules.designs.models import Design, FormulaDesign
+from app.modules.designs.schemas import DesignOut
 from app.modules.formulas.models import Formula, FormulaIngredient
 from app.modules.formulas.schemas import (
     FormulaCreate,
+    FormulaDetailOut,
     FormulaOut,
     FormulaUpdate,
 )
@@ -44,6 +47,43 @@ def list_formulas(
     _user: User = Depends(get_current_user),
 ) -> list[Formula]:
     return db.scalars(select(Formula).order_by(Formula.id)).all()
+
+
+@router.get("/{formula_id}/detail", response_model=FormulaDetailOut)
+def get_formula_detail(
+    formula_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> FormulaDetailOut:
+    """Rich formula ficha (formula-designs spec "Formula Detail Endpoint",
+    design D6): the formula (with its ingredients) plus the list of its linked
+    designs merged across ``auto`` and ``manual`` sources.
+
+    ``designs`` is a real ``SELECT DISTINCT`` over the ``formula_designs``
+    join, so a design never appears twice even if a pair were ever duplicated
+    at the application layer — the ``UNIQUE(formula_id, design_id)`` pair
+    already prevents a true duplicate at the data layer, and the DISTINCT is
+    the belt-and-suspenders guarantee the spec requires. A formula with no
+    links returns an empty list; a missing formula 404s with the module's
+    exact detail. Read-only, never audits.
+    """
+    formula = db.get(Formula, formula_id)
+    if formula is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fórmula no encontrada",
+        )
+    designs = db.scalars(
+        select(Design)
+        .distinct()
+        .join(FormulaDesign, FormulaDesign.design_id == Design.id)
+        .where(FormulaDesign.formula_id == formula_id)
+        .order_by(Design.id)
+    ).all()
+    return FormulaDetailOut(
+        **FormulaOut.model_validate(formula).model_dump(),
+        designs=[DesignOut.model_validate(d) for d in designs],
+    )
 
 
 @router.get("/{formula_id}", response_model=FormulaOut)
