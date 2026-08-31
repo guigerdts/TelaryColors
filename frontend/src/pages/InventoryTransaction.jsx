@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-import { listInventoryItems, registerInventoryTransaction } from '../api/index.js'
+import { listDesigns, listInventoryItems, registerInventoryTransaction } from '../api/index.js'
 
 export default function InventoryTransactionPage() {
   const [searchParams] = useSearchParams()
@@ -22,6 +22,8 @@ export default function InventoryTransactionPage() {
   const [transactionType, setTransactionType] = useState('entrada')
   const [quantity, setQuantity] = useState('')
   const [formulaId, setFormulaId] = useState(prefilledFormulaId)
+  const [designId, setDesignId] = useState('')
+  const [designs, setDesigns] = useState([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -35,6 +37,16 @@ export default function InventoryTransactionPage() {
       })
       .catch(() => {
         /* the item list is loaded best-effort on mount */
+      })
+    // The optional consumption target design. Only EXISTING designs are offered
+    // (listDesigns) — the operator links an existing production order but can
+    // never create one inline from this form.
+    listDesigns()
+      .then((data) => {
+        if (!cancelled) setDesigns(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        /* the design list is loaded best-effort on mount */
       })
     return () => {
       cancelled = true
@@ -54,12 +66,16 @@ export default function InventoryTransactionPage() {
         transaction_type: transactionType,
         quantity: Number(quantity),
         formula_id: formulaId ? formulaId : undefined,
+        // Optional: links the movement to an existing design ONLY when the
+        // operator picks one; omitting the design sends no design_id (no link).
+        design_id: designId ? Number(designId) : undefined,
         notes: notes.trim() ? notes.trim() : undefined,
       })
       setMessage('Transacción registrada')
       setItemId('')
       setQuantity('')
       setFormulaId(prefilledFormulaId)
+      setDesignId('')
       setNotes('')
       setTransactionType('entrada')
     } catch (err) {
@@ -136,6 +152,22 @@ export default function InventoryTransactionPage() {
             placeholder="Opcional"
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
           />
+        </label>
+
+        <label className="block space-y-1">
+          <span className="block text-xs font-medium text-slate-600">Diseño</span>
+          <select
+            value={designId}
+            onChange={(e) => setDesignId(e.target.value)}
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          >
+            <option value="">Sin diseño</option>
+            {designs.map((design) => (
+              <option key={design.id} value={design.id}>
+                {design.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="block space-y-1">
