@@ -84,6 +84,7 @@ class InventoryTransactionCreate(BaseModel):
     transaction_type: TransactionType
     quantity: Decimal
     formula_id: int | None = None
+    design_id: int | None = None
     notes: str | None = Field(default=None, max_length=1000)
 
 
