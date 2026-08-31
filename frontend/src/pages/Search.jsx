@@ -1,8 +1,10 @@
 // Search page — Spanish UI. Debounces the pantone `?q=` input (250ms) before
-// firing the search, then renders the matching colors and their formulas.
+// firing the search, then renders the matching colors as PantoneCards (Slice F)
+// with their formulas and reusable samples. The legacy Fase 1 flat box is gone.
 import { useEffect, useState } from 'react'
 
 import { listFormulas, listReusableSamples, searchPantone } from '../api/index.js'
+import PantoneCard from '../components/PantoneCard.jsx'
 import SampleFicha from '../components/SampleFicha.jsx'
 import { useDebounce } from '../hooks/useDebounce.js'
 
@@ -83,7 +85,7 @@ export default function SearchPage() {
       <input
         aria-label="Buscar color"
         type="search"
-        placeholder="Ej.: 221 C"
+        placeholder="Ej.: 221"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full max-w-md rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
@@ -92,41 +94,31 @@ export default function SearchPage() {
       {message && <p aria-live="polite" className="text-sm text-slate-500">{message}</p>}
 
       <ul className="grid gap-3 sm:grid-cols-2">
-        {results.map((color) => (
-          <li key={color.id} className="rounded border border-slate-200 bg-white p-3">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-800">{color.code}</span>
-              <span className="text-xs uppercase text-slate-400">{color.gamut}</span>
-            </div>
-            <p className="text-xs text-slate-500">Tipo: {color.paint_type}</p>
-            {formulas
-              .filter((formula) => formula.pantone_color_id === color.id)
-              .map((formula) => (
-                <div key={formula.id} className="mt-2">
-                  <p className="text-sm font-medium text-slate-700">{formula.name}</p>
-                  <ul className="ml-4 list-disc text-xs text-slate-500">
-                    {formula.ingredients.map((ing) => (
-                      <li key={ing.id}>
-                        {ing.colorant}: {ing.quantity_g} g
-                      </li>
+{results.map((color) => {
+          const formula = formulas.find((f) => f.pantone_color_id === color.id)
+          const samples = reusableSamples[color.id] ?? []
+          return (
+            <li key={color.id} className="rounded border border-slate-200 bg-white p-3">
+              <PantoneCard pantone={color} formula={formula} designs={[]} />
+              {samples.length > 0 && (
+                <div className="border-t border-dashed border-slate-200 pt-2">
+                  <p className="text-sm font-medium text-slate-700">
+                    Muestras reutilizables ({samples.length})
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    {samples.map((sample) => (
+                      <SampleFicha
+                        key={sample.id}
+                        sample={sample}
+                        colorCode={`${color.code} ${color.gamut}`.trim()}
+                      />
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              ))}
-            {reusableSamples[color.id]?.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm font-medium text-slate-700">
-                  Muestras reutilizables ({reusableSamples[color.id].length})
-                </p>
-                <div className="mt-1 space-y-1">
-                  {reusableSamples[color.id].map((sample) => (
-                    <SampleFicha key={sample.id} sample={sample} colorCode={color.code} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </li>
-        ))}
+              )}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
