@@ -108,6 +108,59 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     expect(body.hex_color).toBe('#00205b')
   })
 
+  it('loads existing color into the form when clicking Editar, then updates via PATCH', async () => {
+    const EDIT_COLOR = { id: 7, code: 'Negro', gamut: 'C', paint_type: 'reactiva', hex_color: null }
+    const UPDATED = { ...EDIT_COLOR, hex_color: '#000000' }
+
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson([EDIT_COLOR])
+      if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+      if (String(url).includes('/pantone-colors/7') && method === 'PATCH') return okJson(UPDATED)
+      // After PATCH the list endpoint should be hit again for refresh.
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson([UPDATED])
+      return okJson([])
+    })
+
+    render(<PantonePage />)
+    await act(async () => {})
+
+    // The Editar button should be present.
+    const editBtn = screen.getByRole('button', { name: /editar negro/i })
+    expect(editBtn).toBeTruthy()
+
+    // Click Editar — form should pre-load the existing values.
+    fireEvent.click(editBtn)
+
+    const codeInput = screen.getByLabelText(/código/i)
+    const hexInput = screen.getByLabelText(/hex/i)
+    expect(codeInput.value).toBe('Negro')
+    // hex_color was null → field shows empty string.
+    expect(hexInput.value).toBe('')
+
+    // Change the hex value and submit.
+    fireEvent.change(hexInput, { target: { value: '#000000' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    await act(async () => {})
+
+    // Verify PATCH was called with the right payload.
+    const patchCall = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'PATCH' && String(url).includes('/pantone-colors/7'),
+    )
+    expect(patchCall).toBeTruthy()
+    const body = JSON.parse(patchCall[1].body)
+    expect(body).toEqual(
+      expect.objectContaining({ code: 'Negro', gamut: 'C', paint_type: 'reactiva', hex_color: '#000000' }),
+    )
+
+    // The list should have been refetched (refresh).
+    const getCalls = fetchMock.mock.calls.filter(
+      ([url, init]) => (init?.method ?? 'GET') === 'GET' && String(url).includes('/pantone-colors') && !String(url).includes('hex'),
+    )
+    // At least one GET after the PATCH (initial load + refresh).
+    expect(getCalls.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('triggers suggestPantoneHex when code changes and hex is empty', async () => {
     // Make the hex endpoint return a suggestion.
     fetchMock.mockImplementation((url, init) => {

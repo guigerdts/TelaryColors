@@ -4,7 +4,7 @@
 // never free text — pantone-card spec "Gamut Selector").
 import { useCallback, useEffect, useState } from 'react'
 
-import { createPantone, deletePantone, listPantone, suggestPantoneHex } from '../api/index.js'
+import { createPantone, deletePantone, listPantone, suggestPantoneHex, updatePantone } from '../api/index.js'
 import PantoneCard from '../components/PantoneCard.jsx'
 import { GAMUT_OPTIONS, isValidGamut } from '../lib/gamut.js'
 
@@ -16,6 +16,8 @@ export default function PantonePage() {
   const [hex, setHex] = useState('')
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // null = creating a new color; a number = editing that color's id.
+  const [editingId, setEditingId] = useState(null)
 
   const refresh = useCallback(() => {
     listPantone()
@@ -37,6 +39,29 @@ export default function PantonePage() {
       .catch(() => {})
   }, [code, gamut, hex])
 
+  // Load an existing color into the creation form for editing; a null hex
+  // maps to an empty field so the auto-suggest effect can still run later.
+  const onEdit = (color) => {
+    setEditingId(color.id)
+    setCode(color.code)
+    setGamut(color.gamut)
+    setPaintType(color.paint_type)
+    setHex(color.hex_color || '')
+    setMessage(null)
+    setError(null)
+  }
+
+  // Return to create mode and clear the form.
+  const onCancelEdit = () => {
+    setEditingId(null)
+    setCode('')
+    setHex('')
+    setGamut('C')
+    setPaintType('reactiva')
+    setMessage(null)
+    setError(null)
+  }
+
   const onCreate = async (event) => {
     event.preventDefault()
     setMessage(null)
@@ -47,11 +72,20 @@ export default function PantonePage() {
       setError('Gamut inválido: use C, TPX o U')
       return
     }
+    const payload = { code, gamut, paint_type: paintType, hex_color: hex || null }
     try {
-      await createPantone({ code, gamut, paint_type: paintType, hex_color: hex || null })
-      setCode('')
-      setHex('')
-      setMessage('Color creado')
+      if (editingId !== null) {
+        await updatePantone(editingId, payload)
+        setEditingId(null)
+        setCode('')
+        setHex('')
+        setMessage('Color actualizado')
+      } else {
+        await createPantone(payload)
+        setCode('')
+        setHex('')
+        setMessage('Color creado')
+      }
       refresh()
     } catch (err) {
       setError(err.message)
@@ -127,22 +161,41 @@ export default function PantonePage() {
           type="submit"
           className="rounded bg-accent-281c px-4 py-1.5 text-sm font-semibold text-white hover:brightness-90"
         >
-          Agregar
+          {editingId !== null ? 'Guardar' : 'Agregar'}
         </button>
+        {editingId !== null && (
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="rounded bg-slate-300 px-4 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-400"
+          >
+            Cancelar
+          </button>
+        )}
       </form>
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {colors.map((color) => (
           <li key={color.id} className="relative">
             <PantoneCard pantone={color} />
-            <button
-              type="button"
-              aria-label={`eliminar ${color.code}`}
-              onClick={() => onDelete(color.id)}
-              className="absolute right-3 top-3 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-red-700"
-            >
-              Eliminar
-            </button>
+            <div className="absolute right-3 top-3 flex gap-1">
+              <button
+                type="button"
+                aria-label={`editar ${color.code}`}
+                onClick={() => onEdit(color)}
+                className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-indigo-700"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                aria-label={`eliminar ${color.code}`}
+                onClick={() => onDelete(color.id)}
+                className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
           </li>
         ))}
       </ul>
