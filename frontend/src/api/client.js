@@ -17,13 +17,29 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler
 }
 
-async function readErrorDetail(res) {
+// Returns a useful Spanish message for a non-2xx response.
+//  - A string `detail` (our 4xx responses) is shown verbatim.
+//  - A FastAPI 422 returns `detail` as an array of validation errors; fold the
+//    decent ones into a readable summary instead of dropping to a bare "Error".
+//  - A 5xx or an unparseable body (e.g. an internal 500 with no JSON detail)
+//    falls back to a server-side message so the user is never left staring at
+//    the literal word "Error" with no clue it came from the backend.
+async function readErrorDetail(res, status) {
   try {
     const data = await res.json()
-    return data && typeof data.detail === 'string' ? data.detail : 'Error'
+    if (data?.detail && typeof data.detail === 'string') return data.detail
+    if (Array.isArray(data?.detail)) {
+      const messages = data.detail
+        .map((item) => item?.msg)
+        .filter(Boolean)
+        .slice(0, 3)
+      if (messages.length) return messages.join('. ')
+    }
   } catch {
-    return 'Error'
+    // fall through to the status-based default below
   }
+  if (status >= 500) return 'Ocurrió un error en el servidor, intenta de nuevo'
+  return 'No se pudo completar la solicitud'
 }
 
 /**
@@ -46,12 +62,12 @@ export async function apiFetch(path, { method = 'GET', body } = {}) {
     clearToken()
     if (unauthorizedHandler) unauthorizedHandler()
     else window.location.assign('/login')
-    const detail = await readErrorDetail(res)
+    const detail = await readErrorDetail(res, res.status)
     throw new Error(detail || 'Sesión expirada')
   }
 
   if (!res.ok) {
-    const detail = await readErrorDetail(res)
+    const detail = await readErrorDetail(res, res.status)
     throw new Error(detail)
   }
 

@@ -158,4 +158,48 @@ describe('api client', () => {
     const [url] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/v1/samples/42/promote')
   })
+
+  it('surfaces a string detail (our 4xx responses) verbatim', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: false, status: 409, json: async () => ({ detail: 'Ya existe un color con ese código' }) })
+
+    await expect(apiFetch('/pantone-colors', { method: 'POST', body: {} })).rejects.toThrow('Ya existe un color con ese código')
+  })
+
+  it('folds a FastAPI 422 detail array into a readable message', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [
+          { loc: ['body', 'code'], msg: 'Field required', type: 'missing' },
+          { loc: ['body', 'paint_type'], msg: 'Input should be a valid string', type: 'string_type' },
+        ],
+      }),
+    })
+
+    await expect(apiFetch('/pantone-colors', { method: 'POST', body: {} })).rejects.toThrow(
+      'Field required. Input should be a valid string',
+    )
+  })
+
+  it('shows a server-side message on a 500 with an unparseable body (never bare "Error")', async () => {
+    setToken('jwt-abc')
+    // Internal 500: body is often not useful JSON (or sometimes plain text/HTML).
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => { throw new Error('not json') } })
+
+    await expect(apiFetch('/pantone-colors', { method: 'POST', body: {} })).rejects.toThrow(
+      'Ocurrió un error en el servidor, intenta de nuevo',
+    )
+  })
+
+  it('shows a generic message on a 4xx without a string detail', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: async () => ({}) })
+
+    await expect(apiFetch('/pantone-colors', { method: 'POST', body: {} })).rejects.toThrow(
+      'No se pudo completar la solicitud',
+    )
+  })
 })
