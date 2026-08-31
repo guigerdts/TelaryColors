@@ -51,11 +51,20 @@ class FormulaCreate(BaseModel):
     ingredients: list[IngredientIn] = Field(min_length=1)
 
 
+class IngredientQuantityIn(BaseModel):
+    """Quantity-only ingredient edit: identified by existing id; only the
+    quantity is mutable. Has no colorant/unit fields, so a structural change
+    cannot even be expressed through the update API."""
+
+    id: int
+    quantity: Decimal = Field(gt=0)
+
+
 class FormulaUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     notes: str | None = Field(default=None, max_length=1000)
     pantone_color_id: int | None = None
-    ingredients: list[IngredientIn] | None = None
+    ingredients: list[IngredientQuantityIn] | None = None
 
 
 class FormulaOut(BaseModel):

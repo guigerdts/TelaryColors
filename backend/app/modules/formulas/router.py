@@ -151,14 +151,16 @@ def update_formula(
     if payload.notes is not None:
         formula.notes = payload.notes
     if payload.ingredients is not None:
-        formula.ingredients = [
-            FormulaIngredient(
-                colorant=ing.colorant,
-                quantity=ing.quantity,
-                unit=ing.unit,
+        existing_ids = {ing.id for ing in formula.ingredients}
+        payload_ids = {ing.id for ing in payload.ingredients}
+        if payload_ids != existing_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="No se puede cambiar la estructura de ingredientes: crea una nueva fórmula para agregar o quitar ingredientes",
             )
-            for ing in payload.ingredients
-        ]
+        quantity_by_id = {ing.id: ing.quantity for ing in payload.ingredients}
+        for existing in formula.ingredients:
+            existing.quantity = quantity_by_id[existing.id]
     log_action(db, user.id, "formula.update")
     db.commit()
     db.refresh(formula)

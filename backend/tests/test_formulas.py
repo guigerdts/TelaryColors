@@ -48,6 +48,25 @@ def _create_formula(client, headers, color_id, ingredients=None, **overrides) ->
     return client.post("/api/v1/formulas", headers=headers, json=payload)
 
 
+def _formula_two_ingredients(client, headers):
+    """Create a color + a 2-ingredient formula; return the created JSON body.
+
+    Ingredients carry ``id``/``colorant``/``quantity``/``unit``/``quantity_g``.
+    """
+    color_id = _create_color(client, headers)
+    response = _create_formula(
+        client,
+        headers,
+        color_id,
+        ingredients=[
+            {"colorant": "Blanco TiO2", "quantity": "200", "unit": "g"},
+            {"colorant": "Negro", "quantity": "0.5", "unit": "kg"},
+        ],
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
 def test_full_crud_cycle_with_cascade_delete(
     client, auth_headers, session_factory
 ) -> None:
@@ -234,3 +253,108 @@ def test_write_actions_are_audited(client, auth_headers, session_factory) -> Non
         assert ("formula.create", admin_id) in actions
         assert ("formula.update", admin_id) in actions
         assert ("formula.delete", admin_id) in actions
+
+
+def _ingredient_set(ingredients) -> set:
+    """Normalize ingredient rows into a comparable tuple set (id,colorant,qty,unit)."""
+    return {
+        (ing["id"], ing["colorant"], str(ing["quantity"]), ing["unit"])
+        for ing in ingredients
+    }
+
+
+def test_edit_quantities_only_succeeds(client, auth_headers) -> None:
+    headers = auth_headers("admin")
+    body = _formula_two_ingredients(client, headers)
+    formula_id = body["id"]
+    a, b = body["ingredients"][0]["id"], body["ingredients"][1]["id"]
+
+    updated = client.patch(
+        f"/api/v1/formulas/{formula_id}",
+        headers=headers,
+        json={
+            "ingredients": [
+                {"id": a, "quantity": "200"},
+                {"id": b, "quantity": "0.25"},
+            ]
+        },
+    )
+    assert updated.status_code == 200
+    ingredients = updated.json()["ingredients"]
+
+    # quantity_g reflects the new quantity (200 g kept; 0.5 kg -> 0.25 kg = 250 g)
+    by_id = {ing["id"]: ing for ing in ingredients}
+    assert Decimal(by_id[a]["quantity_g"]) == Decimal("200")
+    assert Decimal(by_id[b]["quantity_g"]) == Decimal("250")
+
+    # colorant/unit unchanged, count still 2
+    assert by_id[a]["colorant"] == "Blanco TiO2"
+    assert by_id[a]["unit"] == "g"
+    assert by_id[b]["colorant"] == "Negro"
+    assert by_id[b]["unit"] == "kg"
+    assert len(ingredients) == 2
+
+
+def test_patch_cannot_add_ingredient(client, auth_headers) -> None:
+    headers = auth_headers("admin")
+    body = _formula_two_ingredients(client, headers)
+    formula_id = body["id"]
+    a = body["ingredients"][0]["id"]
+    before = _ingredient_set(body["ingredients"])
+
+    # id 99999 not among the formula's existing ids -> structure change -> 422
+    response = client.patch(
+        f"/api/v1/formulas/{formula_id}",
+        headers=headers,
+        json={"ingredients": [{"id": a, "quantity": "200"}, {"id": 99999, "quantity": "1"}]},
+    )
+    assert response.status_code == 422
+
+    fetched = client.get(f"/api/v1/formulas/{formula_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert _ingredient_set(fetched.json()["ingredients"]) == before
+
+
+def test_patch_cannot_remove_ingredient(client, auth_headers) -> None:
+    headers = auth_headers("admin")
+    body = _formula_two_ingredients(client, headers)
+    formula_id = body["id"]
+    a = body["ingredients"][0]["id"]
+    before = _ingredient_set(body["ingredients"])
+
+    # missing ingredient b's id (subset) -> structure change -> 422
+    response = client.patch(
+        f"/api/v1/formulas/{formula_id}",
+        headers=headers,
+        json={"ingredients": [{"id": a, "quantity": "200"}]},
+    )
+    assert response.status_code == 422
+
+    fetched = client.get(f"/api/v1/formulas/{formula_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert len(fetched.json()["ingredients"]) == 2
+    assert _ingredient_set(fetched.json()["ingredients"]) == before
+
+
+def test_patch_rejects_old_shape_with_colorant_unit(client, auth_headers) -> None:
+    headers = auth_headers("admin")
+    body = _formula_two_ingredients(client, headers)
+    formula_id = body["id"]
+    a = body["ingredients"][0]["id"]
+    before = _ingredient_set(body["ingredients"])
+
+    # old IngredientIn shape (colorant/unit) is rejected by schema validation -> 422
+    response = client.patch(
+        f"/api/v1/formulas/{formula_id}",
+        headers=headers,
+        json={
+            "ingredients": [
+                {"id": a, "colorant": "X", "quantity": "200", "unit": "g"}
+            ]
+        },
+    )
+    assert response.status_code == 422
+
+    fetched = client.get(f"/api/v1/formulas/{formula_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert _ingredient_set(fetched.json()["ingredients"]) == before
