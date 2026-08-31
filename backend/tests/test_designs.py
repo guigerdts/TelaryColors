@@ -38,14 +38,14 @@ def _create_color_codes(client, headers, count: int) -> list[int]:
     return [_create_color(client, headers, code=f"22{i}C") for i in range(count)]
 
 
-def _create_design(client, headers, color_ids, **overrides):
+def _create_design(api, headers, color_ids, **overrides):
     payload = {
         "name": "Diseño Base",
         "paint_type": "reactiva",
         "color_ids": color_ids,
     }
     payload.update(overrides)
-    return client.post("/api/v1/designs", headers=headers, json=payload)
+    return api.post("/api/v1/designs", headers=headers, json=payload)
 
 
 def test_create_design_persists_fields(client, auth_headers, session_factory) -> None:
@@ -287,6 +287,110 @@ def test_read_only_requests_are_not_audited(
     with session_factory() as db:
         after = db.scalar(sa.select(sa.func.count()).select_from(AccessLog))
     assert after == before
+
+
+def test_create_design_without_client_persists_null(
+    client, auth_headers, session_factory
+) -> None:
+    """Creating a design without ``client``/``notes`` persists NULLs and
+    leaves every other field untouched (designs spec "Client Field",
+    "Notes Field" — the fields are OPTIONAL)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+
+    created = _create_design(client, headers, [color_id])
+    assert created.status_code == 201
+    body = created.json()
+    assert body["client"] is None
+    assert body["notes"] is None
+    assert body["name"] == "Diseño Base"  # unrelated fields not affected
+
+    with session_factory() as db:
+        design = db.get(Design, body["id"])
+        assert design is not None
+        assert design.client is None
+        assert design.notes is None
+        assert [c.pantone_color_id for c in design.colors] == [color_id]
+
+
+def test_create_design_with_client_and_notes_persists_values(
+    client, auth_headers, session_factory
+) -> None:
+    """When ``client`` and ``notes`` ARE provided at create time, both persist
+    exactly as sent (spec: the client name is stored as free text)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+
+    created = _create_design(
+        client,
+        headers,
+        [color_id],
+        client="Cliente Telar",
+        notes="Pedido con retoques en brillo.",
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["client"] == "Cliente Telar"
+    assert body["notes"] == "Pedido con retoques en brillo."
+
+    with session_factory() as db:
+        design = db.get(Design, body["id"])
+        assert design.client == "Cliente Telar"
+        assert design.notes == "Pedido con retoques en brillo."
+
+
+def test_patch_notes_persists_and_is_audited(
+    client, auth_headers, session_factory
+) -> None:
+    """Patching ``notes`` on an existing design changes the stored value and
+    the change is audited as a ``design.update`` (spec: notes editable later
+    via PATCH, and the change is audited in access_logs)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    created = _create_design(client, headers, [color_id])
+    assert created.status_code == 201
+    design_id = created.json()["id"]
+    with session_factory() as db:
+        admin_id = db.scalar(sa.select(User.id).where(User.username == "admin"))
+
+    patched = client.patch(
+        f"/api/v1/designs/{design_id}",
+        headers=headers,
+        json={"notes": "Aprobado por el cliente el 12/08."},
+    )
+    assert patched.status_code == 200
+    assert patched.json()["notes"] == "Aprobado por el cliente el 12/08."
+
+    with session_factory() as db:
+        design = db.get(Design, design_id)
+        assert design.notes == "Aprobado por el cliente el 12/08."
+        assert db.scalar(
+            sa.select(AccessLog).where(
+                AccessLog.action == "design.update",
+                AccessLog.user_id == admin_id,
+            )
+        ) is not None
+
+
+def test_patch_client_persists_value(client, auth_headers, session_factory) -> None:
+    """Patching ``client`` on an existing design persists the new free-text
+    value (spec: client editable later via PATCH)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    created = _create_design(client, headers, [color_id], client="Cliente Original")
+    assert created.status_code == 201
+    design_id = created.json()["id"]
+
+    patched = client.patch(
+        f"/api/v1/designs/{design_id}",
+        headers=headers,
+        json={"client": "Cliente Renombrado"},
+    )
+    assert patched.status_code == 200
+    assert patched.json()["client"] == "Cliente Renombrado"
+
+    with session_factory() as db:
+        assert db.get(Design, design_id).client == "Cliente Renombrado"
 
 
 def test_design_model_maps_client_and_notes() -> None:

@@ -104,6 +104,8 @@ def create_design(
     design = Design(
         name=payload.name,
         paint_type=payload.paint_type,
+        client=payload.client,
+        notes=payload.notes,
         created_by=user.id,
     )
     design.colors = [
@@ -141,6 +143,10 @@ def update_design(
         design.colors = [
             DesignColor(pantone_color_id=color_id) for color_id in payload.color_ids
         ]
+    if payload.client is not None:
+        design.client = payload.client
+    if payload.notes is not None:
+        design.notes = payload.notes
     log_action(db, user.id, "design.update")
     db.commit()
     db.refresh(design)
