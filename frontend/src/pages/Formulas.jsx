@@ -2,10 +2,11 @@
 // (gram-normalized), lets an operator create a new formula for a color, and
 // edit an existing formula's name/notes/ingredient quantities. A confirmation
 // modal (pendingSubmit) stages BOTH create and edit before the API call.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { createFormula, listFormulas, listPantone, updateFormula } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 const emptyIngredient = { colorant: '', quantity: '', unit: 'g' }
 
@@ -29,47 +30,6 @@ export default function FormulasPage() {
   const [editingId, setEditingId] = useState(null)
   // Staged but not yet confirmed submit ('create' | 'edit' | null).
   const [pendingSubmit, setPendingSubmit] = useState(null)
-
-  // Accessible confirmation dialog: trap focus while open, close on Escape, and
-  // restore focus to whatever opened it when it closes (ARIA dialog pattern).
-  const modalRef = useRef(null)
-  const modalTitleId = 'formula-confirm-title'
-  const lastFocusedRef = useRef(null)
-
-  useEffect(() => {
-    if (!pendingSubmit) return
-    lastFocusedRef.current = document.activeElement
-    const dialog = modalRef.current
-    // Focus the dialog itself so the trap has a deterministic start point.
-    dialog?.focus?.()
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setPendingSubmit(null)
-        return
-      }
-      if (event.key !== 'Tab') return
-      // Focus trap: keep Tab wrapped within the dialog's focusable elements.
-      const focusable = dialog?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      )
-      if (!focusable || focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      lastFocusedRef.current?.focus?.()
-    }
-  }, [pendingSubmit])
 
   const refresh = () => {
     listFormulas().then(setFormulas).catch((err) => setError(err.message))
@@ -335,64 +295,41 @@ export default function FormulasPage() {
         ))}
       </ul>
 
-      {pendingSubmit && (
-        <div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={modalTitleId}
-          tabIndex={-1}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 outline-none animate-overlay-in sm:items-center"
-        >
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl animate-panel-in">
-            <h3 id={modalTitleId} className="text-lg font-semibold text-slate-800">
-              {pendingSubmit === 'edit' ? 'Guardar cambios' : 'Confirmar nueva fórmula'}
-            </h3>
-            <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">Nombre</dt>
-                <dd className="text-slate-800">{name}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">Color Pantone</dt>
-                <dd className="text-slate-800">{matchingColor()?.code || `#${pantoneColorId}`}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">Notas</dt>
-                <dd className="text-slate-800">{notes || '—'}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">Ingredientes</dt>
-                <dd className="text-slate-800">
-                  <ul className="space-y-1">
-                    {ingredients.map((ing, i) => (
-                      <li key={i}>
-                        {ing.colorant}: {ing.quantity} {ing.unit || 'g'}
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            </dl>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPendingSubmit(null)}
-                className="rounded bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-400"
-              >
-                Volver a revisar
-              </button>
-              <button
-                type="button"
-                onClick={confirmSave}
-                className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
-              >
-                Confirmar y guardar
-              </button>
-            </div>
+      <ConfirmDialog
+        open={!!pendingSubmit}
+        title={pendingSubmit === 'edit' ? 'Guardar cambios' : 'Confirmar nueva fórmula'}
+        confirmLabel="Confirmar y guardar"
+        cancelLabel="Volver a revisar"
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(null)}
+      >
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex gap-2">
+            <dt className="w-32 shrink-0 text-slate-500">Nombre</dt>
+            <dd className="text-slate-800">{name}</dd>
           </div>
-        </div>
-      )}
+          <div className="flex gap-2">
+            <dt className="w-32 shrink-0 text-slate-500">Color Pantone</dt>
+            <dd className="text-slate-800">{matchingColor()?.code || `#${pantoneColorId}`}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="w-32 shrink-0 text-slate-500">Notas</dt>
+            <dd className="text-slate-800">{notes || '—'}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="w-32 shrink-0 text-slate-500">Ingredientes</dt>
+            <dd className="text-slate-800">
+              <ul className="space-y-1">
+                {ingredients.map((ing, i) => (
+                  <li key={i}>
+                    {ing.colorant}: {ing.quantity} {ing.unit || 'g'}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        </dl>
+      </ConfirmDialog>
     </div>
   )
 }

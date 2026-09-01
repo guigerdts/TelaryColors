@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { createPantone, deletePantone, listPantone, suggestPantoneHex, updatePantone } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import PantoneCard from '../components/PantoneCard.jsx'
 import { GAMUT_OPTIONS, isValidGamut } from '../lib/gamut.js'
 
@@ -18,6 +19,9 @@ export default function PantonePage() {
   const [error, setError] = useState(null)
   // null = creating a new color; a number = editing that color's id.
   const [editingId, setEditingId] = useState(null)
+  // A color awaiting destructive-action confirmation, or null when idle.
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const refresh = useCallback(() => {
     listPantone()
@@ -92,6 +96,7 @@ export default function PantonePage() {
     }
   }
 
+  // Runs AFTER the operator confirms the destructive action in the dialog.
   const onDelete = async (id) => {
     setError(null)
     try {
@@ -101,6 +106,16 @@ export default function PantonePage() {
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setDeleteBusy(true)
+    await onDelete(deleteTarget.id)
+    setDeleteBusy(false)
+    // Close the dialog whether the delete succeeded or failed — the error/success
+    // is surfaced in the page's message area.
+    setDeleteTarget(null)
   }
 
   return (
@@ -190,7 +205,7 @@ export default function PantonePage() {
               <button
                 type="button"
                 aria-label={`eliminar ${color.code}`}
-                onClick={() => onDelete(color.id)}
+                onClick={() => setDeleteTarget(color)}
                 className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-red-700"
               >
                 Eliminar
@@ -199,6 +214,17 @@ export default function PantonePage() {
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={`Eliminar color PMS ${deleteTarget?.code} ${deleteTarget?.gamut}`}
+        description="Esta acción es permanente: se eliminará el color del catálogo industrial."
+        confirmLabel="Eliminar"
+        danger
+        busy={deleteBusy}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   )
 }

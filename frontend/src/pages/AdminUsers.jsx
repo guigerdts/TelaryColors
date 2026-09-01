@@ -2,6 +2,10 @@
 import { useEffect, useState } from 'react'
 
 import { listUsers, updateUser, createUser, listAccessLogs } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
+
+// Spanish labels for role values shown to the operator.
+const ROLE_LABELS = { operator: 'operador', admin: 'admin' }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -12,6 +16,9 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState('operator')
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // A role change awaiting confirmation: { id, username, nextRole } | null.
+  const [pendingRole, setPendingRole] = useState(null)
+  const [roleBusy, setRoleBusy] = useState(false)
 
   const refreshUsers = () => {
     listUsers()
@@ -43,14 +50,28 @@ export default function AdminUsersPage() {
     }
   }
 
-  const onRoleChange = async (id, nextRole) => {
+  // Stages a role change for confirmation instead of applying it immediately.
+  const onRoleChange = (id, nextRole) => {
     setError(null)
+    const user = users.find((u) => u.id === id)
+    if (!user) return
+    if (user.role === nextRole) return
+    setPendingRole({ id, username: user.username, nextRole })
+  }
+
+  // Runs AFTER the operator confirms the role change in the dialog.
+  const handleRoleConfirm = async () => {
+    if (!pendingRole) return
+    setRoleBusy(true)
     try {
-      await updateUser(id, { role: nextRole })
+      await updateUser(pendingRole.id, { role: pendingRole.nextRole })
       setMessage('Rol actualizado')
       refreshUsers()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setRoleBusy(false)
+      setPendingRole(null)
     }
   }
 
@@ -151,6 +172,20 @@ export default function AdminUsersPage() {
           ))}
         </ul>
       </section>
+
+      <ConfirmDialog
+        open={!!pendingRole}
+        title="Cambiar rol de usuario"
+        description={
+          pendingRole
+            ? `Se cambiará el rol de "${pendingRole.username}" a "${ROLE_LABELS[pendingRole.nextRole] ?? pendingRole.nextRole}".`
+            : undefined
+        }
+        danger
+        busy={roleBusy}
+        onClose={() => setPendingRole(null)}
+        onConfirm={handleRoleConfirm}
+      />
     </div>
   )
 }

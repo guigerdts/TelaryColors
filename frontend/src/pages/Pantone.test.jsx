@@ -47,11 +47,30 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
-  it('still lets an operator delete a color from the card listing', async () => {
+  it('does NOT delete until the operator confirms in the dialog', async () => {
     render(<PantonePage />)
     await act(async () => {})
 
     fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    await act(async () => {})
+
+    // A confirmation dialog appears and the delete has NOT run yet.
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeTruthy()
+    const del = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'DELETE' && String(url).includes('/pantone-colors/1'),
+    )
+    expect(del).toBeUndefined()
+  })
+
+  it('deletes a color only after confirming in the dialog', async () => {
+    render(<PantonePage />)
+    await act(async () => {})
+
+    fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    await act(async () => {})
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
     await act(async () => {})
 
     const del = fetchMock.mock.calls.find(
@@ -60,6 +79,27 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     expect(del).toBeTruthy()
     // The card for the deleted color disappears from the listing.
     expect(screen.queryByText('PMS 211 C')).toBeNull()
+  })
+
+  it('shows visible error feedback when a confirmed delete fails', async () => {
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+      if (String(url).includes('/pantone-colors') && method === 'DELETE') {
+        return Promise.resolve({ ok: false, status: 500, json: async () => ({ detail: 'No se pudo eliminar' }) })
+      }
+      return okJson([])
+    })
+    render(<PantonePage />)
+    await act(async () => {})
+
+    fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    await act(async () => {})
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
+    await act(async () => {})
+
+    expect(screen.getByText(/no se pudo eliminar/i)).toBeTruthy()
   })
 
   it('offers the real gamuts C/TPX/U as select options, never free text', async () => {

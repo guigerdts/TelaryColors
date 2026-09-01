@@ -52,15 +52,59 @@ describe('SampleFicha (thumbnail + promote)', () => {
     expect(screen.queryByAltText('Muestra reutilizable de 221 C')).toBeNull()
   })
 
-  it('calls promoteSample (POST /samples/{id}/promote) when Promover is clicked', async () => {
+  it('opens the promote confirmation instead of promoting directly on first click', async () => {
     render(<SampleFicha sample={SAMPLE} colorCode="221 C" />)
     fireEvent.click(screen.getByRole('button', { name: 'Promover' }))
+    await act(async () => {})
+
+    // No promote call fired yet — the operator must confirm first.
+    const promoteCall = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/promote'),
+    )
+    expect(promoteCall).toBeUndefined()
+  })
+
+  it('does NOT promote until the operator confirms in the dialog', async () => {
+    render(<SampleFicha sample={SAMPLE} colorCode="221 C" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Promover' }))
+    await act(async () => {})
+
+    // A confirmation dialog opens and no promote call was fired yet.
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    const promoteCall = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/promote'),
+    )
+    expect(promoteCall).toBeUndefined()
+  })
+
+  it('promotes only after confirming, then shows success feedback', async () => {
+    render(<SampleFicha sample={SAMPLE} colorCode="221 C" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Promover' }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
     await act(async () => {})
 
     const promoteCall = fetchMock.mock.calls.find(
       ([url, init]) => init?.method === 'POST' && String(url).includes('/samples/100/promote'),
     )
     expect(promoteCall).toBeTruthy()
-    expect(String(promoteCall[0])).toContain('/api/v1/samples/100/promote')
+    expect(screen.getByText(/promovida|promovido/i)).toBeTruthy()
+  })
+
+  it('shows visible error feedback when a confirmed promote fails', async () => {
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/promote') && method === 'POST') {
+        return Promise.resolve({ ok: false, status: 500, json: async () => ({ detail: 'No se pudo promover la muestra' }) })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    render(<SampleFicha sample={SAMPLE} colorCode="221 C" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Promover' }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await act(async () => {})
+
+    expect(screen.getByText(/no se pudo promover/i)).toBeTruthy()
   })
 })

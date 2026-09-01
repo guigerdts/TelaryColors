@@ -5,15 +5,41 @@
 // server-side from its pantone_target_id, so the payload carries only the
 // formula name/notes/ingredients. Ingredients come from the parent (a future
 // promote form); no ingredient editor exists in this slice.
+//
+// Promoting is a destructive-ish action: it runs only after the operator
+// confirms in an ARIA ConfirmDialog, shows a busy state while in flight, and
+// surfaces success/error feedback inline (the promote call is caught — it
+// never rejects unhandled).
+import { useState } from 'react'
+
 import { promoteSample } from '../api/index.js'
+import ConfirmDialog from './ConfirmDialog.jsx'
 
 export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
-  async function handlePromote() {
-    await promoteSample(sample.id, {
-      name: `Muestra ${sample.id}`,
-      notes: 'Promovida desde ficha',
-      ingredients,
-    })
+  // 'idle' | 'confirm' | 'promoting' | 'success' | 'error'
+  const [phase, setPhase] = useState('idle')
+  const [notice, setNotice] = useState(null)
+
+  function openConfirm() {
+    setPhase('confirm')
+    setNotice(null)
+  }
+
+  async function handlePromoteConfirm() {
+    setPhase('promoting')
+    try {
+      await promoteSample(sample.id, {
+        name: `Muestra ${sample.id}`,
+        notes: 'Promovida desde ficha',
+        ingredients,
+      })
+      setPhase('success')
+      setNotice({ type: 'success', text: 'Muestra promovida a fórmula' })
+    } catch (err) {
+      // Surface the failure rather than swallowing it (the missing .catch).
+      setPhase('error')
+      setNotice({ type: 'error', text: err.message || 'No se pudo promover la muestra' })
+    }
   }
 
   return (
@@ -29,11 +55,33 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
       )}
       <button
         type="button"
-        onClick={handlePromote}
-        className="rounded border border-accent-281c/60 px-2 py-1 text-xs text-accent-281c hover:bg-accent-281c/10"
+        onClick={openConfirm}
+        disabled={phase === 'promoting'}
+        className="rounded border border-accent-281c/60 px-2 py-1 text-xs text-accent-281c hover:bg-accent-281c/10 disabled:opacity-50"
       >
         Promover
       </button>
+      {notice && (
+        <span
+          role="status"
+          className={`text-xs ${
+            notice.type === 'success' ? 'text-green-700' : 'text-red-700'
+          }`}
+        >
+          {notice.text}
+        </span>
+      )}
+
+      <ConfirmDialog
+        open={phase === 'confirm' || phase === 'promoting'}
+        title="Promover muestra"
+        description={`La muestra se convertirá en una nueva fórmula (Muestra ${sample.id}).`}
+        confirmLabel="Confirmar"
+        cancelLabel="Cancelar"
+        busy={phase === 'promoting'}
+        onConfirm={handlePromoteConfirm}
+        onClose={() => setPhase('idle')}
+      />
     </div>
   )
 }
