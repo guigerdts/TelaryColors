@@ -11,16 +11,19 @@
 //
 // Presentational: the caller supplies `pantone` (code/gamut/hex_color) and the
 // already fetched `formula` + `designs` (the ficha owns the single detail call).
+// Optional `to` prop wraps the entire card in a <Link> for navigation (Punto 2).
+import { Link } from 'react-router-dom'
+
 import { formatDateTime } from '../lib/datetime.js'
 
-export default function PantoneCard({ pantone, formula, designs = [] }) {
+export default function PantoneCard({ pantone, formula, designs = [], to }) {
   const code = pantone?.code ?? ''
   const gamut = pantone?.gamut ?? ''
   const pmsCode = `PMS ${code} ${gamut}`.trim()
   const hex = pantone?.hex_color
   const pmsCodeLabel = `Pantone ${pmsCode}`
 
-  return (
+  const card = (
     <article
       role="article"
       className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-lg motion-safe:active:scale-[0.98] motion-safe:active:shadow-md"
@@ -85,4 +88,17 @@ export default function PantoneCard({ pantone, formula, designs = [] }) {
       )}
     </article>
   )
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="block no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-281c"
+      >
+        {card}
+      </Link>
+    )
+  }
+
+  return card
 }

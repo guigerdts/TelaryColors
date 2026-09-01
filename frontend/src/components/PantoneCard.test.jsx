@@ -8,6 +8,7 @@
 // static shadow).
 import { describe, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import PantoneCard from './PantoneCard.jsx'
 
@@ -28,7 +29,11 @@ const DETAIL = {
 
 describe('PantoneCard (spec §4 visual)', () => {
   it('renders color block, PANTONE® wordmark, code+gamut and HEX', () => {
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />
+      </MemoryRouter>,
+    )
 
     // Solid color block at the top (full card width representation).
     const block = screen.getByRole('img', { name: 'Pantone PMS 211 C' })
@@ -46,7 +51,11 @@ describe('PantoneCard (spec §4 visual)', () => {
   })
 
   it('renders the formula with each colorant in grams/kilo', () => {
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />
+      </MemoryRouter>,
+    )
 
     const formulaSection = screen.getByRole('region', { name: 'Fórmula (g/kg)' })
     expect(within(formulaSection).getByText(/Blanco/)).toBeTruthy()
@@ -54,7 +63,11 @@ describe('PantoneCard (spec §4 visual)', () => {
   })
 
   it('renders linked designs/clients in a SEPARATE section from the formula', () => {
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />
+      </MemoryRouter>,
+    )
 
     const designsSection = screen.getByRole('region', { name: 'Diseños que usan esta fórmula' })
     expect(designsSection).toBeTruthy()
@@ -71,7 +84,11 @@ describe('PantoneCard (spec §4 visual)', () => {
   })
 
   it('shows the designs section as empty (visible, not collapsed) when there are no designs', () => {
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
 
     const designsSection = screen.getByRole('region', { name: 'Diseños que usan esta fórmula' })
     expect(within(designsSection).getByText(/Sin diseños vinculados/)).toBeTruthy()
@@ -82,7 +99,11 @@ describe('PantoneCard (spec §4 visual)', () => {
 
   it('renders placeholder text when hex_color is null', () => {
     const pantoneNoHex = { code: '211', gamut: 'C', hex_color: null }
-    render(<PantoneCard pantone={pantoneNoHex} formula={DETAIL} designs={[]} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={pantoneNoHex} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
 
     expect(screen.getByText('Sin color asignado')).toBeTruthy()
     // Should NOT show a hex code.
@@ -91,7 +112,11 @@ describe('PantoneCard (spec §4 visual)', () => {
 
   it('renders the creation date when created_at is present', () => {
     const pantoneWithDate = { ...PANTONE, created_at: '2026-08-31T18:05:00Z' }
-    render(<PantoneCard pantone={pantoneWithDate} formula={DETAIL} designs={[]} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={pantoneWithDate} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
 
     // es-CO locale should render the date containing 31 and 2026.
     // Use a tolerant regex since Intl formatting varies by ICU version.
@@ -106,7 +131,11 @@ describe('PantoneCard (spec §4 visual)', () => {
     // reduce-motion preference. Regression: the lift/scale must be expressed
     // with the motion-safe: variant (and never a bare hover:/active: that a
     // reduced-motion user cannot opt out of globally).
-    render(<PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />)
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
 
     const card = screen.getByRole('article')
     const cls = card.className
@@ -117,5 +146,26 @@ describe('PantoneCard (spec §4 visual)', () => {
     expect(cls).not.toMatch(/(?<!motion-safe:)hover:-translate-y-1/)
     expect(cls).not.toMatch(/(?<!motion-safe:)hover:shadow-lg/)
     expect(cls).not.toMatch(/(?<!motion-safe:)active:scale-\[0\.98\]/)
+  })
+
+  it('renders as a link when to prop is provided', () => {
+    render(
+      <MemoryRouter>
+        <PantoneCard to="/pantone/5" pantone={PANTONE} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
+
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/pantone/5')
+  })
+
+  it('does NOT render as a link when to prop is absent', () => {
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByRole('link')).toBeNull()
   })
 })

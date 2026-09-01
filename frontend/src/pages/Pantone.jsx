@@ -192,7 +192,7 @@ export default function PantonePage() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {colors.map((color) => (
           <li key={color.id} className="relative">
-            <PantoneCard pantone={color} />
+            <PantoneCard pantone={color} to={`/pantone/${color.id}`} />
             <div className="absolute right-3 top-3 flex gap-1">
               <button
                 type="button"

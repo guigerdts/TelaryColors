@@ -7,7 +7,15 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import App from '../App.jsx'
 import { setToken } from '../auth/store.js'
 
-const COLORS = [{ id: 1, code: '221 C', gamut: 'C', paint_type: 'reactiva' }]
+const COLORS = [{ id: 1, code: '221', gamut: 'C', paint_type: 'reactiva' }]
+const FORMULAS = [{ id: 7, name: 'Fórmula 221', pantone_color_id: 1 }]
+const DETAIL = {
+  id: 7,
+  name: 'Fórmula 221',
+  pantone_color_id: 1,
+  ingredients: [{ id: 1, colorant: 'Blanco', quantity_g: '820.0' }],
+  designs: [],
+}
 
 describe('AppRouter guarded routes', () => {
   const fetchMock = vi.fn()
@@ -18,6 +26,15 @@ describe('AppRouter guarded routes', () => {
     fetchMock.mockImplementation((url) => {
       const u = String(url)
       if (u.includes('/inventory/items') || u.includes('/inventory/reorder-alerts')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+      }
+      if (u.includes('/formulas') && u.includes('/detail')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => DETAIL })
+      }
+      if (u.includes('/formulas')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => FORMULAS })
+      }
+      if (u.includes('/designs')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [] })
       }
       return Promise.resolve({ ok: true, status: 200, json: async () => COLORS })
@@ -105,5 +122,16 @@ describe('AppRouter guarded routes', () => {
     expect(screen.getByRole('heading', { name: /registrar transacción/i })).toBeTruthy()
     // The ?formula_id= prefill marks the formula as read-only with its hint.
     expect(screen.getByText(/fórmula prefijada desde la ficha/i)).toBeTruthy()
+  })
+
+  it('deep-links to /pantone/:id and renders the self-loading ficha', async () => {
+    // Regression: PantoneCard links to /pantone/{id} (Punto 2) — the route must
+    // exist and resolve to the PantoneDetail ficha, not fall through to /search.
+    window.history.pushState({}, '', '/pantone/1')
+    render(<App />)
+    await act(async () => {})
+
+    // The formula ingredient renders — proving the detail ficha is on the route.
+    expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
   })
 })

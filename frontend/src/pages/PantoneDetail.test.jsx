@@ -1,19 +1,21 @@
-// PantoneDetail — the extended ficha (Slice E). Consumes the rich formula
-// detail endpoint GET /formulas/{id}/detail in a SINGLE call (design D3 /
-// user confirmation: formula + deduplicated linked designs come from one
-// response — no separate requests for formula and designs). Handles loading,
-// error (404/fetch-fail) and empty (no designs) states.
+// PantoneDetail — self-loading ficha (Punto 2). The component resolves its
+// own data from the URL via useParams, filtering the formulas list and
+// fetching the detail on mount. Supports multiple formula selection.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import PantoneDetail from '../pages/PantoneDetail.jsx'
 
-const PANTONE = { code: '211', gamut: 'C', hex: '#E63950' }
+const PANTONE = { id: 1, code: '211', gamut: 'C', hex_color: '#E63950', paint_type: 'reactiva' }
 
-const DETAIL = {
+const FORMULA_1 = { id: 7, name: 'Fórmula coral 211', pantone_color_id: 1 }
+const FORMULA_2 = { id: 8, name: 'Fórmula roja 211', pantone_color_id: 1 }
+
+const DETAIL_1 = {
   id: 7,
   name: 'Fórmula coral 211',
-  pantone_color_id: 3,
+  pantone_color_id: 1,
   ingredients: [
     { id: 1, colorant: 'Blanco', quantity_g: '820.0' },
     { id: 2, colorant: 'Rojo rubí', quantity_g: '130.0' },
@@ -24,38 +26,68 @@ const DETAIL = {
   ],
 }
 
-const okJson = (body) => Promise.resolve({ ok: true, status: 200, json: async () => body })
+const DETAIL_2 = {
+  id: 8,
+  name: 'Fórmula roja 211',
+  pantone_color_id: 1,
+  ingredients: [
+    { id: 3, colorant: 'Rojo fuego', quantity_g: '900.0' },
+  ],
+  designs: [],
+}
 
-describe('PantoneDetail (single-call ficha)', () => {
-  const fetchMock = vi.fn()
+const DESIGNS = [
+  { id: 21, name: 'Linterna Coral', client: 'Telary Home', notes: null },
+  { id: 22, name: 'Maceta Norte', client: null, notes: null },
+]
 
+// Mock the API module so each test can control responses.
+vi.mock('../api/index.js', () => ({
+  listFormulas: vi.fn(),
+  getFormulaDetail: vi.fn(),
+  listPantone: vi.fn(),
+  listDesigns: vi.fn().mockResolvedValue([]),
+  linkDesignToFormula: vi.fn(),
+}))
+
+import { getFormulaDetail, listDesigns, listFormulas, listPantone } from '../api/index.js'
+
+// Helper to render PantoneDetail inside a MemoryRouter matching /pantone/:id.
+function renderDetail(pantoneId = 1) {
+  return render(
+    <MemoryRouter initialEntries={[`/pantone/${pantoneId}`]}>
+      <Routes>
+        <Route path="/pantone/:id" element={<PantoneDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+describe('PantoneDetail (self-loading ficha)', () => {
   beforeEach(() => {
-    fetchMock.mockReset()
-    vi.stubGlobal('fetch', fetchMock)
-    localStorage.clear()
+    vi.clearAllMocks()
+    listPantone.mockResolvedValue([PANTONE])
+    listFormulas.mockResolvedValue([FORMULA_1])
+    getFormulaDetail.mockResolvedValue(DETAIL_1)
+    listDesigns.mockResolvedValue([])
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
-  it('loads formula + deduplicated designs from ONE call to /formulas/{id}/detail', async () => {
-    fetchMock.mockImplementation((url) => {
-      if (String(url).includes('/api/v1/formulas/7/detail')) return okJson(DETAIL)
-      return okJson([])
-    })
-
-    render(<PantoneDetail formulaId={7} pantone={PANTONE} />)
+  it('loads formulas + detail from URL and renders the ficha', async () => {
+    renderDetail(1)
     await act(async () => {})
 
-    // Exactly one request hits the detail endpoint (confirmation user 3).
-    const detailCalls = fetchMock.mock.calls.filter(([url]) =>
-      String(url).includes('/api/v1/formulas/7/detail'),
-    )
-    expect(detailCalls.length).toBe(1)
-    expect(String(detailCalls[0][0])).toContain('/api/v1/formulas/7/detail')
+    // listFormulas called to discover the pantone's formulas.
+    expect(listFormulas).toHaveBeenCalledTimes(1)
+    // listPantone called to resolve the pantone metadata.
+    expect(listPantone).toHaveBeenCalledTimes(1)
+    // getFormulaDetail called with the first formula's id.
+    expect(getFormulaDetail).toHaveBeenCalledWith(7)
 
-    // Formula + designs rendered from that single response.
+    // Formula + designs rendered from the detail response.
     expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
     const designsSection = screen.getByRole('region', {
       name: 'Diseños que usan esta fórmula',
@@ -64,86 +96,102 @@ describe('PantoneDetail (single-call ficha)', () => {
   })
 
   it('shows a loading state while fetching', () => {
-    fetchMock.mockImplementation(() => new Promise(() => {}))
-    render(<PantoneDetail formulaId={7} pantone={PANTONE} />)
+    listFormulas.mockReturnValue(new Promise(() => {}))
+    renderDetail(1)
     expect(screen.getByText(/Cargando/)).toBeTruthy()
   })
 
-  it('shows an error (404 / fetch failure) and recovers', async () => {
-    fetchMock.mockImplementation(() =>
-      Promise.resolve({ ok: false, status: 404, json: async () => ({ detail: 'Fórmula no encontrada' }) }),
-    )
-
-    const { unmount } = render(<PantoneDetail formulaId={999} pantone={PANTONE} />)
+  it('shows an error and recovers via retry', async () => {
+    getFormulaDetail.mockRejectedValueOnce(new Error('Fórmula no encontrada'))
+    renderDetail(1)
     await act(async () => {})
     expect(screen.getByText(/Fórmula no encontrada/)).toBeTruthy()
 
-    // A later successful fetch recovers from the error state.
-    fetchMock.mockImplementation(() => okJson(DETAIL))
+    // Retry recovers.
+    getFormulaDetail.mockResolvedValue(DETAIL_1)
     await act(async () => {
       screen.getByRole('button', { name: /Reintentar/i }).click()
     })
     expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
   })
 
-  it('renders an empty designs section when the detail returns no designs', async () => {
-    fetchMock.mockImplementation(() => okJson({ ...DETAIL, designs: [] }))
-    render(<PantoneDetail formulaId={7} pantone={PANTONE} />)
+  it('shows a message when no formulas exist for the pantone', async () => {
+    listFormulas.mockResolvedValue([])
+    renderDetail(1)
+    await act(async () => {})
+
+    expect(screen.getByText(/no hay fórmulas/i)).toBeTruthy()
+    expect(getFormulaDetail).not.toHaveBeenCalled()
+  })
+
+  it('does NOT show a formula selector when there is only one formula', async () => {
+    listFormulas.mockResolvedValue([FORMULA_1])
+    renderDetail(1)
+    await act(async () => {})
+
+    expect(screen.queryByRole('combobox', { name: /fórmula/i })).toBeNull()
+  })
+
+  it('shows a formula selector when there are multiple formulas', async () => {
+    listFormulas.mockResolvedValue([FORMULA_1, FORMULA_2])
+    getFormulaDetail.mockResolvedValue(DETAIL_1)
+    renderDetail(1)
+    await act(async () => {})
+
+    const selector = screen.getByRole('combobox', { name: /fórmula/i })
+    // Two options (one per formula).
+    expect(within(selector).getAllByRole('option')).toHaveLength(2)
+  })
+
+  it('switches formula when selector changes', async () => {
+    listFormulas.mockResolvedValue([FORMULA_1, FORMULA_2])
+    getFormulaDetail.mockResolvedValueOnce(DETAIL_1)
+    getFormulaDetail.mockResolvedValueOnce(DETAIL_2)
+    renderDetail(1)
+    await act(async () => {})
+
+    expect(getFormulaDetail).toHaveBeenCalledTimes(1)
+    expect(getFormulaDetail).toHaveBeenLastCalledWith(7)
+
+    const selector = screen.getByRole('combobox', { name: /fórmula/i })
+    fireEvent.change(selector, { target: { value: '8' } })
+    await act(async () => {})
+    // After change, getFormulaDetail called with the second formula id.
+    expect(getFormulaDetail).toHaveBeenCalledTimes(2)
+    expect(getFormulaDetail).toHaveBeenLastCalledWith(8)
+  })
+
+  it('renders an empty designs section when detail has no designs', async () => {
+    getFormulaDetail.mockResolvedValue({ ...DETAIL_1, designs: [] })
+    renderDetail(1)
     await act(async () => {})
 
     const designsSection = screen.getByRole('region', {
       name: 'Diseños que usan esta fórmula',
     })
     expect(within(designsSection).getByText(/Sin diseños vinculados/)).toBeTruthy()
-    // Formula still renders from the same response.
-    expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
   })
 
-  it('manually links an EXISTING design (listDesigns) — never inline creation', async () => {
-    const DESIGNS = [
-      { id: 21, name: 'Linterna Coral', client: 'Telary Home', notes: null },
-      { id: 22, name: 'Maceta Norte', client: null, notes: null },
-    ]
-    fetchMock.mockImplementation((url, init) => {
-      const u = String(url)
-      const method = init?.method ?? 'GET'
-      if (u.includes('/formulas/7/detail') && method === 'GET') return okJson(DETAIL)
-      if (u.includes('/designs') && method === 'GET') return okJson(DESIGNS)
-      if (u.includes('/formulas/7/designs') && method === 'POST') {
-        return okJson({ id: 99, formula_id: 7, design_id: 21, source: 'manual' })
-      }
-      return okJson([])
-    })
+  it('manually links an existing design via linkDesignToFormula', async () => {
+    listDesigns.mockResolvedValue(DESIGNS)
+    const { linkDesignToFormula } = await import('../api/index.js')
+    linkDesignToFormula.mockResolvedValue({ id: 99, formula_id: 7, design_id: 21, source: 'manual' })
 
-    render(<PantoneDetail formulaId={7} pantone={PANTONE} />)
+    renderDetail(1)
     await act(async () => {})
 
-    // The manual-link selector offers ONLY the existing designs from listDesigns.
     const selector = screen.getByLabelText(/vincular diseño/i)
     expect(within(selector).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Linterna Coral',
       'Maceta Norte',
     ])
 
-    fireEvent.change(selector, { target: { value: '21' } })
-    fireEvent.click(screen.getByRole('button', { name: /vincular/i }))
+    await act(async () => {
+      fireEvent.change(selector, { target: { value: '21' } })
+      fireEvent.click(screen.getByRole('button', { name: /vincular/i }))
+    })
+
     await act(async () => {})
-
-    // Links via linkDesignToFormula — POST /formulas/{id}/designs with design_id.
-    const linkCall = fetchMock.mock.calls.find(
-      ([url, init]) => init?.method === 'POST' && String(url).includes('/formulas/7/designs'),
-    )
-    expect(linkCall).toBeTruthy()
-    expect(JSON.parse(linkCall[1].body).design_id).toBe(21)
-
-    // No inline creation is ever attempted (creation lives in the /designs
-    // collection POST) — the only /designs POST is the link to the formula
-    // sub-resource above, never a create on the collection root.
-    const createCall = fetchMock.mock.calls.find(
-      ([url, init]) =>
-        init?.method === 'POST' &&
-        String(url).match(/\/api\/v1\/designs(\?|$)/),
-    )
-    expect(createCall).toBeUndefined()
+    expect(linkDesignToFormula).toHaveBeenCalledWith(7, { design_id: 21 })
   })
 })

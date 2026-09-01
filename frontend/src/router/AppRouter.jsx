@@ -21,6 +21,7 @@ import InventoryTransactionPage from '../pages/InventoryTransaction.jsx'
 import DesignsPage from '../pages/Designs.jsx'
 import AdminUsersPage from '../pages/AdminUsers.jsx'
 import SampleRegistrationPage from '../pages/SampleRegistration.jsx'
+import PantoneDetailPage from '../pages/PantoneDetail.jsx'
 
 function UnauthorizedRedirector() {
   const navigate = useNavigate()
@@ -50,6 +51,7 @@ export default function AppRouter() {
           >
             <Route path="/search" element={<SearchPage />} />
             <Route path="/pantone" element={<PantonePage />} />
+            <Route path="/pantone/:id" element={<PantoneDetailPage />} />
             <Route path="/formulas" element={<FormulasPage />} />
             <Route path="/inventario" element={<InventoryPage />} />
             <Route path="/inventario/alertas" element={<InventoryAlertsPage />} />

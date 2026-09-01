@@ -99,7 +99,7 @@ export default function SearchPage() {
           const samples = reusableSamples[color.id] ?? []
           return (
             <li key={color.id} className="rounded border border-slate-200 bg-white p-3">
-              <PantoneCard pantone={color} formula={formula} designs={[]} />
+              <PantoneCard pantone={color} formula={formula} designs={[]} to={`/pantone/${color.id}`} />
               {samples.length > 0 && (
                 <div className="border-t border-dashed border-slate-200 pt-2">
                   <p className="text-sm font-medium text-slate-700">

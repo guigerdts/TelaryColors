@@ -5,8 +5,11 @@
 // "Gamut Selector").
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import PantonePage from './Pantone.jsx'
+
+const renderPage = () => render(<MemoryRouter><PantonePage /></MemoryRouter>)
 
 const COLORS = [
   { id: 1, code: '211', gamut: 'C', paint_type: 'reactiva' },
@@ -35,7 +38,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('renders every pantone as a PantoneCard (wordmark + PMS code+gamut), never the legacy table', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     const cards = screen.getAllByRole('article')
@@ -48,7 +51,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('does NOT delete until the operator confirms in the dialog', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
@@ -64,7 +67,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('deletes a color only after confirming in the dialog', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
@@ -90,7 +93,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
       }
       return okJson([])
     })
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
@@ -103,7 +106,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('offers the real gamuts C/TPX/U as select options, never free text', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     const gamut = screen.getByLabelText(/gamut/i)
@@ -115,7 +118,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('includes hex_color=null when submitting without a hex value', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     // Fill in required fields but leave HEX empty.
@@ -132,7 +135,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
   })
 
   it('includes hex_color when submitting with a typed hex value', async () => {
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
@@ -162,7 +165,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
       return okJson([])
     })
 
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     // The Editar button should be present.
@@ -211,7 +214,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
       return okJson([])
     })
 
-    render(<PantonePage />)
+    renderPage()
     await act(async () => {})
 
     // Type a code — this should trigger the suggest effect.

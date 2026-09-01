@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import SearchPage from './Search.jsx'
+
+const renderPage = () => render(<MemoryRouter><SearchPage /></MemoryRouter>)
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -46,7 +49,7 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
   })
 
   it('waits for the debounce before firing the search and renders the results', async () => {
-    render(<SearchPage />)
+    renderPage()
     const input = screen.getByLabelText(/buscar color/i)
 
     // The page loads the formulas list on mount; forget those calls so the
@@ -78,7 +81,7 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
   })
 
   it('renders each search result as a PantoneCard, not the legacy flat box', async () => {
-    render(<SearchPage />)
+    renderPage()
     const input = screen.getByLabelText(/buscar color/i)
     await act(async () => {})
     fetchMock.mockClear()
@@ -104,7 +107,7 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
     }
     fetchMock.mockImplementation(buildMock(COLORS, FORMULAS, { 1: [sample] }))
 
-    render(<SearchPage />)
+    renderPage()
     const input = screen.getByLabelText(/buscar color/i)
 
     await act(async () => {})
@@ -136,7 +139,7 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
     }
     fetchMock.mockImplementation(buildMock(COLORS, FORMULAS, { 1: [withPhoto, withoutPhoto] }))
 
-    render(<SearchPage />)
+    renderPage()
     const input = screen.getByLabelText(/buscar color/i)
 
     await act(async () => {})
