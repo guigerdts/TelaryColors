@@ -97,7 +97,7 @@ export default function InventoryPage() {
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      <form onSubmit={onSubmit} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+      <form id="inventory-form" onSubmit={onSubmit} className="space-y-3 rounded border border-slate-200 bg-white p-4">
         <h3 className="font-semibold text-slate-700">
           {editingId === null ? 'Nuevo item' : 'Editar item'}
         </h3>
@@ -158,6 +158,7 @@ export default function InventoryPage() {
               min="0"
               value={form.reorder_threshold}
               onChange={(e) => setField('reorder_threshold', e.target.value)}
+              title="Cuando el stock baje de este valor, el estado cambiará a bajo umbral"
               required
               className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
             />
@@ -183,7 +184,19 @@ export default function InventoryPage() {
       </form>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-500">Sin items de inventario</p>
+        <div className="rounded border border-slate-200 bg-white p-6 text-center">
+          <h3 className="text-sm font-semibold text-slate-700">Sin items de inventario</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Agrega tu primer item de inventario para comenzar a rastrear stock.
+          </p>
+          <button
+            type="button"
+            onClick={() => { document.getElementById('inventory-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }}
+            className="mt-3 rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+          >
+            Crear item de inventario
+          </button>
+        </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {items.map((item) => (

@@ -2,7 +2,7 @@
 // (gram-normalized), lets an operator create a new formula for a color, and
 // edit an existing formula's name/notes/ingredient quantities. A confirmation
 // modal (pendingSubmit) stages BOTH create and edit before the API call.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { createFormula, listFormulas, listPantone, updateFormula } from '../api/index.js'
@@ -131,6 +131,16 @@ export default function FormulasPage() {
   }
 
   const matchingColor = () => colors.find((c) => String(c.id) === String(pantoneColorId))
+
+  // Refs for formula cards so we can scroll the edited one into view.
+  const formulaRefs = useRef({})
+
+  // When editingId changes, scroll the target card into view.
+  useEffect(() => {
+    if (editingId !== null && formulaRefs.current[editingId]) {
+      formulaRefs.current[editingId].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [editingId])
 
   return (
     <div className="space-y-6">
@@ -261,7 +271,15 @@ export default function FormulasPage() {
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {formulas.map((formula) => (
-          <li key={formula.id} className="rounded border border-slate-200 bg-white p-3">
+          <li
+            key={formula.id}
+            ref={(el) => { formulaRefs.current[formula.id] = el }}
+            className={`rounded border bg-white p-3 ${
+              editingId === formula.id
+                ? 'border-accent-281c ring-2 ring-accent-281c ring-offset-2'
+                : 'border-slate-200'
+            }`}
+          >
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold text-slate-800">{formula.name}</p>
               <button

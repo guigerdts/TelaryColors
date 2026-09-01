@@ -127,7 +127,30 @@ export default function PantoneDetail() {
   }
 
   if (loading && !detail) {
-    return <p className="text-sm text-slate-500">Cargando ficha…</p>
+    return (
+      <div className="space-y-4">
+        {/* Skeleton card matching PantoneCard shape */}
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="h-24 w-full bg-slate-200 animate-pulse" />
+          <div className="space-y-2 px-4 py-3">
+            <div className="h-3 w-1/3 rounded bg-slate-200 animate-pulse" />
+            <div className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
+          </div>
+          <div className="border-t border-slate-200 px-4 py-3">
+            <div className="h-3 w-1/4 rounded bg-slate-200 animate-pulse" />
+            <div className="mt-2 space-y-1">
+              <div className="h-3 w-full rounded bg-slate-200 animate-pulse" />
+              <div className="h-3 w-3/4 rounded bg-slate-200 animate-pulse" />
+            </div>
+          </div>
+          <div className="border-t border-slate-200 px-4 py-3">
+            <div className="h-3 w-1/3 rounded bg-slate-200 animate-pulse" />
+            <div className="mt-2 h-3 w-1/2 rounded bg-slate-200 animate-pulse" />
+          </div>
+        </div>
+        <p className="text-sm text-slate-400 italic">Cargando ficha…</p>
+      </div>
+    )
   }
 
   if (error && !detail) {

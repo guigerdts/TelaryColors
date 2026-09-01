@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom'
 
 import { formatDateTime } from '../lib/datetime.js'
 
-export default function PantoneCard({ pantone, formula, designs = [], to }) {
+export default function PantoneCard({ pantone, formula, designs = [], to, onEdit, onDelete }) {
   const code = pantone?.code ?? ''
   const gamut = pantone?.gamut ?? ''
   const pmsCode = `PMS ${code} ${gamut}`.trim()
@@ -85,6 +85,30 @@ export default function PantoneCard({ pantone, formula, designs = [], to }) {
         <p className="px-4 py-2 text-xs text-slate-400">
           Creado {formatDateTime(pantone.created_at)}
         </p>
+      )}
+
+      {/* Actions footer — rendered only when at least one action is provided. */}
+      {(onEdit || onDelete) && (
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-4 pt-2 pb-3">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(pantone) }}
+              className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:brightness-90 min-h-[44px]"
+            >
+              Eliminar
+            </button>
+          )}
+          {onEdit && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onEdit(pantone) }}
+              className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 min-h-[44px]"
+            >
+              Editar
+            </button>
+          )}
+        </div>
       )}
     </article>
   )

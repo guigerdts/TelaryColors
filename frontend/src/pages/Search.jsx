@@ -14,6 +14,7 @@ export default function SearchPage() {
   const [formulas, setFormulas] = useState([])
   const [message, setMessage] = useState('')
   const [reusableSamples, setReusableSamples] = useState({})
+  const [searching, setSearching] = useState(false)
 
   const debounced = useDebounce(query, 250)
 
@@ -25,6 +26,7 @@ export default function SearchPage() {
       return
     }
     let cancelled = false
+    setSearching(true)
     searchPantone(debounced)
       .then((colors) => {
         if (cancelled) return
@@ -33,6 +35,9 @@ export default function SearchPage() {
       })
       .catch((err) => {
         if (!cancelled) setMessage(err.message)
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false)
       })
     return () => {
       cancelled = true
@@ -90,6 +95,10 @@ export default function SearchPage() {
         onChange={(e) => setQuery(e.target.value)}
         className="w-full max-w-md rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
       />
+
+      {searching && !message && (
+        <p className="text-sm text-slate-400 italic">Buscando…</p>
+      )}
 
       {message && <p aria-live="polite" className="text-sm text-slate-500">{message}</p>}
 
