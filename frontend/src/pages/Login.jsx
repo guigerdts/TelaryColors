@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  if (isAuthenticated) return <Navigate to="/search" replace />
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setError(null)
     try {
       await login(username, password)
-      navigate('/search')
+      navigate('/dashboard')
     } catch (err) {
       setError(err.message || 'Usuario o contraseña incorrectos')
     } finally {

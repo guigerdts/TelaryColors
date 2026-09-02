@@ -12,6 +12,7 @@ import { setUnauthorizedHandler } from '../api/client.js'
 import ProtectedRoute from '../components/ProtectedRoute.jsx'
 import Layout from '../components/Layout.jsx'
 import LoginPage from '../pages/Login.jsx'
+import DashboardPage from '../pages/Dashboard.jsx'
 import SearchPage from '../pages/Search.jsx'
 import PantonePage from '../pages/Pantone.jsx'
 import FormulasPage from '../pages/Formulas.jsx'
@@ -64,6 +65,7 @@ export default function AppRouter() {
                 </ProtectedRoute>
               }
             >
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/pantone" element={<PantonePage />} />
               <Route path="/pantone/:id" element={<PantoneDetailPage />} />
@@ -81,7 +83,7 @@ export default function AppRouter() {
               <Route path="/muestras/lista" element={<SamplesListPage />} />
               <Route path="/muestras" element={<SampleRegistrationPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/search" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Suspense>
       </AuthProvider>

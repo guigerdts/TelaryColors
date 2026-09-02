@@ -16,6 +16,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider.jsx'
 
 const primaryLinks = [
+  { to: '/dashboard', label: 'Inicio', icon: 'dashboard' },
   { to: '/search', label: 'Buscar', icon: 'search' },
   { to: '/pantone', label: 'Pantone', icon: 'pantone' },
   { to: '/formulas', label: 'Fórmulas', icon: 'formulas' },
@@ -36,6 +37,7 @@ const allLinks = [...primaryLinks, ...secondaryLinks]
 function Icon({ name, className = '' }) {
   const paths = {
     search: <path d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z" />,
+    dashboard: <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />,
     pantone: <path d="M12 3l7 4v10l-7 4-7-4V7l7-4zm0 0v18m7-14H5" />,
     formulas: <path d="M9 3h6v18H9zM3 8h2v16H3zM19 8h2v16h-2z" />,
     inventory: <path d="M3 7l9-4 9 4v10l-9 4-9-4V7zM3 7l9 4 9-4M12 11v10" />,
