@@ -178,7 +178,7 @@ export default function DesignsPage() {
         <div className="mt-5">
           <button
             type="submit"
-            className="min-h-[44px] rounded bg-primary-500 px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-600"
+            className="min-h-[44px] rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90"
           >
             Crear diseño
           </button>
@@ -212,7 +212,7 @@ export default function DesignsPage() {
             </svg>
           </div>
           <label className="flex items-center gap-2">
-            <span className="text-xs font-medium text-text-muted">Tipo:</span>
+            <span className="text-xs font-medium text-text-secondary">Tipo:</span>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}

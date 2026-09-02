@@ -18,7 +18,7 @@ export default function DesignForm({
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1">
-          <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">
+          <span className="block text-xs font-medium uppercase tracking-wider text-text-secondary">
             Nombre <span className="text-error-text">*</span>
           </span>
           <input
@@ -30,7 +30,7 @@ export default function DesignForm({
           />
         </label>
         <label className="space-y-1">
-          <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">
+          <span className="block text-xs font-medium uppercase tracking-wider text-text-secondary">
             Tipo de pintura
           </span>
           <select
