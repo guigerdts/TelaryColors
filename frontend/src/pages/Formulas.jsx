@@ -143,62 +143,84 @@ export default function FormulasPage() {
   }, [editingId])
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Fórmulas</h2>
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-bold text-text-primary">Fórmulas</h1>
+        {formulas.length > 0 && (
+          <span className="inline-flex items-center rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-medium text-text-secondary tabular-nums">
+            {formulas.length}
+          </span>
+        )}
+      </div>
 
+      {/* ── Success / Error messages ────────────────────────────────────── */}
       {message && (
-        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        <div role="status" className="rounded-lg bg-success-bg px-4 py-3 text-sm font-medium text-success-text">
+          {message}
+        </div>
       )}
-      {error && <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <div role="alert" className="rounded-lg bg-error-bg px-4 py-3 text-sm font-medium text-error-text">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={onSubmit} className="space-y-3 rounded border border-slate-200 bg-white p-4">
-        <h3 className="font-semibold text-slate-700">
+      {/* ── Create / Edit form ──────────────────────────────────────────── */}
+      <form onSubmit={onSubmit} className="rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
+        <h2 className="text-sm font-semibold text-text-primary">
           {editingId !== null ? `Editar fórmula ${name}` : 'Nueva fórmula'}
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        </h2>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Nombre *</span>
+            <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">
+              Nombre <span className="text-error-text">*</span>
+            </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong bg-surface-raised px-3 py-2.5 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Color Pantone *</span>
+            <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">
+              Color Pantone <span className="text-error-text">*</span>
+            </span>
             <select
               value={pantoneColorId}
               onChange={(e) => setPantoneColorId(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong bg-surface-raised px-3 py-2.5 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               <option value="">Seleccionar…</option>
               {colors.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code}
-                </option>
+                <option key={c.id} value={c.id}>{c.code}</option>
               ))}
             </select>
           </label>
         </div>
 
-        <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Notas</span>
+        <label className="mt-4 block space-y-1">
+          <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">Notas</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            className="w-full rounded border border-border-strong bg-surface-raised px-3 py-2.5 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           />
         </label>
 
-        <div className="space-y-2">
-          <span className="text-xs font-medium text-slate-600">Ingredientes</span>
+        {/* ── Ingredients ────────────────────────────────────────────────── */}
+        <div className="mt-4 space-y-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+            Ingredientes
+          </span>
           {ingredients.map((ing, index) => (
             <div
               key={index}
-              className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-2 sm:flex-row sm:items-center"
+              className="flex flex-col gap-3 rounded border border-border-default bg-surface-sunken p-3 sm:flex-row sm:items-center"
             >
               <input
                 value={ing.colorant}
@@ -207,7 +229,7 @@ export default function FormulasPage() {
                 aria-label="Nombre del colorante"
                 readOnly={editingId !== null}
                 disabled={editingId !== null}
-                className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 sm:flex-1 disabled:bg-slate-100"
+                className="w-full rounded border border-border-strong bg-surface-raised px-3 py-2.5 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30 sm:flex-1 disabled:bg-surface-sunken disabled:text-text-disabled"
               />
               <div className="flex flex-wrap items-center gap-3">
                 <input
@@ -218,14 +240,14 @@ export default function FormulasPage() {
                   type="number"
                   step="any"
                   min="0"
-                  className="w-24 rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 sm:w-28"
+                  className="w-24 rounded border border-border-strong bg-surface-raised px-3 py-2.5 text-sm text-text-primary tabular-nums focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30 sm:w-28"
                 />
                 <select
                   value={ing.unit}
                   onChange={(e) => setIngredient(index, 'unit', e.target.value)}
                   disabled={editingId !== null}
                   aria-label="Unidad de medida"
-                  className="rounded border border-slate-300 px-2 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 disabled:bg-slate-100"
+                  className="rounded border border-border-strong bg-surface-raised px-2 py-2.5 text-sm text-text-primary focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:bg-surface-sunken disabled:text-text-disabled"
                 >
                   <option value="g">g</option>
                   <option value="kg">kg</option>
@@ -234,7 +256,7 @@ export default function FormulasPage() {
                   <button
                     type="button"
                     onClick={() => removeIngredient(index)}
-                    className="text-xs text-red-600 hover:underline"
+                    className="text-xs text-error-text hover:underline"
                   >
                     Quitar
                   </button>
@@ -246,17 +268,18 @@ export default function FormulasPage() {
             <button
               type="button"
               onClick={addIngredient}
-              className="text-sm text-accent-281c hover:underline"
+              className="text-sm text-primary-500 hover:text-primary-600 hover:underline"
             >
               + Agregar ingrediente
             </button>
           )}
         </div>
 
-        <div className="flex gap-2">
+        {/* ── Actions ────────────────────────────────────────────────────── */}
+        <div className="mt-5 flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
+            className="min-h-[44px] rounded bg-primary-500 px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-600"
           >
             {editingId !== null ? 'Guardar' : 'Crear fórmula'}
           </button>
@@ -264,7 +287,7 @@ export default function FormulasPage() {
             <button
               type="button"
               onClick={onCancelEdit}
-              className="rounded bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-400"
+              className="min-h-[44px] rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-sunken"
             >
               Cancelar
             </button>
@@ -272,65 +295,90 @@ export default function FormulasPage() {
         </div>
       </form>
 
+      {/* ── Formula list ────────────────────────────────────────────────── */}
       {formulas.length > 0 && (
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {formulas.map((formula) => (
-          <li
-            key={formula.id}
-            ref={(el) => { formulaRefs.current[formula.id] = el }}
-            className={`rounded border bg-white p-3 ${
-              editingId === formula.id
-                ? 'border-accent-281c ring-2 ring-accent-281c ring-offset-2'
-                : 'border-slate-200'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="font-semibold text-slate-800">{formula.name}</p>
-              <button
-                type="button"
-                aria-label={`editar ${formula.name}`}
-                onClick={() => onEdit(formula)}
-                className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white opacity-90 hover:brightness-90"
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {formulas.map((formula) => {
+            const match = colors.find((c) => String(c.id) === String(formula.pantone_color_id))
+            return (
+              <li
+                key={formula.id}
+                ref={(el) => { formulaRefs.current[formula.id] = el }}
+                className={`rounded-lg border bg-surface-raised p-4 shadow-xs transition-shadow hover:shadow-md ${
+                  editingId === formula.id
+                    ? 'border-border-focus ring-2 ring-primary-500/30 ring-offset-2'
+                    : 'border-border-default'
+                }`}
               >
-                Editar
-              </button>
-            </div>
-            <p className="text-xs text-slate-600">
-              {(() => {
-                const match = colors.find((c) => String(c.id) === String(formula.pantone_color_id))
-                return match ? `PMS ${match.code} ${match.gamut ?? ''}`.trim() : `Color #${formula.pantone_color_id}`
-              })()}
-            </p>
-            {formula.notes && <p className="mt-1 text-sm text-slate-600">{formula.notes}</p>}
-            <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-              {formula.ingredients.map((ing) => (
-                <li key={ing.id} className="flex items-center justify-between gap-2 text-xs text-slate-600">
-                  <span>{ing.colorant}</span>
-                  <span className="whitespace-nowrap font-medium">{Number(ing.quantity_g)} g</span>
-                </li>
-              ))}
-            </ul>
-            {/* Register a consumption tied to this production: the txn form
-                auto-preloads formula_id via ?formula_id= (spec "Happy-path
-                consumo with formula"; design ?formula_id= mechanism). */}
-            <NavLink
-              to={`/inventario/transaccion?formula_id=${formula.id}`}
-              className="mt-2 inline-block rounded border border-accent-281c/60 px-2 py-1 text-xs font-medium text-accent-281c hover:bg-accent-281c/5"
-            >
-              Registrar consumo
-            </NavLink>
-          </li>
-        ))}
-      </ul>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-text-primary">{formula.name}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      {match?.hex_color && (
+                        <span
+                          aria-label={`Color ${match.code}`}
+                          className="inline-block h-4 w-4 shrink-0 rounded border border-border-default"
+                          style={{ backgroundColor: match.hex_color }}
+                        />
+                      )}
+                      <span className="truncate text-xs text-text-secondary">
+                        {match ? `PMS ${match.code} ${match.gamut ?? ''}`.trim() : `Color #${formula.pantone_color_id}`}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`editar ${formula.name}`}
+                    onClick={() => onEdit(formula)}
+                    className="shrink-0 rounded px-3 py-1.5 text-xs font-medium text-primary-500 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                  >
+                    Editar
+                  </button>
+                </div>
+
+                {formula.notes && (
+                  <p className="mt-1.5 text-xs text-text-muted">{formula.notes}</p>
+                )}
+
+                {/* Ingredient count + compact list */}
+                <div className="mt-2 space-y-0.5">
+                  {formula.ingredients.slice(0, 3).map((ing) => (
+                    <div key={ing.id} className="flex items-center justify-between gap-2 text-xs text-text-secondary">
+                      <span className="truncate">{ing.colorant}</span>
+                      <span className="shrink-0 whitespace-nowrap font-medium text-text-primary tabular-nums">
+                        {Number(ing.quantity_g)} g
+                      </span>
+                    </div>
+                  ))}
+                  {formula.ingredients.length > 3 && (
+                    <p className="text-xs text-text-muted">
+                      + {formula.ingredients.length - 3} ingredientes más
+                    </p>
+                  )}
+                </div>
+
+                {/* Register a consumption tied to this production */}
+                <NavLink
+                  to={`/inventario/transaccion?formula_id=${formula.id}`}
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded text-xs font-medium text-primary-500 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                >
+                  Registrar consumo →
+                </NavLink>
+              </li>
+            )
+          })}
+        </ul>
       )}
 
+      {/* ── Empty state ─────────────────────────────────────────────────── */}
       {formulas.length === 0 && (
-        <div className="rounded border border-slate-200 bg-white p-6 text-center">
-          <h3 className="font-semibold text-slate-800">Sin fórmulas</h3>
-          <p className="mt-1 text-sm text-slate-600">Crea tu primera fórmula para comenzar.</p>
+        <div className="rounded-lg border border-border-default bg-surface-raised p-10 text-center shadow-xs">
+          <p className="text-sm font-medium text-text-secondary">Sin fórmulas creadas</p>
+          <p className="mt-1 text-xs text-text-muted">Crea tu primera fórmula para comenzar.</p>
         </div>
       )}
 
+      {/* ── Confirm dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!pendingSubmit}
         title={pendingSubmit === 'edit' ? 'Guardar cambios' : 'Confirmar nueva fórmula'}
@@ -341,20 +389,20 @@ export default function FormulasPage() {
       >
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-600">Nombre</dt>
-            <dd className="text-slate-800">{name}</dd>
+            <dt className="w-32 shrink-0 text-text-secondary">Nombre</dt>
+            <dd className="text-text-primary">{name}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-600">Color Pantone</dt>
-            <dd className="text-slate-800">{matchingColor()?.code || `#${pantoneColorId}`}</dd>
+            <dt className="w-32 shrink-0 text-text-secondary">Color Pantone</dt>
+            <dd className="text-text-primary">{matchingColor()?.code || `#${pantoneColorId}`}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-600">Notas</dt>
-            <dd className="text-slate-800">{notes || '—'}</dd>
+            <dt className="w-32 shrink-0 text-text-secondary">Notas</dt>
+            <dd className="text-text-primary">{notes || '—'}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-600">Ingredientes</dt>
-            <dd className="text-slate-800">
+            <dt className="w-32 shrink-0 text-text-secondary">Ingredientes</dt>
+            <dd className="text-text-primary">
               <ul className="space-y-1">
                 {ingredients.map((ing, i) => (
                   <li key={i}>

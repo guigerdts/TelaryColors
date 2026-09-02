@@ -42,7 +42,7 @@ function buildMock(colors, formulas, samplesByColor) {
   })
 }
 
-describe('SearchPage (pantone → formula + reusable samples)', () => {
+describe('SearchPage (pantone → formula, batch samples fetched but not rendered)', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
@@ -133,13 +133,13 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
     expect(url.searchParams.get('pantone_target_ids').split(',').map(Number)).toEqual([1, 2])
     expect(url.searchParams.get('status')).toBe('archivada_reutilizable')
 
-    // The returned samples still render grouped under their owning color.
-    const img = screen.getByAltText('Muestra reutilizable de 221 C')
-    expect(img).toBeTruthy()
-    expect(img).toHaveAttribute('src', '/uploads/sample-a.jpg')
+    // The batch contract survives the redesign, but samples are NO longer
+    // rendered on the search results — they are viewed from PantoneDetail.
+    expect(screen.queryByAltText('Muestra reutilizable de 221 C')).toBeNull()
+    expect(screen.queryByText(/Muestras reutilizables/)).toBeNull()
   })
 
-  it('fetches and renders reusable samples for each search result', async () => {
+  it('does NOT render reusable samples in the search results (viewed from PantoneDetail)', async () => {
     const sample = {
       id: 100,
       pantone_target_id: 1,
@@ -158,43 +158,11 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
       await sleep(350)
     })
 
-    // The color card for 221 C (id 1) shows its reusable sample photo.
-    const img = screen.getByAltText('Muestra reutilizable de 221 C')
-    expect(img).toBeTruthy()
-    expect(img).toHaveAttribute('src', '/uploads/sample-a.jpg')
-  })
-
-  it('only renders photo thumbnails while counting every reusable sample', async () => {
-    const withPhoto = {
-      id: 100,
-      pantone_target_id: 1,
-      photo_url: '/uploads/sample-a.jpg',
-      status: 'archivada_reutilizable',
-      notes: null,
-    }
-    const withoutPhoto = {
-      id: 101,
-      pantone_target_id: 1,
-      photo_url: null,
-      status: 'archivada_reutilizable',
-      notes: 'muestra sin foto',
-    }
-    fetchMock.mockImplementation(buildMock(COLORS, FORMULAS, { 1: [withPhoto, withoutPhoto] }))
-
-    renderPage()
-    const input = screen.getByLabelText(/buscar color/i)
-
-    await act(async () => {})
-    fireEvent.change(input, { target: { value: '221' } })
-    await act(async () => {
-      await sleep(350)
-    })
-
-    // Count includes the photo-less sample, but only the photo sample renders an <img>.
-    expect(screen.getByText(/Muestras reutilizables \(2\)/)).toBeTruthy()
-    const imgs = screen.getAllByAltText('Muestra reutilizable de 221 C')
-    expect(imgs).toHaveLength(1)
-    // Only color 1 (221 C) has a ficha block; color 2 (2210 C) renders none.
-    expect(screen.getAllByText(/Muestras reutilizables/)).toHaveLength(1)
+    // No SampleFicha thumbnails, no "Muestras reutilizables" block: the search
+    // flow stays focused on colors → detail.
+    expect(screen.queryByAltText('Muestra reutilizable de 221 C')).toBeNull()
+    expect(screen.queryByText(/Muestras reutilizables/)).toBeNull()
+    // The two PantoneCards still render.
+    expect(screen.getAllByRole('article')).toHaveLength(2)
   })
 })

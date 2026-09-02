@@ -1,21 +1,37 @@
 // PantoneCard — the central component of the app (FASE4 spec §4, pantone-card
-// spec). Renders a solid color block spanning the card width, a white strip with
-// the PANTONE® wordmark + code+gamut + HEX, then the color formula in
-// grams/kilo and the linked designs/clients as SEPARATE dimensions (design D2 /
-// user confirmation: design_colors composition vs formula_designs usage are
-// distinct and never merged).
+// spec). Redesigned as a clean color swatch (DESIGN.md §10): a solid color
+// block (pure color, no text), an info strip with the PANTONE® wordmark + PMS
+// code on the left and the copyable HEX on the right, and a compact formula
+// preview (first 3 ingredients). The "Diseños que usan esta fórmula" section
+// and the creation date moved OUT of the card — they belong on the PantoneDetail
+// ficha. The optional `to` prop renders a subtle "Ver detalle →" footer link
+// instead of wrapping the whole card (no more nested interactive elements).
 //
-// Hover elevation is built through the /impeccable animate playbook: a vertical
-// translate (transform) combined with a growing box-shadow through a transition
-// (natural deceleration), not a hand-hardcoded static shadow.
+// Hover elevation follows the /impeccable animate playbook: a vertical
+// translate + growing box-shadow through a transition, all motion-safe.
 //
 // Presentational: the caller supplies `pantone` (code/gamut/hex_color) and the
-// already fetched `formula` + `designs` (the ficha owns the single detail call).
-// Optional `to` prop wraps the entire card in a <Link> for navigation (Punto 2).
+// already fetched `formula`. Management actions (`onEdit`/`onDelete`) render
+// only when the caller passes them — the Pantone management page does; search
+// results never do.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { formatDateTime } from '../lib/datetime.js'
+const CopyIcon = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className}
+  >
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </svg>
+)
 
 export default function PantoneCard({ pantone, formula, designs = [], to, onEdit, onDelete }) {
   const code = pantone?.code ?? ''
@@ -24,6 +40,10 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
   const hex = pantone?.hex_color
   const pmsCodeLabel = `Pantone ${pmsCode}`
   const [copied, setCopied] = useState(false)
+
+  const ingredients = formula?.ingredients ?? []
+  const preview = ingredients.slice(0, 3)
+  const extraCount = ingredients.length - preview.length
 
   const copyHex = async () => {
     if (!hex) return
@@ -34,128 +54,121 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
     } catch { /* clipboard not available */ }
   }
 
-  const card = (
+  return (
     <article
       role="article"
-      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-lg motion-safe:active:scale-[0.98] motion-safe:active:shadow-md"
+      className="overflow-hidden rounded-lg border border-border-default bg-surface-raised shadow-xs transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-md motion-safe:active:scale-[0.98] motion-safe:active:shadow-md"
     >
-      {/* Solid color block — full card width representation of the Pantone. When
-          no hex is assigned, show a light neutral swatch with "Sin color" so the
-          block is never mistaken for a real color (I9). */}
+      {/* Solid color block — pure card-width color, no text. When no hex is
+          assigned, a neutral swatch keeps the block from being mistaken for a
+          real color (I9). */}
       {hex ? (
         <div
           role="img"
           aria-label={pmsCodeLabel}
-          className="h-24 w-full"
+          className="h-24 w-full rounded-t-lg"
           style={{ backgroundColor: hex }}
         />
       ) : (
         <div
           role="img"
           aria-label={`${pmsCodeLabel} — sin color asignado`}
-          className="flex h-24 w-full items-center justify-center bg-slate-100"
-        >
-          <span className="text-sm font-medium text-slate-600">Sin color</span>
-        </div>
+          className="h-24 w-full rounded-t-lg bg-surface-sunken"
+        />
       )}
 
-      {/* White strip: wordmark + code+gamut + HEX (tappable to copy, M4). */}
-      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-        <span className="text-xs font-black tracking-[0.12em] text-slate-800">PANTONE®</span>
-        <span className="font-mono text-xs font-semibold text-slate-700">{pmsCode}</span>
+      {/* Info strip — wordmark + PMS code left, copyable HEX right. */}
+      <div className="flex items-start justify-between gap-3 px-4 pt-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            PANTONE®
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-text-primary">{pmsCode}</p>
+        </div>
         {hex ? (
-          <span className="flex items-center gap-1">
-            <span className="font-mono text-xs text-slate-600">{hex.toUpperCase()}</span>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <code className="font-mono text-xs text-text-secondary tabular-nums">
+              {hex.toUpperCase()}
+            </code>
             <button
               type="button"
               aria-label={`Copiar ${hex.toUpperCase()}`}
               onClick={copyHex}
-              className="text-xs text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px]"
+              title="Copiar código HEX"
+              className="flex h-11 w-11 items-center justify-center rounded text-text-muted hover:bg-surface-sunken hover:text-text-primary"
             >
-              {copied ? '✓' : '📋'}
+              {copied ? '✓' : <CopyIcon className="h-4 w-4" />}
             </button>
-          </span>
+          </div>
         ) : (
-          <span className="text-xs text-slate-600">Sin color asignado</span>
+          <span className="shrink-0 text-xs text-text-muted">Sin color asignado</span>
         )}
       </div>
 
-      {/* Formula — color composition in grams/kilo (design_colors dimension). */}
-      <section aria-label="Fórmula (g/kg)" className="px-4 py-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Fórmula (g/kg)
-        </h3>
-        <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-          {formula?.ingredients?.map((ing) => (
-            <li key={ing.id} className="flex justify-between gap-2 text-sm text-slate-700">
-              <span>{ing.colorant}</span>
-              <span className="whitespace-nowrap font-medium">{Number(ing.quantity_g)} g</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Designs that use this formula (formula_designs dimension) — separate. */}
-      <section aria-label="Diseños que usan esta fórmula" className="border-t border-slate-200 px-4 py-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Diseños que usan esta fórmula
-        </h3>
-        {designs.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Sin diseños vinculados</p>
-        ) : (
+      {/* Formula preview — first 3 ingredients in grams/kilo (design_colors
+          dimension), with a "+ N ingredientes más" hint beyond the third. */}
+      {ingredients.length > 0 && (
+        <section aria-label="Fórmula (g/kg)" className="mt-1 border-t border-border-default px-4 py-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+            Fórmula (g/kg)
+          </h3>
           <ul className="mt-2 space-y-1">
-            {designs.map((design) => (
-              <li key={design.id} className="text-sm text-slate-700">
-                <span className="font-medium">{design.name}</span>
-                {design.client && <span className="text-slate-600"> · {design.client}</span>}
+            {preview.map((ing) => (
+              <li
+                key={ing.id}
+                className="flex items-baseline justify-between gap-2 text-sm text-text-secondary tabular-nums"
+              >
+                <span className="truncate">{ing.colorant}</span>
+                <span className="shrink-0 whitespace-nowrap font-medium text-text-primary">
+                  {Number(ing.quantity_g).toFixed(2)} g
+                </span>
               </li>
             ))}
           </ul>
-        )}
-      </section>
-      {/* Creation date — es-CO locale, when available. */}
-      {pantone?.created_at && (
-        <p className="px-4 py-2 text-xs text-slate-600">
-          Creado {formatDateTime(pantone.created_at)}
-        </p>
+          {extraCount > 0 && (
+            <p className="mt-2 text-xs text-text-muted">+ {extraCount} ingredientes más</p>
+          )}
+        </section>
       )}
 
-      {/* Actions footer — rendered only when at least one action is provided. */}
-      {(onEdit || onDelete) && (
-        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-4 pt-2 pb-3">
-          {onDelete && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(pantone) }}
-              className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:brightness-90 min-h-[44px]"
+      {/* Footer — detail link + management actions, rendered only when
+          provided. */}
+      {(to || onEdit || onDelete) && (
+        <div className="flex items-center justify-between gap-2 border-t border-border-default px-4 py-1.5">
+          {to ? (
+            <Link
+              to={to}
+              className="inline-flex min-h-[44px] items-center rounded text-sm font-medium text-primary-500 hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
             >
-              Eliminar
-            </button>
+              Ver detalle →
+            </Link>
+          ) : (
+            <span />
           )}
-          {onEdit && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(pantone) }}
-              className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 min-h-[44px]"
-            >
-              Editar
-            </button>
+          {(onEdit || onDelete) && (
+            <div className="flex items-center gap-2">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(pantone)}
+                  className="rounded bg-error-text px-3 py-1.5 text-xs font-semibold text-text-inverse hover:brightness-90 min-h-[44px]"
+                >
+                  Eliminar
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(pantone)}
+                  className="rounded border border-border-strong px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-sunken min-h-[44px]"
+                >
+                  Editar
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
     </article>
   )
-
-  if (to) {
-    return (
-      <Link
-        to={to}
-        className="block no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-281c"
-      >
-        {card}
-      </Link>
-    )
-  }
-
-  return card
 }

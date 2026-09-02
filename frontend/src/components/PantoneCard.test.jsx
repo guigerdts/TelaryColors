@@ -62,37 +62,30 @@ describe('PantoneCard (spec §4 visual)', () => {
     expect(within(formulaSection).getByText(/Rojo rubí/)).toBeTruthy()
   })
 
-  it('renders linked designs/clients in a SEPARATE section from the formula', () => {
+  it('does NOT render the linked designs section (it moved to PantoneDetail)', () => {
     render(
       <MemoryRouter>
         <PantoneCard pantone={PANTONE} formula={DETAIL} designs={DETAIL.designs} />
       </MemoryRouter>,
     )
 
-    const designsSection = screen.getByRole('region', { name: 'Diseños que usan esta fórmula' })
-    expect(designsSection).toBeTruthy()
-    expect(within(designsSection).getByText('Linterna Coral')).toBeTruthy()
-    expect(within(designsSection).getByText(/Telary Home/)).toBeTruthy()
-
-    // The two dimensions are NOT merged: the formula colorants must not appear
-    // inside the designs section (confirmation user 1 / design D2).
-    expect(within(designsSection).queryByText(/Blanco/)).toBeNull()
-    expect(within(designsSection).queryByText(/Rojo rubí/)).toBeNull()
-
-    // Both distinct section headings are present.
+    // The "Diseños que usan esta fórmula" dimension is no longer on the card —
+    // the PantoneDetail ficha owns it. The card stays a compact color swatch.
+    expect(screen.queryByRole('region', { name: 'Diseños que usan esta fórmula' })).toBeNull()
+    expect(screen.queryByText('Linterna Coral')).toBeNull()
+    expect(screen.queryByText(/Telary Home/)).toBeNull()
+    // The formula still renders for the same supply.
     expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
   })
 
-  it('shows the designs section as empty (visible, not collapsed) when there are no designs', () => {
+  it('renders the formula preview even when no designs are supplied', () => {
     render(
       <MemoryRouter>
         <PantoneCard pantone={PANTONE} formula={DETAIL} designs={[]} />
       </MemoryRouter>,
     )
 
-    const designsSection = screen.getByRole('region', { name: 'Diseños que usan esta fórmula' })
-    expect(within(designsSection).getByText(/Sin diseños vinculados/)).toBeTruthy()
-    // Formula still renders, and it lives outside the empty designs section.
+    expect(screen.queryByRole('region', { name: 'Diseños que usan esta fórmula' })).toBeNull()
     const formulaSection = screen.getByRole('region', { name: 'Fórmula (g/kg)' })
     expect(within(formulaSection).getByText(/Blanco/)).toBeTruthy()
   })
@@ -110,7 +103,7 @@ describe('PantoneCard (spec §4 visual)', () => {
     expect(screen.queryByText('#E63950')).toBeNull()
   })
 
-  it('renders the creation date when created_at is present', () => {
+  it('does NOT render the creation date (it moved to PantoneDetail)', () => {
     const pantoneWithDate = { ...PANTONE, created_at: '2026-08-31T18:05:00Z' }
     render(
       <MemoryRouter>
@@ -118,12 +111,8 @@ describe('PantoneCard (spec §4 visual)', () => {
       </MemoryRouter>,
     )
 
-    // es-CO locale should render the date containing 31 and 2026.
-    // Use a tolerant regex since Intl formatting varies by ICU version.
-    const dateText = screen.getByText(/Creado/)
-    expect(dateText).toBeTruthy()
-    expect(dateText.textContent).toMatch(/31/)
-    expect(dateText.textContent).toMatch(/2026/)
+    // The card is a clean color swatch — the creation date is ficha territory.
+    expect(screen.queryByText(/Creado/)).toBeNull()
   })
 
   it('guards hover/active motion behind motion-safe so it respects prefers-reduced-motion', () => {

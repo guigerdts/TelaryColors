@@ -76,6 +76,18 @@ export default function Layout() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
 
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    if (!profileOpen) return undefined
+    const handleClick = (e) => {
+      if (!e.target.closest('[aria-haspopup="menu"]') && !e.target.closest('[role="menu"]')) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [profileOpen])
+
   const onLogout = () => {
     logout()
     navigate('/login')
@@ -105,34 +117,34 @@ export default function Layout() {
   )
 
   const accountClass = ({ isActive }) =>
-    `flex flex-col items-center justify-center gap-0.5 rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none transition focus-visible:outline-2 focus-visible:outline-accent-281c active:bg-slate-100 ${
-      isActive ? 'text-accent-281c' : 'text-slate-600'
+    `flex flex-col items-center justify-center gap-0.5 rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none transition focus-visible:ring-2 focus-visible:ring-primary-500/30 active:bg-slate-100 ${
+      isActive ? 'text-primary-500 bg-primary-50' : 'text-slate-600'
     }`
 
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Header — always sticky; adaptive height via safe-area on mobile. */}
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <NavLink
             to="/search"
-            className="flex items-center gap-2 font-bold text-slate-800 focus-visible:outline-2 focus-visible:outline-accent-281c"
+            className="flex items-center gap-2 font-bold text-slate-800 focus-visible:ring-2 focus-visible:ring-primary-500/30"
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-accent-281c">
+            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary-500">
               <span className="text-xs font-black leading-none text-white">T</span>
             </span>
             <span className="text-xl leading-none">Telary Color</span>
           </NavLink>
 
           {/* Desktop / tablet top nav (md+). */}
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1.5 md:flex">
             {visibleLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `rounded px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-accent-281c ${
-                    isActive ? 'bg-accent-281c text-white' : 'text-slate-600 hover:bg-slate-100'
+                  `rounded px-3 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-primary-500/30 ${
+                    isActive ? 'text-primary-500 bg-primary-50' : 'text-slate-600 hover:bg-slate-100'
                   }`
                 }
               >
@@ -146,7 +158,7 @@ export default function Layout() {
             <button
               type="button"
               onClick={() => setProfileOpen((o) => !o)}
-              className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-281c"
+              className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-primary-500/30"
               aria-haspopup="menu"
               aria-expanded={profileOpen}
             >
@@ -193,7 +205,7 @@ export default function Layout() {
 
       {/* Main content — extra bottom padding so the fixed mobile nav never
           covers the last rows of a page. */}
-      <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 md:pb-6">
+      <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
         <Outlet />
       </main>
 
@@ -222,7 +234,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setMoreOpen((o) => !o)}
-            className="flex min-h-[56px] min-w-0 flex-1 items-center justify-center rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none text-slate-600 transition active:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-281c"
+            className="flex min-h-[56px] min-w-0 flex-1 items-center justify-center rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none text-slate-600 transition active:bg-slate-100 focus-visible:ring-2 focus-visible:ring-primary-500/30"
             aria-haspopup="menu"
             aria-expanded={moreOpen}
           >
@@ -253,7 +265,7 @@ export default function Layout() {
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-5 py-4 text-sm font-medium text-slate-700 transition active:bg-slate-100 ${
-                      isActive ? 'text-accent-281c' : ''
+                      isActive ? 'text-primary-500' : ''
                     }`
                   }
                 >
