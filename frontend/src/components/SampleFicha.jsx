@@ -51,13 +51,13 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
           className="h-12 w-12 rounded border border-slate-200 object-cover"
         />
       ) : (
-        <span className="text-xs text-slate-400">Sin foto</span>
+        <span className="text-xs text-slate-600">Sin foto</span>
       )}
       <button
         type="button"
         onClick={openConfirm}
         disabled={phase === 'promoting'}
-        className="rounded border border-accent-281c/60 px-2 py-1 text-xs text-accent-281c hover:bg-accent-281c/10 disabled:opacity-50"
+        className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white hover:brightness-90 disabled:opacity-50"
       >
         Promover
       </button>

@@ -5,9 +5,9 @@
 // admin-only "Usuarios" entry is filtered by role. The full shell needs the
 // auth context and a router, so it renders inside both mocks.
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import Layout from './Layout.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
@@ -29,6 +29,28 @@ function renderLayout({ role = 'admin', name = 'Operador de Pintura' } = {}) {
   return render(
     <MemoryRouter initialEntries={['/search']}>
       <Layout />
+    </MemoryRouter>,
+  )
+}
+
+// M1: renders Layout inside real Routes so a Ctrl+K navigation is observable.
+// Probe pages announce which route is currently matched by the Outlet.
+function renderLayoutInRoutes(initialPath) {
+  useAuth.mockReturnValue({
+    user: { full_name: 'Operador de Pintura', username: 'op1', role: 'admin' },
+    isAuthenticated: true,
+    logout: mockLogout,
+    login: vi.fn(),
+    token: 'x',
+  })
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/search" element={<div>SEARCH-PROBE</div>} />
+          <Route path="/pantone" element={<div>PANTONE-PROBE</div>} />
+        </Route>
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -86,5 +108,105 @@ describe('Layout — mobile bottom navigation', () => {
     await user.click(screen.getByRole('button', { name: /salir/i }))
 
     expect(mockLogout).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Layout — M1 keyboard shortcut', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('Ctrl+K from any page navigates to the search page', async () => {
+    renderLayoutInRoutes('/pantone')
+    expect(screen.getByText('PANTONE-PROBE')).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+
+    expect(await screen.findByText('SEARCH-PROBE')).toBeTruthy()
+  })
+
+  it('Cmd+K (macOS) also navigates to the search page', async () => {
+    renderLayoutInRoutes('/pantone')
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+
+    expect(await screen.findByText('SEARCH-PROBE')).toBeTruthy()
+  })
+
+  it('does not hijack Ctrl+K while already on the search page', async () => {
+    renderLayoutInRoutes('/search')
+    expect(screen.getByText('SEARCH-PROBE')).toBeTruthy()
+
+    const spy = vi.spyOn(KeyboardEvent.prototype, 'preventDefault')
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true, cancelable: true })
+    await act(async () => {})
+
+    // No listener attached on /search: native default kept, no navigation.
+    expect(spy).not.toHaveBeenCalled()
+    expect(screen.getByText('SEARCH-PROBE')).toBeTruthy()
+    spy.mockRestore()
+  })
+
+  it('prevents the browser default (browser search) when handling Ctrl+K', async () => {
+    const spy = vi.spyOn(KeyboardEvent.prototype, 'preventDefault')
+    renderLayoutInRoutes('/pantone')
+
+    const evt = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true })
+    window.dispatchEvent(evt)
+
+    expect(spy).toHaveBeenCalled()
+    expect(await screen.findByText('SEARCH-PROBE')).toBeTruthy()
+    spy.mockRestore()
+  })
+
+  it('removes the global listener when the layout unmounts', async () => {
+    const { unmount } = renderLayoutInRoutes('/pantone')
+    unmount()
+
+    const spy = vi.spyOn(KeyboardEvent.prototype, 'preventDefault')
+    const evt = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true })
+    window.dispatchEvent(evt)
+
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+})
+
+describe('Layout — M1 keyboard shortcut', () => {
+  it('Ctrl+K from another page prevents the native action and navigates to /search', async () => {
+    renderLayoutInRoutes('/pantone')
+    expect(screen.getByText('PANTONE-PROBE')).toBeTruthy()
+
+    const notPrevented = fireEvent.keyDown(window, { key: 'k', ctrlKey: true, cancelable: true })
+
+    expect(notPrevented).toBe(false)
+    expect(await screen.findByText('SEARCH-PROBE')).toBeTruthy()
+    expect(screen.queryByText('PANTONE-PROBE')).toBeNull()
+  })
+
+  it('Cmd+K (macOS) also navigates to /search', async () => {
+    renderLayoutInRoutes('/pantone')
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true, cancelable: true })
+
+    expect(await screen.findByText('SEARCH-PROBE')).toBeTruthy()
+  })
+
+  it('does not hijack Ctrl+K while already on the search page', () => {
+    renderLayoutInRoutes('/search')
+    expect(screen.getByText('SEARCH-PROBE')).toBeTruthy()
+
+    const notPrevented = fireEvent.keyDown(window, { key: 'k', ctrlKey: true, cancelable: true })
+
+    // No handler runs on /search — native browser behavior stays untouched.
+    expect(notPrevented).toBe(true)
+  })
+
+  it('removes the window keydown listener on unmount', () => {
+    const { unmount } = renderLayoutInRoutes('/pantone')
+    unmount()
+
+    const notPrevented = fireEvent.keyDown(window, { key: 'k', ctrlKey: true, cancelable: true })
+    expect(notPrevented).toBe(true)
   })
 })

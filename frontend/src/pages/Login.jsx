@@ -35,8 +35,8 @@ export default function LoginPage() {
         onSubmit={onSubmit}
         className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow-lg"
       >
-        <h1 className="text-center text-2xl font-bold text-slate-800">Telary Color</h1>
-        <p className="-mt-2 text-center text-sm text-slate-500">Iniciar sesión</p>
+        <h1 className="text-center text-xl font-bold text-slate-800">Telary Color</h1>
+        <p className="-mt-2 text-center text-sm text-slate-600">Iniciar sesión</p>
 
         {error && (
           <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">

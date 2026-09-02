@@ -21,6 +21,7 @@ import InventoryTransactionPage from '../pages/InventoryTransaction.jsx'
 import DesignsPage from '../pages/Designs.jsx'
 import AdminUsersPage from '../pages/AdminUsers.jsx'
 import SampleRegistrationPage from '../pages/SampleRegistration.jsx'
+import SamplesListPage from '../pages/SamplesList.jsx'
 import PantoneDetailPage from '../pages/PantoneDetail.jsx'
 
 function UnauthorizedRedirector() {
@@ -61,6 +62,9 @@ export default function AppRouter() {
             />
             <Route path="/designs" element={<DesignsPage />} />
             <Route path="/usuarios" element={<AdminUsersPage />} />
+            {/* The nav "Muestras" destination browses the list; the create form
+                stays under /muestras and is reachable via its "Nueva muestra." */}
+            <Route path="/muestras/lista" element={<SamplesListPage />} />
             <Route path="/muestras" element={<SampleRegistrationPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/search" replace />} />

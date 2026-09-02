@@ -72,6 +72,16 @@ describe('SampleRegistrationPage (mobile-first, ≤3 taps)', () => {
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
 
+    // A confirmation dialog opens; the sample is NOT POSTed yet.
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(
+      fetchMock.mock.calls.some(([url, init]) => init?.method === 'POST' && String(url).includes('/samples')),
+    ).toBe(false)
+
+    // Confirm in the dialog to complete the save.
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
+
     // A sample is POSTed even though no photo was chosen.
     const saveCall = fetchMock.mock.calls.find(([url, init]) => init?.method === 'POST' && String(url).includes('/samples'))
     expect(saveCall).toBeTruthy()
@@ -110,6 +120,9 @@ describe('SampleRegistrationPage (mobile-first, ≤3 taps)', () => {
     fireEvent.change(screen.getByLabelText(/foto/i), { target: { files: [file] } })
     await act(async () => {})
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+    // Confirm in the dialog to complete the save.
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     // Photo path ran: upload first, then create carried the returned photo_url.

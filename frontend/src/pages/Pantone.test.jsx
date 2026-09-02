@@ -125,6 +125,9 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
     fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
     await act(async () => {})
+    // Confirm in the dialog to complete the create.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
 
     const postCall = fetchMock.mock.calls.find(
       ([url, init]) => init?.method === 'POST' && String(url).includes('/pantone-colors'),
@@ -141,6 +144,9 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
     fireEvent.change(screen.getByLabelText(/hex/i), { target: { value: '#00205b' } })
     fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+    await act(async () => {})
+    // Confirm in the dialog to complete the create.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     const postCall = fetchMock.mock.calls.find(
@@ -184,6 +190,9 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     // Change the hex value and submit.
     fireEvent.change(hexInput, { target: { value: '#000000' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    await act(async () => {})
+    // Confirm in the dialog to complete the update.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     // Verify PATCH was called with the right payload.

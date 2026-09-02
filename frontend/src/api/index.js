@@ -72,6 +72,12 @@ export const deleteDesign = (id) => apiFetch(`/designs/${id}`, { method: 'DELETE
 export const listAccessLogs = () => apiFetch('/access-logs').then((r) => r.json())
 
 // --- Samples ---
+// Browse ALL samples (the /muestras/lista page): GET /samples with no filters
+// returns every sample newest-first — the server-side cap of 5 only applies
+// when BOTH pantone_target_id and status are given (samples spec "Reusable
+// Listing by Target Pantone").
+export const listSamples = () => apiFetch('/samples').then((r) => r.json())
+
 // Reusable (archived) samples for a target Pantone: newest-first, capped at 5
 // server-side. Query params, not a path — mirrors the backend listing contract.
 export const listReusableSamples = (pantoneTargetId) =>

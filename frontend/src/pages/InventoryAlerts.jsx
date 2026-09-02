@@ -13,7 +13,7 @@ import { listReorderAlerts } from '../api/index.js'
 // NOT a stock computation — the value itself always comes from the API.
 const statusTone = {
   ok: 'bg-green-100 text-green-700',
-  bajo_umbral: 'bg-amber-100 text-amber-700',
+  bajo_umbral: 'bg-amber-100 text-amber-800',
 }
 
 export default function InventoryAlertsPage() {
@@ -35,7 +35,7 @@ export default function InventoryAlertsPage() {
       )}
 
       {groups.length === 0 ? (
-        <p className="text-sm text-slate-500">Sin alertas de reposición</p>
+        <p className="text-sm text-slate-600">Sin alertas de reposición</p>
       ) : (
         <div className="space-y-6">
           {/* Backend group order is authoritative — rendered as-is, no re-sort. */}
@@ -54,7 +54,7 @@ export default function InventoryAlertsPage() {
                 >
                   {group.supply_city}
                 </h3>
-                <h4 className="text-sm font-medium text-slate-500">{group.supplier}</h4>
+                <h4 className="text-sm font-medium text-slate-600">{group.supplier}</h4>
               </div>
               <ul className="divide-y divide-slate-100">
                 {/* Items mapped in served order — no re-key, no regroup. */}
@@ -65,7 +65,7 @@ export default function InventoryAlertsPage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-800">{item.name}</p>
-                      <p className="truncate text-xs text-slate-500">
+                      <p className="truncate text-xs text-slate-600">
                         {item.item_type} · Stock: {item.current_stock} {item.unit} · Umbral:{' '}
                         {item.reorder_threshold} {item.unit}
                       </p>

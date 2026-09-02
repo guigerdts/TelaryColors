@@ -83,25 +83,54 @@ export default function SearchPage() {
     }
   }, [results])
 
+  const showEmpty = debounced && !searching && results.length === 0 && !message.startsWith('Error')
+  const showResults = results.length > 0
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-slate-800">Buscar color</h2>
 
-      <input
-        aria-label="Buscar color"
-        type="search"
-        placeholder="Ej.: 221"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="w-full max-w-md rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-      />
+      <div className="max-w-md">
+        <label htmlFor="pantone-search" className="mb-1 block text-sm font-medium text-slate-700">
+          Buscar color
+        </label>
+        <div className="relative">
+          <input
+            id="pantone-search"
+            aria-label="Buscar color"
+            type="search"
+            placeholder="Ej.: 221"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded border border-slate-300 px-3 py-2.5 pr-9 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Limpiar búsqueda"
+              onClick={() => { setQuery(''); setResults([]); setMessage(''); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
 
       {searching && !message && (
-        <p className="text-sm text-slate-400 italic">Buscando…</p>
+        <p className="text-sm text-slate-500 italic">Buscando…</p>
       )}
 
-      {message && <p aria-live="polite" className="text-sm text-slate-500">{message}</p>}
+      {message && !showEmpty && <p aria-live="polite" className="text-sm text-slate-600">{message}</p>}
 
+      {showEmpty && (
+        <div className="rounded border border-slate-200 bg-white p-6 text-center">
+          <p className="text-sm font-medium text-slate-700">Sin resultados para '{debounced}'</p>
+          <p className="mt-1 text-sm text-slate-600">Verifica el código PMS e intenta de nuevo.</p>
+        </div>
+      )}
+
+      {showResults && (
       <ul className="grid gap-3 sm:grid-cols-2">
 {results.map((color) => {
           const formula = formulas.find((f) => f.pantone_color_id === color.id)
@@ -129,6 +158,7 @@ export default function SearchPage() {
           )
         })}
       </ul>
+      )}
     </div>
   )
 }

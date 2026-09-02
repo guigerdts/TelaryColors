@@ -118,6 +118,9 @@ describe('InventoryPage (list + six-field form)', () => {
     fireEvent.change(screen.getByLabelText(/umbral/i), { target: { value: '7' } })
     fireEvent.click(screen.getByRole('button', { name: /crear/i }))
     await act(async () => {})
+    // Confirm in the dialog to complete the create.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
 
     const createCall = fetchMock.mock.calls.find(
       ([url, init]) => init?.method === 'POST' && String(url).includes('/inventory/items'),
@@ -149,6 +152,9 @@ describe('InventoryPage (list + six-field form)', () => {
 
     fireEvent.change(screen.getByLabelText(/proveedor/i), { target: { value: 'Nuevo Proveedor' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    await act(async () => {})
+    // Confirm in the dialog to complete the update.
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     const patchCall = fetchMock.mock.calls.find(

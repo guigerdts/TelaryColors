@@ -156,7 +156,7 @@ export default function InventoryTransactionPage() {
             />
           </label>
           {prefilledFormulaId && (
-            <p id="formula-field-hint" className="mt-1 text-xs text-slate-500">
+            <p id="formula-field-hint" className="mt-1 text-xs text-slate-600">
               Fórmula prefijada desde la ficha — no editable
             </p>
           )}

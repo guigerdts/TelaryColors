@@ -12,6 +12,7 @@
 // Presentational: the caller supplies `pantone` (code/gamut/hex_color) and the
 // already fetched `formula` + `designs` (the ficha owns the single detail call).
 // Optional `to` prop wraps the entire card in a <Link> for navigation (Punto 2).
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatDateTime } from '../lib/datetime.js'
@@ -22,28 +23,60 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
   const pmsCode = `PMS ${code} ${gamut}`.trim()
   const hex = pantone?.hex_color
   const pmsCodeLabel = `Pantone ${pmsCode}`
+  const [copied, setCopied] = useState(false)
+
+  const copyHex = async () => {
+    if (!hex) return
+    try {
+      await navigator.clipboard.writeText(hex.toUpperCase())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1000)
+    } catch { /* clipboard not available */ }
+  }
 
   const card = (
     <article
       role="article"
       className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-lg motion-safe:active:scale-[0.98] motion-safe:active:shadow-md"
     >
-      {/* Solid color block — full card width representation of the Pantone. */}
-      <div
-        role="img"
-        aria-label={pmsCodeLabel}
-        className="h-24 w-full"
-        style={{ backgroundColor: hex || '#334155' }}
-      />
+      {/* Solid color block — full card width representation of the Pantone. When
+          no hex is assigned, show a light neutral swatch with "Sin color" so the
+          block is never mistaken for a real color (I9). */}
+      {hex ? (
+        <div
+          role="img"
+          aria-label={pmsCodeLabel}
+          className="h-24 w-full"
+          style={{ backgroundColor: hex }}
+        />
+      ) : (
+        <div
+          role="img"
+          aria-label={`${pmsCodeLabel} — sin color asignado`}
+          className="flex h-24 w-full items-center justify-center bg-slate-100"
+        >
+          <span className="text-sm font-medium text-slate-600">Sin color</span>
+        </div>
+      )}
 
-      {/* White strip: wordmark + code+gamut + HEX. */}
-      <div className="flex items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-3">
+      {/* White strip: wordmark + code+gamut + HEX (tappable to copy, M4). */}
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <span className="text-xs font-black tracking-[0.12em] text-slate-800">PANTONE®</span>
-        <span className="text-sm font-semibold text-slate-700">{pmsCode}</span>
+        <span className="font-mono text-xs font-semibold text-slate-700">{pmsCode}</span>
         {hex ? (
-          <span className="font-mono text-xs text-slate-500">{hex.toUpperCase()}</span>
+          <span className="flex items-center gap-1">
+            <span className="font-mono text-xs text-slate-600">{hex.toUpperCase()}</span>
+            <button
+              type="button"
+              aria-label={`Copiar ${hex.toUpperCase()}`}
+              onClick={copyHex}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >
+              {copied ? '✓' : '📋'}
+            </button>
+          </span>
         ) : (
-          <span className="text-xs text-slate-400">Sin color asignado</span>
+          <span className="text-xs text-slate-600">Sin color asignado</span>
         )}
       </div>
 
@@ -68,13 +101,13 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
           Diseños que usan esta fórmula
         </h3>
         {designs.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Sin diseños vinculados</p>
+          <p className="mt-2 text-sm text-slate-600">Sin diseños vinculados</p>
         ) : (
           <ul className="mt-2 space-y-1">
             {designs.map((design) => (
               <li key={design.id} className="text-sm text-slate-700">
                 <span className="font-medium">{design.name}</span>
-                {design.client && <span className="text-slate-500"> · {design.client}</span>}
+                {design.client && <span className="text-slate-600"> · {design.client}</span>}
               </li>
             ))}
           </ul>
@@ -82,7 +115,7 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
       </section>
       {/* Creation date — es-CO locale, when available. */}
       {pantone?.created_at && (
-        <p className="px-4 py-2 text-xs text-slate-400">
+        <p className="px-4 py-2 text-xs text-slate-600">
           Creado {formatDateTime(pantone.created_at)}
         </p>
       )}

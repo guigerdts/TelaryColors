@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 
 import { createInventoryItem, listInventoryItems, updateInventoryItem } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 const emptyItem = {
   name: '',
@@ -23,7 +24,7 @@ const emptyItem = {
 // NOT a stock computation — the value itself always comes from the API.
 const statusTone = {
   ok: 'bg-green-100 text-green-700',
-  bajo_umbral: 'bg-amber-100 text-amber-700',
+  bajo_umbral: 'bg-amber-100 text-amber-800',
 }
 
 export default function InventoryPage() {
@@ -32,6 +33,8 @@ export default function InventoryPage() {
   const [form, setForm] = useState(emptyItem)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // true once create/edit is staged but not yet confirmed.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   const refresh = () => {
     listInventoryItems().then(setItems).catch((err) => setError(err.message))
@@ -60,8 +63,18 @@ export default function InventoryPage() {
     setForm(emptyItem)
   }
 
-  const onSubmit = async (event) => {
+  // Form submit stages the confirmation dialog; the real API call runs only
+  // after the operator confirms.
+  const onSubmit = (event) => {
     event.preventDefault()
+    setMessage(null)
+    setError(null)
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the real
+  // create/update request (both modes share this flow).
+  const confirmSave = async () => {
     setMessage(null)
     setError(null)
     try {
@@ -85,6 +98,8 @@ export default function InventoryPage() {
       refresh()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setPendingSubmit(false)
     }
   }
 
@@ -186,7 +201,7 @@ export default function InventoryPage() {
       {items.length === 0 ? (
         <div className="rounded border border-slate-200 bg-white p-6 text-center">
           <h3 className="text-sm font-semibold text-slate-700">Sin items de inventario</h3>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Agrega tu primer item de inventario para comenzar a rastrear stock.
           </p>
           <button
@@ -220,7 +235,7 @@ export default function InventoryPage() {
                     {item.inventory_status}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600">
                   {item.item_type} · {item.supplier} · {item.supply_city}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
@@ -238,6 +253,19 @@ export default function InventoryPage() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title={editingId !== null ? 'Actualizar item de inventario' : 'Crear item de inventario'}
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres {editingId !== null ? 'guardar los cambios de' : 'crear'} este item de inventario?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

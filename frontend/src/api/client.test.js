@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiFetch, setUnauthorizedHandler } from './client.js'
-import { listReusableSamples, promoteSample } from './index.js'
+import { listReusableSamples, listSamples, promoteSample } from './index.js'
 import { clearToken, getToken, setToken } from '../auth/store.js'
 
 describe('api client', () => {
@@ -70,6 +70,20 @@ describe('api client', () => {
     expect(init.method).toBe('POST')
     expect(init.headers['Content-Type']).toBe('application/json')
     expect(JSON.parse(init.body).code).toBe('221 C')
+  })
+
+  it('listSamples fetches the unfiltered sample list (browse page contract)', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => [] })
+
+    await listSamples()
+
+    const [url, init] = fetchMock.mock.calls[0]
+    // No filters: the server-side cap of 5 only applies when BOTH
+    // pantone_target_id and status are present (samples spec).
+    expect(url).toBe('/api/v1/samples')
+    expect(init.params).toBeUndefined()
+    expect(init.method).toBe('GET')
   })
 
   it('listReusableSamples fetches by target pantone via query params', async () => {

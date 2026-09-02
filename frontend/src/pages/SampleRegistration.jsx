@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 
 import { createSample, listPantone, uploadSamplePhoto } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 export default function SampleRegistrationPage() {
   const [colors, setColors] = useState([])
@@ -16,6 +17,8 @@ export default function SampleRegistrationPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // true once the operator submits the form but hasn't confirmed yet.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -31,9 +34,16 @@ export default function SampleRegistrationPage() {
     }
   }, [])
 
-  const onSave = async (event) => {
+  // Form submit stages the confirmation dialog; the real API call runs only
+  // after the operator confirms.
+  const onSave = (event) => {
     event.preventDefault()
     if (!pantoneTargetId) return
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the actual save.
+  const confirmSave = async () => {
     setMessage(null)
     setError(null)
     setSaving(true)
@@ -59,6 +69,7 @@ export default function SampleRegistrationPage() {
       setError(err.message)
     } finally {
       setSaving(false)
+      setPendingSubmit(false)
     }
   }
 
@@ -136,6 +147,20 @@ export default function SampleRegistrationPage() {
           {saving ? 'Guardando…' : 'Registrar muestra'}
         </button>
       </form>
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title="Registrar muestra"
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        busy={saving}
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres guardar esta muestra?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

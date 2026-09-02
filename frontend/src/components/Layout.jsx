@@ -10,8 +10,8 @@
 //   destinations (Alertas, Disenos, Muestras, Usuarios [admin-only]).
 // - "Salir" is an account action, not a destination: it lives in the header
 //   profile menu, never in the bottom-nav.
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../auth/AuthProvider.jsx'
 
@@ -27,7 +27,7 @@ const primaryLinks = [
 const secondaryLinks = [
   { to: '/inventario/alertas', label: 'Alertas', icon: 'alerts' },
   { to: '/designs', label: 'Diseños', icon: 'designs' },
-  { to: '/muestras', label: 'Muestras', icon: 'samples' },
+  { to: '/muestras/lista', label: 'Muestras', icon: 'samples' },
   { to: '/usuarios', label: 'Usuarios', icon: 'users', adminOnly: true },
 ]
 
@@ -72,6 +72,7 @@ function Icon({ name, className = '' }) {
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
 
@@ -79,6 +80,22 @@ export default function Layout() {
     logout()
     navigate('/login')
   }
+
+  // M1: Ctrl/Cmd+K jumps straight to the search page — the highest-frequency
+  // operator action. It prevents the browser's native Ctrl+K search UI and is
+  // only attached away from /search so it never hijacks the page it targets.
+  // Re-attached on every navigation; removed on unmount.
+  useEffect(() => {
+    if (location.pathname === '/search') return undefined
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        navigate('/search')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [location.pathname, navigate])
 
   // Destinations available to the current user (drops admin-only ones for
   // operators).
@@ -89,7 +106,7 @@ export default function Layout() {
 
   const accountClass = ({ isActive }) =>
     `flex flex-col items-center justify-center gap-0.5 rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none transition focus-visible:outline-2 focus-visible:outline-accent-281c active:bg-slate-100 ${
-      isActive ? 'text-accent-281c' : 'text-slate-500'
+      isActive ? 'text-accent-281c' : 'text-slate-600'
     }`
 
   return (
@@ -146,11 +163,11 @@ export default function Layout() {
                 className="absolute right-0 top-full z-30 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg animate-panel-in"
               >
                 <div className="border-b border-slate-100 px-3 py-2">
-                  <p className="text-xs font-semibold text-slate-400">Cuenta</p>
+                  <p className="text-xs font-semibold text-slate-500">Cuenta</p>
                   <p className="text-sm font-medium text-slate-700">
                     {user?.full_name || user?.username}
                   </p>
-                  <p className="text-xs capitalize text-slate-500">{user?.role}</p>
+                  <p className="text-xs capitalize text-slate-600">{user?.role}</p>
                 </div>
                 {user?.role === 'admin' && (
                   <NavLink
@@ -205,7 +222,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setMoreOpen((o) => !o)}
-            className="flex min-h-[56px] min-w-0 flex-1 items-center justify-center rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none text-slate-500 transition active:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-281c"
+            className="flex min-h-[56px] min-w-0 flex-1 items-center justify-center rounded px-2 pb-2 pt-1.5 text-[10px] font-medium leading-none text-slate-600 transition active:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-281c"
             aria-haspopup="menu"
             aria-expanded={moreOpen}
           >
@@ -226,6 +243,9 @@ export default function Layout() {
               onClick={() => setMoreOpen(false)}
             />
             <div className="border-t border-slate-200 bg-white animate-panel-in">
+              <p className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Más opciones
+              </p>
               {visibleSecondary.map((link) => (
                 <NavLink
                   key={link.to}

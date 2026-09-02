@@ -1,5 +1,5 @@
 // Admin Users page — Spanish UI. Admin-only user listing + role changes.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { listUsers, updateUser, createUser, listAccessLogs } from '../api/index.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -19,6 +19,10 @@ export default function AdminUsersPage() {
   // A role change awaiting confirmation: { id, username, nextRole } | null.
   const [pendingRole, setPendingRole] = useState(null)
   const [roleBusy, setRoleBusy] = useState(false)
+  // true once the new-user form is staged but not yet confirmed.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
+  // Number of audit log entries currently shown; grows by PAGE_SIZE per "load more".
+  const [logVisibleCount, setLogVisibleCount] = useState(10)
 
   const refreshUsers = () => {
     listUsers()
@@ -33,8 +37,40 @@ export default function AdminUsersPage() {
     refreshUsers()
   }, [])
 
-  const onCreate = async (event) => {
+  // Groups the visible log entries by calendar day, preserving log order.
+  // Each group carries a Spanish date header like "1 de septiembre de 2026".
+  const groupedLogs = useMemo(() => {
+    const groups = new Map()
+    for (const log of logs.slice(0, logVisibleCount)) {
+      const date = new Date(log.timestamp)
+      const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label: date.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }),
+          entries: [],
+        })
+      }
+      groups.get(key).entries.push(log)
+    }
+    return [...groups.values()]
+  }, [logs, logVisibleCount])
+
+  // Form submit stages the confirmation dialog; the real API call runs only
+  // after the operator confirms.
+  const onCreate = (event) => {
     event.preventDefault()
+    setMessage(null)
+    setError(null)
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the create.
+  const confirmCreate = async () => {
     setMessage(null)
     setError(null)
     try {
@@ -47,6 +83,8 @@ export default function AdminUsersPage() {
       refreshUsers()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setPendingSubmit(false)
     }
   }
 
@@ -84,56 +122,62 @@ export default function AdminUsersPage() {
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      <form onSubmit={onCreate} className="flex flex-wrap items-end gap-2">
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Usuario</span>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Nombre completo</span>
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Contraseña</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Rol</span>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+      <form onSubmit={onCreate} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Usuario *</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Nombre completo</span>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Contraseña *</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Rol *</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            >
+              <option value="operator">operador</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="col-span-full flex gap-2">
+          <button
+            type="submit"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
           >
-            <option value="operator">operador</option>
-            <option value="admin">admin</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="rounded bg-accent-281c px-4 py-1.5 text-sm font-semibold text-white hover:brightness-90"
-        >
-          Crear
-        </button>
+            Crear
+          </button>
+        </div>
       </form>
 
-      <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b text-xs uppercase text-slate-400">
+          <tr className="border-b text-xs uppercase text-slate-500">
             <th className="py-2">Usuario</th>
             <th>Nombre</th>
             <th>Rol</th>
@@ -159,18 +203,37 @@ export default function AdminUsersPage() {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
 
       <section>
         <h3 className="mb-2 font-semibold text-slate-700">Registro de auditoría</h3>
-        <ul className="divide-y divide-slate-100 text-sm text-slate-600">
-          {logs.slice(0, 25).map((log) => (
-            <li key={log.id} className="flex justify-between py-1">
-              <span>{log.action}</span>
-              <span className="text-xs text-slate-400">{new Date(log.timestamp).toLocaleString()}</span>
-            </li>
+        <div className="flex flex-col">
+          {groupedLogs.map((group) => (
+            <div key={group.key}>
+              <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {group.label}
+              </h4>
+              <ul className="divide-y divide-slate-100 text-sm text-slate-600">
+                {group.entries.map((log) => (
+                  <li key={log.id} className="flex items-start justify-between gap-3 py-2.5">
+                    <span>{log.action}</span>
+                    <span className="text-xs text-slate-600">{new Date(log.timestamp).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
+        {logVisibleCount < logs.length && (
+          <button
+            type="button"
+            onClick={() => setLogVisibleCount((n) => n + 10)}
+            className="mt-4 rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Cargar más
+          </button>
+        )}
       </section>
 
       <ConfirmDialog
@@ -186,6 +249,19 @@ export default function AdminUsersPage() {
         onClose={() => setPendingRole(null)}
         onConfirm={handleRoleConfirm}
       />
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title="Crear usuario"
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmCreate}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres crear este usuario?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

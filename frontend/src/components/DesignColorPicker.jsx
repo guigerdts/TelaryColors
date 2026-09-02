@@ -27,7 +27,7 @@ export default function DesignColorPicker({ allColors = [], initial = [], onChan
 
   return (
     <div className="space-y-2">
-      <p aria-live="polite" className="text-sm text-slate-500">
+      <p aria-live="polite" className="text-sm text-slate-600">
         Colores del diseño: <span className="font-semibold">{selected.length}</span> /{' '}
         {MAX_DESIGN_COLORS}
       </p>

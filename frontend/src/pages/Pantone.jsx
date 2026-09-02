@@ -22,6 +22,8 @@ export default function PantonePage() {
   // A color awaiting destructive-action confirmation, or null when idle.
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  // true once create/edit is staged but not yet confirmed.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   const refresh = useCallback(() => {
     listPantone()
@@ -66,7 +68,9 @@ export default function PantonePage() {
     setError(null)
   }
 
-  const onCreate = async (event) => {
+  // Form submit stages the confirmation dialog; the real API call runs only
+  // after the operator confirms.
+  const onCreate = (event) => {
     event.preventDefault()
     setMessage(null)
     setError(null)
@@ -76,6 +80,14 @@ export default function PantonePage() {
       setError('Gamut inválido: use C, TPX o U')
       return
     }
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the real
+  // create/update request (both modes share this flow).
+  const confirmSave = async () => {
+    setMessage(null)
+    setError(null)
     const payload = { code, gamut, paint_type: paintType, hex_color: hex || null }
     try {
       if (editingId !== null) {
@@ -93,6 +105,8 @@ export default function PantonePage() {
       refresh()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setPendingSubmit(false)
     }
   }
 
@@ -127,90 +141,82 @@ export default function PantonePage() {
       )}
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      <form onSubmit={onCreate} className="flex flex-wrap items-end gap-2">
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Código</span>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            required
-            placeholder="221"
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Gamut</span>
-          <select
-            value={gamut}
-            onChange={(e) => setGamut(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          >
-            {GAMUT_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Tipo</span>
-          <select
-            value={paintType}
-            onChange={(e) => setPaintType(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          >
-            <option value="reactiva">reactiva</option>
-            <option value="pigmento">pigmento</option>
-          </select>
-        </label>
-        <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-600">HEX</span>
-          <input
-            value={hex}
-            onChange={(e) => setHex(e.target.value)}
-            placeholder="#00205b"
-            className="w-28 rounded border border-slate-300 px-3 py-1.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
-          />
-        </label>
-        <button
-          type="submit"
-          className="rounded bg-accent-281c px-4 py-1.5 text-sm font-semibold text-white hover:brightness-90"
-        >
-          {editingId !== null ? 'Guardar' : 'Agregar'}
-        </button>
-        {editingId !== null && (
+      <form onSubmit={onCreate} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Código *</span>
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              placeholder="221"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Gamut *</span>
+            <select
+              value={gamut}
+              onChange={(e) => setGamut(e.target.value)}
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            >
+              {GAMUT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">Tipo *</span>
+            <select
+              value={paintType}
+              onChange={(e) => setPaintType(e.target.value)}
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            >
+              <option value="reactiva">reactiva</option>
+              <option value="pigmento">pigmento</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-slate-600">HEX</span>
+            <input
+              value={hex}
+              onChange={(e) => setHex(e.target.value)}
+              placeholder="#00205b"
+              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            />
+          </label>
+        </div>
+
+        <div className="col-span-full flex gap-2">
           <button
-            type="button"
-            onClick={onCancelEdit}
-            className="rounded bg-slate-300 px-4 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-400"
+            type="submit"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
           >
-            Cancelar
+            {editingId !== null ? 'Guardar' : 'Agregar'}
           </button>
-        )}
+          {editingId !== null && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="rounded bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-400"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {colors.map((color) => (
-          <li key={color.id} className="relative">
-            <PantoneCard pantone={color} to={`/pantone/${color.id}`} />
-            <div className="absolute right-3 top-3 flex gap-1">
-              <button
-                type="button"
-                aria-label={`editar ${color.code}`}
-                onClick={() => onEdit(color)}
-                className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white opacity-90 hover:brightness-90"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                aria-label={`eliminar ${color.code}`}
-                onClick={() => setDeleteTarget(color)}
-                className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white opacity-90 hover:bg-red-700"
-              >
-                Eliminar
-              </button>
-            </div>
+          <li key={color.id}>
+            <PantoneCard
+              pantone={color}
+              to={`/pantone/${color.id}`}
+              onEdit={() => onEdit(color)}
+              onDelete={() => setDeleteTarget(color)}
+            />
           </li>
         ))}
       </ul>
@@ -225,6 +231,19 @@ export default function PantonePage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
       />
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title={editingId !== null ? 'Actualizar color' : 'Crear color'}
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres {editingId !== null ? 'actualizar' : 'crear'} este color?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

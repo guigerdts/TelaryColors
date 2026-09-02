@@ -93,7 +93,7 @@ export default function DesignsPage() {
               <p className="font-semibold text-slate-800">{design.name}</p>
               <span className="text-xs uppercase text-slate-600">{design.paint_type}</span>
             </div>
-            <p className="text-xs text-slate-500">{design.colors.length} colores</p>
+            <p className="text-xs text-slate-600">{design.colors.length} colores</p>
           </li>
         ))}
       </ul>

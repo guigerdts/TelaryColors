@@ -148,7 +148,7 @@ export default function PantoneDetail() {
             <div className="mt-2 h-3 w-1/2 rounded bg-slate-200 animate-pulse" />
           </div>
         </div>
-        <p className="text-sm text-slate-400 italic">Cargando ficha…</p>
+        <p className="text-sm text-slate-500 italic">Cargando ficha…</p>
       </div>
     )
   }
@@ -169,7 +169,7 @@ export default function PantoneDetail() {
   }
 
   if (formulasForPantone.length === 0 && !loading) {
-    return <p className="text-sm text-slate-500">No hay fórmulas para este Pantone</p>
+    return <p className="text-sm text-slate-600">No hay fórmulas para este Pantone</p>
   }
 
   return (

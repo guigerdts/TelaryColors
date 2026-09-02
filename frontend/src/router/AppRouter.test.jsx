@@ -28,6 +28,9 @@ describe('AppRouter guarded routes', () => {
       if (u.includes('/inventory/items') || u.includes('/inventory/reorder-alerts')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => [] })
       }
+      if (u.includes('/samples')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+      }
       if (u.includes('/formulas') && u.includes('/detail')) {
         return Promise.resolve({ ok: true, status: 200, json: async () => DETAIL })
       }
@@ -49,22 +52,36 @@ describe('AppRouter guarded routes', () => {
     window.history.pushState({}, '', '/')
   })
 
-  it('renders a Muestras nav link in the shared layout', () => {
+  it('renders a Muestras nav link pointing at the browse list, not the form', () => {
     render(<App />)
 
-    // The authenticated layout renders the top navigation.
+    // The authenticated layout renders the top navigation. The Muestras
+    // destination browses existing samples; the create form lives under it.
     const link = screen.getAllByRole('link', { name: /muestras/i })[0]
-    expect(link).toHaveAttribute('href', '/muestras')
+    expect(link).toHaveAttribute('href', '/muestras/lista')
   })
 
-  it('navigating to /muestras renders the mobile-first registration page', async () => {
+  it('navigating to the Muestras nav renders the list page with a Nueva muestra action', async () => {
     render(<App />)
 
     await act(async () => {})
     fireEvent.click(screen.getAllByRole('link', { name: /muestras/i })[0])
     await act(async () => {})
 
-    // The registration page's heading + its primary action are on the route.
+    // The browse list page is on the route (empty state here)…
+    expect(screen.getByRole('heading', { name: /muestras/i })).toBeTruthy()
+    expect(screen.getByText(/no hay muestras/i)).toBeTruthy()
+    // …and offers the create form via its "Nueva muestra" button.
+    expect(screen.getByRole('link', { name: /nueva muestra/i })).toHaveAttribute('href', '/muestras')
+  })
+
+  it('deep-linking to /muestras still renders the mobile-first registration form', async () => {
+    // Regression: the create form stays at /muestras (the list page links to
+    // it) — it must not fall through to the wildcard /search redirect.
+    window.history.pushState({}, '', '/muestras')
+    render(<App />)
+    await act(async () => {})
+
     expect(screen.getByRole('heading', { name: /registrar muestra/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /registrar muestra/i })).toBeTruthy()
   })

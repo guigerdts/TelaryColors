@@ -138,7 +138,7 @@ export default function FormulasPage() {
   // When editingId changes, scroll the target card into view.
   useEffect(() => {
     if (editingId !== null && formulaRefs.current[editingId]) {
-      formulaRefs.current[editingId].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      formulaRefs.current[editingId]?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
     }
   }, [editingId])
 
@@ -198,21 +198,23 @@ export default function FormulasPage() {
           {ingredients.map((ing, index) => (
             <div
               key={index}
-              className="flex flex-col gap-2 rounded border border-slate-200 bg-slate-50 p-2 sm:flex-row sm:items-center"
+              className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-2 sm:flex-row sm:items-center"
             >
               <input
                 value={ing.colorant}
                 onChange={(e) => setIngredient(index, 'colorant', e.target.value)}
                 placeholder="Colorante"
+                aria-label="Nombre del colorante"
                 readOnly={editingId !== null}
                 disabled={editingId !== null}
                 className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 sm:flex-1 disabled:bg-slate-100"
               />
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <input
                   value={ing.quantity}
                   onChange={(e) => setIngredient(index, 'quantity', e.target.value)}
                   placeholder="Cantidad"
+                  aria-label="Cantidad en gramos"
                   type="number"
                   step="any"
                   min="0"
@@ -222,6 +224,7 @@ export default function FormulasPage() {
                   value={ing.unit}
                   onChange={(e) => setIngredient(index, 'unit', e.target.value)}
                   disabled={editingId !== null}
+                  aria-label="Unidad de medida"
                   className="rounded border border-slate-300 px-2 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30 disabled:bg-slate-100"
                 >
                   <option value="g">g</option>
@@ -269,6 +272,7 @@ export default function FormulasPage() {
         </div>
       </form>
 
+      {formulas.length > 0 && (
       <ul className="grid gap-3 sm:grid-cols-2">
         {formulas.map((formula) => (
           <li
@@ -291,12 +295,18 @@ export default function FormulasPage() {
                 Editar
               </button>
             </div>
-            <p className="text-xs text-slate-500">Color #{formula.pantone_color_id}</p>
+            <p className="text-xs text-slate-600">
+              {(() => {
+                const match = colors.find((c) => String(c.id) === String(formula.pantone_color_id))
+                return match ? `PMS ${match.code} ${match.gamut ?? ''}`.trim() : `Color #${formula.pantone_color_id}`
+              })()}
+            </p>
             {formula.notes && <p className="mt-1 text-sm text-slate-600">{formula.notes}</p>}
-            <ul className="ml-4 mt-2 list-disc text-xs text-slate-500">
+            <ul className="mt-2 grid gap-1 sm:grid-cols-2">
               {formula.ingredients.map((ing) => (
-                <li key={ing.id}>
-                  {ing.colorant}: {ing.quantity_g} g
+                <li key={ing.id} className="flex items-center justify-between gap-2 text-xs text-slate-600">
+                  <span>{ing.colorant}</span>
+                  <span className="whitespace-nowrap font-medium">{Number(ing.quantity_g)} g</span>
                 </li>
               ))}
             </ul>
@@ -305,13 +315,21 @@ export default function FormulasPage() {
                 consumo with formula"; design ?formula_id= mechanism). */}
             <NavLink
               to={`/inventario/transaccion?formula_id=${formula.id}`}
-              className="mt-2 inline-block text-sm font-medium text-accent-281c hover:underline"
+              className="mt-2 inline-block rounded border border-accent-281c/60 px-2 py-1 text-xs font-medium text-accent-281c hover:bg-accent-281c/5"
             >
               Registrar consumo
             </NavLink>
           </li>
         ))}
       </ul>
+      )}
+
+      {formulas.length === 0 && (
+        <div className="rounded border border-slate-200 bg-white p-6 text-center">
+          <h3 className="font-semibold text-slate-800">Sin fórmulas</h3>
+          <p className="mt-1 text-sm text-slate-600">Crea tu primera fórmula para comenzar.</p>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!pendingSubmit}
@@ -323,19 +341,19 @@ export default function FormulasPage() {
       >
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-500">Nombre</dt>
+            <dt className="w-32 shrink-0 text-slate-600">Nombre</dt>
             <dd className="text-slate-800">{name}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-500">Color Pantone</dt>
+            <dt className="w-32 shrink-0 text-slate-600">Color Pantone</dt>
             <dd className="text-slate-800">{matchingColor()?.code || `#${pantoneColorId}`}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-500">Notas</dt>
+            <dt className="w-32 shrink-0 text-slate-600">Notas</dt>
             <dd className="text-slate-800">{notes || '—'}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-32 shrink-0 text-slate-500">Ingredientes</dt>
+            <dt className="w-32 shrink-0 text-slate-600">Ingredientes</dt>
             <dd className="text-slate-800">
               <ul className="space-y-1">
                 {ingredients.map((ing, i) => (

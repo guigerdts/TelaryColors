@@ -51,16 +51,52 @@ describe('FormulasPage', () => {
     await act(async () => {})
 
     expect(screen.getByText('Fórmula Azul')).toBeTruthy()
-    expect(screen.getByText(/Azul: 50 g/)).toBeTruthy()
-    expect(screen.getByText(/Blanco: 100 g/)).toBeTruthy()
+    // I6: ingredients render in the grid layout (name and quantity as
+    // separate spans) with the Pantone code resolved from the colors list.
+    expect(screen.getByText('Azul')).toBeTruthy()
+    expect(screen.getByText('50 g')).toBeTruthy()
+    expect(screen.getByText('Blanco')).toBeTruthy()
+    expect(screen.getByText('100 g')).toBeTruthy()
+    expect(screen.getByText('PMS 211 C', { exact: false })).toBeTruthy()
     expect(screen.getByRole('button', { name: /crear fórmula/i })).toBeTruthy()
+    // M10: ingredient inputs carry descriptive aria-labels.
+    expect(screen.getByLabelText('Nombre del colorante')).toBeTruthy()
+    expect(screen.getByLabelText('Cantidad en gramos')).toBeTruthy()
+  })
+
+  it('labels the ingredient unit selector for screen readers', async () => {
+    renderPage()
+    await act(async () => {})
+
+    // M10: the unit <select> must be announced too, not just the inputs.
+    expect(screen.getByLabelText('Unidad de medida')).toBeTruthy()
+  })
+
+  it('links "Registrar consumo" to the transaction form preloaded with the formula', async () => {
+    renderPage()
+    await act(async () => {})
+
+    // M5: the primary consumption action is an actual link to the txn form
+    // carrying ?formula_id= (spec "Happy-path consumo with formula").
+    const link = screen.getByRole('link', { name: /registrar consumo/i })
+    expect(link).toHaveAttribute('href', '/inventario/transaccion?formula_id=1')
+  })
+
+  it('renders an empty state when no formulas exist', async () => {
+    api.listFormulas.mockResolvedValue([])
+    renderPage()
+    await act(async () => {})
+
+    expect(screen.getByText('Sin fórmulas')).toBeTruthy()
+    expect(screen.getByText('Crea tu primera fórmula para comenzar.')).toBeTruthy()
+    expect(screen.queryByText('Fórmula Azul')).toBeNull()
   })
 
   it('create flow shows confirmation modal and only calls createFormula after confirm', async () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: 'Nueva Fórmula' } })
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Nueva Fórmula' } })
     fireEvent.change(screen.getByLabelText(/color pantone/i), { target: { value: '1' } })
     fireEvent.change(screen.getByPlaceholderText(/colorante/i), { target: { value: 'Rojo' } })
     fireEvent.change(screen.getByPlaceholderText(/cantidad/i), { target: { value: '25' } })
@@ -87,7 +123,7 @@ describe('FormulasPage', () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: 'Test' } })
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'Test' } })
     fireEvent.change(screen.getByLabelText(/color pantone/i), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: /crear fórmula/i }))
     await act(async () => {})
@@ -108,7 +144,7 @@ describe('FormulasPage', () => {
     await act(async () => {})
 
     // Form populated with formula data
-    expect(screen.getByLabelText(/nombre/i).value).toBe('Fórmula Azul')
+    expect(screen.getByLabelText('Nombre *').value).toBe('Fórmula Azul')
     expect(screen.getByLabelText(/color pantone/i).value).toBe('1')
     expect(screen.getByLabelText(/notas/i).value).toBe('Notas de prueba')
 
@@ -165,7 +201,7 @@ describe('FormulasPage', () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: 'A11y' } })
+    fireEvent.change(screen.getByLabelText('Nombre *'), { target: { value: 'A11y' } })
     fireEvent.change(screen.getByLabelText(/color pantone/i), { target: { value: '1' } })
     const createBtn = screen.getByRole('button', { name: /crear fórmula/i })
     createBtn.focus()
