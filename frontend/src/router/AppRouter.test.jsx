@@ -109,8 +109,9 @@ describe('AppRouter guarded routes', () => {
     await act(async () => {})
 
     // The inventory page's heading + its create action are on the route.
-    expect(screen.getByRole('heading', { name: /inventario/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /crear item/i })).toBeTruthy()
+    // The empty-state heading also contains "inventario", so use getAllByRole.
+    expect(screen.getAllByRole('heading', { name: /inventario/i }).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByRole('button', { name: /crear item/i }).length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders an Alertas nav link in the shared layout', () => {
@@ -163,6 +164,7 @@ describe('AppRouter guarded routes', () => {
     await act(async () => {})
 
     // The formula ingredient renders — proving the detail ficha is on the route.
-    expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
+    // The section heading is "{detail.name} — Ingredientes" (e.g. "Fórmula 221 — Ingredientes").
+    expect(screen.getByRole('region', { name: /— ingredientes/i })).toBeTruthy()
   })
 })

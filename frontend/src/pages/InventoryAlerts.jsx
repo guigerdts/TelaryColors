@@ -20,16 +20,16 @@ export default function InventoryAlertsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Alertas de reposición</h2>
+      <h2 className="text-xl font-bold text-text-primary">Alertas de reposición</h2>
 
       {error && (
-        <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">
           {error}
         </p>
       )}
 
       {groups.length === 0 ? (
-        <p className="text-sm text-slate-600">Sin alertas de reposición</p>
+        <p className="text-sm text-text-secondary">Sin alertas de reposición</p>
       ) : (
         <div className="space-y-6">
           {/* Backend group order is authoritative — rendered as-is, no re-sort. */}
@@ -37,20 +37,20 @@ export default function InventoryAlertsPage() {
             <section
               key={`${group.supply_city}-${group.supplier}`}
               aria-labelledby={`alert-group-${idx}`}
-              className="overflow-hidden rounded border border-slate-200 bg-white"
+              className="overflow-hidden rounded border border-border-default bg-surface-raised"
             >
               {/* Header band distinct from the flat item rows below — the group
                   reads as a section, not as a card wrapping nested cards. */}
-              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="border-b border-border-default bg-surface-sunken px-4 py-3">
                 <h3
                   id={`alert-group-${idx}`}
-                  className="font-semibold text-slate-800"
+                  className="font-semibold text-text-primary"
                 >
                   {group.supply_city}
                 </h3>
-                <h4 className="text-sm font-medium text-slate-600">{group.supplier}</h4>
+                <h4 className="text-sm font-medium text-text-secondary">{group.supplier}</h4>
               </div>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-border-default">
                 {/* Items mapped in served order — no re-key, no regroup. */}
                 {group.items.map((item) => (
                   <li
@@ -58,8 +58,8 @@ export default function InventoryAlertsPage() {
                     className="flex items-center justify-between gap-2 px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-800">{item.name}</p>
-                      <p className="truncate text-xs text-slate-600">
+                      <p className="truncate font-medium text-text-primary">{item.name}</p>
+                      <p className="truncate text-xs text-text-secondary">
                         {item.item_type} · Stock: {item.current_stock} {item.unit} · Umbral:{' '}
                         {item.reorder_threshold} {item.unit}
                       </p>

@@ -76,18 +76,18 @@ export default function ConfirmDialog({
       tabIndex={-1}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 outline-none animate-overlay-in sm:items-center"
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl animate-panel-in">
-        <h3 id={titleId} className="text-lg font-semibold text-slate-800">
+      <div className="w-full max-w-md rounded-lg bg-surface-raised p-5 shadow-xl animate-panel-in">
+        <h3 id={titleId} className="text-lg font-semibold text-text-primary">
           {title}
         </h3>
-        {description && <p className="mt-2 text-sm text-slate-600">{description}</p>}
+        {description && <p className="mt-2 text-sm text-text-secondary">{description}</p>}
         {children}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded bg-neutral-300 px-4 py-2 text-sm font-semibold text-text-primary hover:bg-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -96,7 +96,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={busy}
             className={`rounded px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 ${
-              danger ? 'bg-red-600' : 'bg-accent-281c'
+              danger ? 'bg-error-text' : 'bg-accent-281c'
             }`}
           >
             {confirmLabel}

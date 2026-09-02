@@ -27,7 +27,7 @@ export default function DesignColorPicker({ allColors = [], initial = [], onChan
 
   return (
     <div className="space-y-2">
-      <p aria-live="polite" className="text-sm text-slate-600">
+      <p aria-live="polite" className="text-sm text-text-secondary">
         Colores del diseño: <span className="font-semibold">{selected.length}</span> /{' '}
         {MAX_DESIGN_COLORS}
       </p>
@@ -44,8 +44,8 @@ export default function DesignColorPicker({ allColors = [], initial = [], onChan
               onClick={() => toggle(color.id)}
               className={`rounded border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                 isSelected
-                  ? 'border-accent-281c bg-accent-281c text-white'
-                  : 'border-slate-300 bg-white text-slate-700 hover:border-accent-281c/40'
+                  ? 'border-primary-500 bg-primary-500 text-text-inverse'
+                  : 'border-border-strong bg-surface-raised text-text-primary hover:border-primary-500/40'
               }`}
             >
               {color.code}

@@ -26,6 +26,7 @@ const InventoryTransactionPage = lazy(() =>
   import('../pages/InventoryTransaction.jsx')
 )
 const DesignsPage = lazy(() => import('../pages/Designs.jsx'))
+const DesignDetailPage = lazy(() => import('../pages/DesignDetail.jsx'))
 const AdminUsersPage = lazy(() => import('../pages/AdminUsers.jsx'))
 const SampleRegistrationPage = lazy(() =>
   import('../pages/SampleRegistration.jsx')
@@ -77,6 +78,7 @@ export default function AppRouter() {
                 element={<InventoryTransactionPage />}
               />
               <Route path="/designs" element={<DesignsPage />} />
+              <Route path="/designs/:id" element={<DesignDetailPage />} />
               <Route path="/usuarios" element={<AdminUsersPage />} />
               {/* The nav "Muestras" destination browses the list; the create form
                   stays under /muestras and is reachable via its "Nueva muestra." */}

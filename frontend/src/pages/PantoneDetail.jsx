@@ -302,7 +302,7 @@ export default function PantoneDetail() {
 
       {/* ── Formula ingredients ─────────────────────────────────────────── */}
       {detail && (
-        <section className="rounded-lg border border-border-default bg-surface-raised p-4 shadow-xs">
+        <section aria-label={`${detail.name || 'Fórmula'} — Ingredientes`} className="rounded-lg border border-border-default bg-surface-raised p-4 shadow-xs">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             {detail.name || 'Fórmula'} — Ingredientes
           </h2>

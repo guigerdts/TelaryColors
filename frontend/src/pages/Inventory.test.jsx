@@ -83,15 +83,14 @@ describe('InventoryPage (list + six-field form)', () => {
     expect(screen.getByText('Colorante Amarillo 109')).toBeTruthy()
     expect(screen.getByText('Pasta Madre Blanco')).toBeTruthy()
 
-    // The status text comes straight from the API payload: an "ok" fixture
-    // shows ok and a "bajo_umbral" fixture shows bajo_umbral — the page must
-    // never recompute these from current_stock/reorder_threshold (ADR-1/4).
+    // StatusBadge maps raw enum → human label: ok→"OK", bajo_umbral→"Bajo umbral".
+    // The ADR-1/4 invariant: the STATUS VALUE is never recomputed client-side.
     const okCard = screen.getByText('Colorante Amarillo 109').closest('li')
     const lowCard = screen.getByText('Pasta Madre Blanco').closest('li')
-    expect(within(okCard).getByText('ok')).toBeTruthy()
-    expect(within(lowCard).getByText('bajo_umbral')).toBeTruthy()
-    expect(within(okCard).queryByText('bajo_umbral')).toBeNull()
-    expect(within(lowCard).queryByText('ok')).toBeNull()
+    expect(within(okCard).getByText('OK')).toBeTruthy()
+    expect(within(lowCard).getByText('Bajo umbral')).toBeTruthy()
+    expect(within(okCard).queryByText('Bajo umbral')).toBeNull()
+    expect(within(lowCard).queryByText('OK')).toBeNull()
   })
 
   it('shows stock and threshold per item straight from the payload', async () => {

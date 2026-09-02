@@ -48,16 +48,16 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
         <img
           src={sample.photo_url}
           alt={`Muestra reutilizable de ${colorCode}`}
-          className="h-12 w-12 rounded border border-slate-200 object-cover"
+          className="h-12 w-12 rounded border border-border-default object-cover"
         />
       ) : (
-        <span className="text-xs text-slate-600">Sin foto</span>
+        <span className="text-xs text-text-secondary">Sin foto</span>
       )}
       <button
         type="button"
         onClick={openConfirm}
         disabled={phase === 'promoting'}
-        className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white hover:brightness-90 disabled:opacity-50 min-h-[44px]"
+        className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-text-inverse hover:brightness-90 disabled:opacity-50 min-h-[44px]"
       >
         Promover
       </button>
@@ -65,7 +65,7 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
         <span
           role="status"
           className={`text-xs ${
-            notice.type === 'success' ? 'text-green-700' : 'text-red-700'
+            notice.type === 'success' ? 'text-success-text' : 'text-error-text'
           }`}
         >
           {notice.text}

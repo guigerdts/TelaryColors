@@ -75,25 +75,25 @@ export default function SampleRegistrationPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-slate-800">Registrar muestra</h2>
+      <h2 className="text-xl font-bold text-text-primary">Registrar muestra</h2>
 
       {message && (
-        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
       {error && (
-        <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">
           {error}
         </p>
       )}
 
-      <form onSubmit={onSave} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+      <form onSubmit={onSave} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Color Pantone</span>
+          <span className="block text-xs font-medium text-text-secondary">Color Pantone</span>
           <select
             value={pantoneTargetId}
             onChange={(e) => setPantoneTargetId(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           >
             <option value="">Seleccionar…</option>
             {colors.map((c) => (
@@ -105,23 +105,23 @@ export default function SampleRegistrationPage() {
         </label>
 
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Foto (opcional)</span>
+          <span className="block text-xs font-medium text-text-secondary">Foto (opcional)</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
             /* Rear-camera hint: the mobile browser opens the back camera. */
             capture="environment"
             onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-accent-281c/10 file:px-3 file:py-2.5 file:text-sm file:font-medium file:text-accent-281c hover:file:bg-accent-281c/15"
+            className="w-full text-sm text-text-secondary file:mr-3 file:rounded file:border-0 file:bg-accent-281c/10 file:px-3 file:py-2.5 file:text-sm file:font-medium file:text-accent-281c hover:file:bg-accent-281c/15"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Estado</span>
+          <span className="block text-xs font-medium text-text-secondary">Estado</span>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           >
             <option value="archivada_reutilizable">Archivada reutilizable</option>
             <option value="aprobada">Aprobada</option>
@@ -130,12 +130,12 @@ export default function SampleRegistrationPage() {
         </label>
 
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-slate-600">Notas</span>
+          <span className="block text-xs font-medium text-text-secondary">Notas</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+            className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           />
         </label>
 
@@ -157,7 +157,7 @@ export default function SampleRegistrationPage() {
         onConfirm={confirmSave}
         onClose={() => setPendingSubmit(false)}
       >
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-text-secondary">
           ¿Estás seguro de que quieres guardar esta muestra?
         </p>
       </ConfirmDialog>

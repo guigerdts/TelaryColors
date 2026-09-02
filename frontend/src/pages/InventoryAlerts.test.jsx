@@ -148,19 +148,21 @@ describe('InventoryAlertsPage (grouped reorder alerts)', () => {
     render(<InventoryAlertsPage />)
     await act(async () => {})
 
-    // Every alert item shows its served bajo_umbral badge and its stock data.
+    // Every alert item shows its served bajo_umbral badge (mapped to label "Bajo umbral")
+    // and its stock data. StatusBadge maps raw enum → human label; the ADR-1/4 invariant
+    // is that the STATUS VALUE itself is never recomputed client-side.
     const amarillo = screen.getByText('Colorante Amarillo 109').closest('li')
-    expect(within(amarillo).getByText('bajo_umbral')).toBeTruthy()
-    expect(within(amarillo).getByText(/stock: 2\.0000 kg/i)).toBeTruthy()
+    expect(within(amarillo).getByText('Bajo umbral')).toBeTruthy()
+    expect(within(amarillo).getByText(/Stock: 2\.0000 kg/i)).toBeTruthy()
     const pasta = screen.getByText('Pasta Madre Blanco').closest('li')
-    expect(within(pasta).getByText('bajo_umbral')).toBeTruthy()
+    expect(within(pasta).getByText('Bajo umbral')).toBeTruthy()
 
     // The deliberate synthetic fixture: stock below threshold served as "ok".
     // The page MUST show whatever the API served and must NOT recompute
     // bajo_umbral from current_stock < reorder_threshold (ADR-1/4).
     const azul = screen.getByText('Colorante Azul 205').closest('li')
-    expect(within(azul).getByText('ok')).toBeTruthy()
-    expect(within(azul).queryByText('bajo_umbral')).toBeNull()
+    expect(within(azul).getByText('OK')).toBeTruthy()
+    expect(within(azul).queryByText('Bajo umbral')).toBeNull()
   })
 
   it('shows the empty state when nothing is below threshold (no groups)', async () => {

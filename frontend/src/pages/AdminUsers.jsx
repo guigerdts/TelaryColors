@@ -115,48 +115,48 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Usuarios (administración)</h2>
+      <h2 className="text-xl font-bold text-text-primary">Usuarios (administración)</h2>
 
       {message && (
-        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form onSubmit={onCreate} className="space-y-3 rounded border border-slate-200 bg-white p-4">
+      <form onSubmit={onCreate} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Usuario *</span>
+            <span className="block text-xs font-medium text-text-secondary">Usuario *</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Nombre completo</span>
+            <span className="block text-xs font-medium text-text-secondary">Nombre completo</span>
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Contraseña *</span>
+            <span className="block text-xs font-medium text-text-secondary">Contraseña *</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Rol *</span>
+            <span className="block text-xs font-medium text-text-secondary">Rol *</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               <option value="operator">operador</option>
               <option value="admin">admin</option>
@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
         <div className="col-span-full flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90 min-h-[44px]"
           >
             Crear
           </button>
@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b text-xs uppercase text-slate-500">
+          <tr className="border-b text-xs uppercase text-text-muted">
             <th className="py-2">Usuario</th>
             <th>Nombre</th>
             <th>Rol</th>
@@ -186,7 +186,7 @@ export default function AdminUsersPage() {
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} className="border-b border-slate-100 text-slate-700">
+            <tr key={user.id} className="border-b border-border-default text-text-primary">
               <td className="py-2 font-medium">{user.username}</td>
               <td>{user.full_name ?? '—'}</td>
               <td>
@@ -194,7 +194,7 @@ export default function AdminUsersPage() {
                   aria-label={`Rol de ${user.username}`}
                   value={user.role}
                   onChange={(e) => onRoleChange(user.id, e.target.value)}
-                  className="rounded border border-slate-300 px-2 py-1 text-xs"
+                  className="rounded border border-border-strong px-2 py-1 text-xs"
                 >
                   <option value="operator">operador</option>
                   <option value="admin">admin</option>
@@ -208,18 +208,18 @@ export default function AdminUsersPage() {
       </div>
 
       <section>
-        <h3 className="mb-2 font-semibold text-slate-700">Registro de auditoría</h3>
+        <h3 className="mb-2 font-semibold text-text-primary">Registro de auditoría</h3>
         <div className="flex flex-col">
           {groupedLogs.map((group) => (
             <div key={group.key}>
-              <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-text-muted">
                 {group.label}
               </h4>
-              <ul className="divide-y divide-slate-100 text-sm text-slate-600">
+              <ul className="divide-y divide-border-default text-sm text-text-secondary">
                 {group.entries.map((log) => (
                   <li key={log.id} className="flex items-start justify-between gap-3 py-2.5">
                     <span>{log.action}</span>
-                    <span className="text-xs text-slate-600">{new Date(log.timestamp).toLocaleString()}</span>
+                    <span className="text-xs text-text-secondary">{new Date(log.timestamp).toLocaleString()}</span>
                   </li>
                 ))}
               </ul>
@@ -230,7 +230,7 @@ export default function AdminUsersPage() {
           <button
             type="button"
             onClick={() => setLogVisibleCount((n) => n + 10)}
-            className="mt-4 rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="mt-4 rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-sunken"
           >
             Cargar más
           </button>
@@ -259,7 +259,7 @@ export default function AdminUsersPage() {
         onConfirm={confirmCreate}
         onClose={() => setPendingSubmit(false)}
       >
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-text-secondary">
           ¿Estás seguro de que quieres crear este usuario?
         </p>
       </ConfirmDialog>

@@ -99,68 +99,68 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-slate-800">Inventario</h2>
+      <h2 className="text-xl font-bold text-text-primary">Inventario</h2>
 
       {message && (
-        <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
+        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form id="inventory-form" onSubmit={onSubmit} className="space-y-3 rounded border border-slate-200 bg-white p-4">
-        <h3 className="font-semibold text-slate-700">
+      <form id="inventory-form" onSubmit={onSubmit} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
+        <h3 className="font-semibold text-text-primary">
           {editingId === null ? 'Nuevo item' : 'Editar item'}
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Nombre</span>
+            <span className="block text-xs font-medium text-text-secondary">Nombre</span>
             <input
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Tipo</span>
+            <span className="block text-xs font-medium text-text-secondary">Tipo</span>
             <select
               value={form.item_type}
               onChange={(e) => setField('item_type', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               <option value="colorante">Colorante</option>
               <option value="insumo_pasta_madre">Insumo pasta madre</option>
             </select>
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Unidad</span>
+            <span className="block text-xs font-medium text-text-secondary">Unidad</span>
             <input
               value={form.unit}
               onChange={(e) => setField('unit', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Proveedor</span>
+            <span className="block text-xs font-medium text-text-secondary">Proveedor</span>
             <input
               value={form.supplier}
               onChange={(e) => setField('supplier', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Ciudad de provisión</span>
+            <span className="block text-xs font-medium text-text-secondary">Ciudad de provisión</span>
             <input
               value={form.supply_city}
               onChange={(e) => setField('supply_city', e.target.value)}
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
           <label className="space-y-1">
-            <span className="block text-xs font-medium text-slate-600">Umbral de reposición</span>
+            <span className="block text-xs font-medium text-text-secondary">Umbral de reposición</span>
             <input
               type="number"
               step="any"
@@ -169,14 +169,14 @@ export default function InventoryPage() {
               onChange={(e) => setField('reorder_threshold', e.target.value)}
               title="Cuando el stock baje de este valor, el estado cambiará a bajo umbral"
               required
-              className="w-full rounded border border-slate-300 px-3 py-2.5 text-sm focus:border-accent-281c focus:outline-none focus:ring-2 focus:ring-accent-281c/30"
+              className="w-full rounded border border-border-strong px-3 py-2.5 text-sm focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </label>
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90 min-h-[44px]"
           >
             {editingId === null ? 'Crear item' : 'Guardar cambios'}
           </button>
@@ -184,7 +184,7 @@ export default function InventoryPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-sunken"
             >
               Cancelar
             </button>
@@ -193,15 +193,15 @@ export default function InventoryPage() {
       </form>
 
       {items.length === 0 ? (
-        <div className="rounded border border-slate-200 bg-white p-6 text-center">
-          <h3 className="text-sm font-semibold text-slate-700">Sin items de inventario</h3>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="rounded border border-border-default bg-surface-raised p-6 text-center">
+          <h3 className="text-sm font-semibold text-text-primary">Sin items de inventario</h3>
+          <p className="mt-1 text-sm text-text-secondary">
             Agrega tu primer item de inventario para comenzar a rastrear stock.
           </p>
           <button
             type="button"
             onClick={() => { document.getElementById('inventory-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }}
-            className="mt-3 rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+            className="mt-3 rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90"
           >
             Crear item de inventario
           </button>
@@ -209,7 +209,7 @@ export default function InventoryPage() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {items.map((item) => (
-            <li key={item.id} className="rounded border border-slate-200 bg-white">
+            <li key={item.id} className="rounded border border-border-default bg-surface-raised">
               <button
                 type="button"
                 onClick={() => startEdit(item)}
@@ -219,14 +219,14 @@ export default function InventoryPage() {
                 className="block w-full p-3 text-left"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-800">{item.name}</span>
+                  <span className="font-semibold text-text-primary">{item.name}</span>
                   {/* Served status verbatim — never recomputed client-side (ADR-1/4). */}
                   <StatusBadge status={item.inventory_status} />
                 </div>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-text-secondary">
                   {item.item_type} · {item.supplier} · {item.supply_city}
                 </p>
-                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border-default pt-2 text-xs text-text-secondary">
                   <span>
                     Stock: <span className="font-medium tabular-nums">{item.current_stock}</span>{' '}
                     {item.unit}
@@ -250,7 +250,7 @@ export default function InventoryPage() {
         onConfirm={confirmSave}
         onClose={() => setPendingSubmit(false)}
       >
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-text-secondary">
           ¿Estás seguro de que quieres {editingId !== null ? 'guardar los cambios de' : 'crear'} este item de inventario?
         </p>
       </ConfirmDialog>

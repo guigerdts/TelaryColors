@@ -8,6 +8,13 @@
   --color-primary-600: #001a4d;
   --color-primary-700: #001338;
 
+  /* === Accent (alias for primary — used by legacy components) === */
+  --color-accent-281c: #00205B;
+
+  /* === Neutral (for ConfirmDialog and other shared components) === */
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+
   /* === Surfaces === */
   --color-surface-page: #f8fafc;
   --color-surface-raised: #ffffff;

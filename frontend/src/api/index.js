@@ -64,6 +64,7 @@ export const linkDesignToFormula = (id, payload) =>
 
 // --- Designs ---
 export const listDesigns = () => apiFetch('/designs').then((r) => r.json())
+export const getDesign = (id) => apiFetch(`/designs/${id}`).then((r) => r.json())
 export const createDesign = (payload) => apiFetch('/designs', { method: 'POST', body: payload }).then((r) => r.json())
 export const updateDesign = (id, payload) => apiFetch(`/designs/${id}`, { method: 'PATCH', body: payload }).then((r) => r.json())
 export const deleteDesign = (id) => apiFetch(`/designs/${id}`, { method: 'DELETE' })

@@ -49,25 +49,25 @@ export default function SamplesListPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-bold text-slate-800">Muestras</h2>
+        <h2 className="text-xl font-bold text-text-primary">Muestras</h2>
         <Link
           to="/muestras"
-          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90"
         >
           Nueva muestra
         </Link>
       </div>
 
       {error && (
-        <div role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">
           {error}
         </div>
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500 italic">Cargando muestras…</p>
+        <p className="text-sm text-text-muted italic">Cargando muestras…</p>
       ) : samples.length === 0 ? (
-        <p className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">
+        <p className="rounded border border-border-default bg-surface-raised p-4 text-sm text-text-secondary">
           No hay muestras registradas.
         </p>
       ) : (
@@ -75,11 +75,11 @@ export default function SamplesListPage() {
           {samples.map((sample) => (
             <li
               key={sample.id}
-              className="rounded border border-slate-200 bg-white p-3"
+              className="rounded border border-border-default bg-surface-raised p-3"
             >
               <article role="article" className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-slate-800">
+                  <span                     className="text-sm font-semibold text-text-primary">
                     {codeById[sample.pantone_target_id] || `Pantone #${sample.pantone_target_id}`}
                   </span>
                   <StatusBadge status={sample.status} />
@@ -89,20 +89,20 @@ export default function SamplesListPage() {
                   <img
                     src={sample.photo_url}
                     alt={`Muestra reutilizable de ${codeById[sample.pantone_target_id] || 'Pantone'}`}
-                    className="h-24 w-full rounded border border-slate-200 object-cover"
+                    className="h-24 w-full rounded border border-border-default object-cover"
                   />
                 ) : (
-                  <span className="block rounded border border-dashed border-slate-200 p-6 text-center text-xs text-slate-600">
+                  <span className="block rounded border border-dashed border-border-default p-6 text-center text-xs text-text-secondary">
                     Sin foto
                   </span>
                 )}
 
                 {sample.notes && (
-                  <p className="text-sm text-slate-600">{sample.notes}</p>
+                  <p className="text-sm text-text-secondary">{sample.notes}</p>
                 )}
 
                 {sample.created_at && (
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-text-muted">
                     Creada {formatDateTime(sample.created_at)}
                   </p>
                 )}
