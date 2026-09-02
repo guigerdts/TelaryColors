@@ -68,9 +68,12 @@ describe('AppRouter guarded routes', () => {
     fireEvent.click(screen.getAllByRole('link', { name: /muestras/i })[0])
     await act(async () => {})
 
-    // The browse list page is on the route (empty state here)…
-    expect(screen.getByRole('heading', { name: /muestras/i })).toBeTruthy()
-    expect(screen.getByText(/no hay muestras/i)).toBeTruthy()
+    // The browse list page is lazy-loaded, so it resolves async — findBy
+    // waits for the chunk.
+    expect(
+      await screen.findByRole('heading', { name: /muestras/i }, { timeout: 5000 })
+    ).toBeTruthy()
+    expect(await screen.findByText(/no hay muestras/i, {}, { timeout: 5000 })).toBeTruthy()
     // …and offers the create form via its "Nueva muestra" button.
     expect(screen.getByRole('link', { name: /nueva muestra/i })).toHaveAttribute('href', '/muestras')
   })
@@ -82,8 +85,12 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
     await act(async () => {})
 
-    expect(screen.getByRole('heading', { name: /registrar muestra/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /registrar muestra/i })).toBeTruthy()
+    expect(
+      await screen.findByRole('heading', { name: /registrar muestra/i }, { timeout: 5000 })
+    ).toBeTruthy()
+    expect(
+      await screen.findByRole('button', { name: /registrar muestra/i }, { timeout: 5000 })
+    ).toBeTruthy()
   })
 
   it('renders an Inventario nav link in the shared layout', () => {
@@ -121,8 +128,10 @@ describe('AppRouter guarded routes', () => {
     fireEvent.click(screen.getAllByRole('link', { name: /alertas/i })[0])
     await act(async () => {})
 
-    // The alerts page's heading is on the route.
-    expect(screen.getByRole('heading', { name: /alertas de reposición/i })).toBeTruthy()
+    // The alerts page is lazy-loaded — findBy waits for the chunk.
+    expect(
+      await screen.findByRole('heading', { name: /alertas de reposición/i }, { timeout: 5000 })
+    ).toBeTruthy()
   })
 
   it('navigating to /inventario/transaccion?formula_id=X renders the transaction form, not a redirect to /search', async () => {
@@ -135,10 +144,15 @@ describe('AppRouter guarded routes', () => {
     render(<App />)
     await act(async () => {})
 
-    // The transaction form is on the route — NOT redirected to /search.
-    expect(screen.getByRole('heading', { name: /registrar transacción/i })).toBeTruthy()
+    // The transaction form is on the route — NOT redirected to /search. It is
+    // lazy-loaded, so findBy waits for the chunk.
+    expect(
+      await screen.findByRole('heading', { name: /registrar transacción/i }, { timeout: 5000 })
+    ).toBeTruthy()
     // The ?formula_id= prefill marks the formula as read-only with its hint.
-    expect(screen.getByText(/fórmula prefijada desde la ficha/i)).toBeTruthy()
+    expect(
+      await screen.findByText(/fórmula prefijada desde la ficha/i, {}, { timeout: 5000 })
+    ).toBeTruthy()
   })
 
   it('deep-links to /pantone/:id and renders the self-loading ficha', async () => {

@@ -39,6 +39,10 @@ describe('AdminUsersPage', () => {
     await act(async () => {})
     expect(screen.getByText('ana')).toBeTruthy()
     expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(2)
+
+    // Each row's role select carries an accessible name for screen readers (P1).
+    const anaRow = screen.getByText('ana').closest('tr')
+    expect(within(anaRow).getAllByRole('combobox')[0]).toHaveAccessibleName('Rol de ana')
   })
 
   it('does NOT change the role until the operator confirms in the dialog', async () => {

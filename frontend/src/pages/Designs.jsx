@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { createDesign, listDesigns, listPantone } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import DesignColorPicker from '../components/DesignColorPicker.jsx'
 
 export default function DesignsPage() {
@@ -13,6 +14,8 @@ export default function DesignsPage() {
   const [selectedIds, setSelectedIds] = useState([])
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // Staged but not yet confirmed submit.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   const refresh = () => {
     listDesigns().then(setDesigns).catch((err) => setError(err.message))
@@ -23,8 +26,17 @@ export default function DesignsPage() {
     refresh()
   }, [])
 
-  const onCreate = async (event) => {
+  // Submit stages the confirmation dialog; the real API call runs only after
+  // the operator confirms (same pattern as Formulas.jsx).
+  const onCreate = (event) => {
     event.preventDefault()
+    setMessage(null)
+    setError(null)
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the create.
+  const confirmSave = async () => {
     setMessage(null)
     setError(null)
     try {
@@ -35,6 +47,8 @@ export default function DesignsPage() {
       refresh()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setPendingSubmit(false)
     }
   }
 
@@ -97,6 +111,19 @@ export default function DesignsPage() {
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title="Crear diseño"
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres crear el diseño "{name}"?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

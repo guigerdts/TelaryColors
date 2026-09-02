@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
         <div className="col-span-full flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
           >
             Crear
           </button>
@@ -191,6 +191,7 @@ export default function AdminUsersPage() {
               <td>{user.full_name ?? '—'}</td>
               <td>
                 <select
+                  aria-label={`Rol de ${user.username}`}
                   value={user.role}
                   onChange={(e) => onRoleChange(user.id, e.target.value)}
                   className="rounded border border-slate-300 px-2 py-1 text-xs"

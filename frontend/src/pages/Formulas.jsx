@@ -256,7 +256,7 @@ export default function FormulasPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
           >
             {editingId !== null ? 'Guardar' : 'Crear fórmula'}
           </button>

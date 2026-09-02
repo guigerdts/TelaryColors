@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 
 import { createInventoryItem, listInventoryItems, updateInventoryItem } from '../api/index.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import StatusBadge from '../components/StatusBadge.jsx'
 
 const emptyItem = {
   name: '',
@@ -18,13 +19,6 @@ const emptyItem = {
   supplier: '',
   supply_city: '',
   reorder_threshold: '',
-}
-
-// Display-only mapping from the served enum value to its badge tone. This is
-// NOT a stock computation — the value itself always comes from the API.
-const statusTone = {
-  ok: 'bg-green-100 text-green-700',
-  bajo_umbral: 'bg-amber-100 text-amber-800',
 }
 
 export default function InventoryPage() {
@@ -182,7 +176,7 @@ export default function InventoryPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
           >
             {editingId === null ? 'Crear item' : 'Guardar cambios'}
           </button>
@@ -227,13 +221,7 @@ export default function InventoryPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-slate-800">{item.name}</span>
                   {/* Served status verbatim — never recomputed client-side (ADR-1/4). */}
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      statusTone[item.inventory_status] ?? 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {item.inventory_status}
-                  </span>
+                  <StatusBadge status={item.inventory_status} />
                 </div>
                 <p className="text-xs text-slate-600">
                   {item.item_type} · {item.supplier} · {item.supply_city}

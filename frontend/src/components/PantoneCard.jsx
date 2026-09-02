@@ -70,7 +70,7 @@ export default function PantoneCard({ pantone, formula, designs = [], to, onEdit
               type="button"
               aria-label={`Copiar ${hex.toUpperCase()}`}
               onClick={copyHex}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="text-xs text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px]"
             >
               {copied ? '✓' : '📋'}
             </button>

@@ -57,7 +57,7 @@ export default function SampleFicha({ sample, colorCode, ingredients = [] }) {
         type="button"
         onClick={openConfirm}
         disabled={phase === 'promoting'}
-        className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white hover:brightness-90 disabled:opacity-50"
+        className="rounded bg-accent-281c px-2 py-1 text-xs font-semibold text-white hover:brightness-90 disabled:opacity-50 min-h-[44px]"
       >
         Promover
       </button>

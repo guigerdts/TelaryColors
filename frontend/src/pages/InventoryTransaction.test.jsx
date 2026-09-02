@@ -100,6 +100,9 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
+    // Confirmation dialog: the real request runs only after "Guardar" (P1).
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
 
     // The transaction targets the selected item via the path id.
     const call = fetchMock.mock.calls.find(
@@ -113,6 +116,25 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     expect(body.quantity).toBe(5)
   })
 
+  it('stages the transaction behind a confirmation dialog — no POST before confirm (P1)', async () => {
+    renderAt('/inventario/transaccion')
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText(/tipo/i), { target: { value: 'consumo' } })
+    fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
+    fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+
+    // The dialog is open and no request has been sent yet.
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeTruthy()
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && String(url).includes('/transactions'),
+    )
+    expect(call).toBeUndefined()
+  })
+
   it('preloads formula_id from ?formula_id= and renders the formula field read-only', async () => {
     renderAt(`/inventario/transaccion?formula_id=${FORMULA_UUID}`)
     await act(async () => {})
@@ -121,6 +143,8 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     fireEvent.change(screen.getByLabelText(/item/i), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     const call = fetchMock.mock.calls.find(
@@ -174,6 +198,8 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '50' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
 
     // The exact backend detail string must appear in the UI — NOT a generic error.
     expect(
@@ -205,6 +231,8 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
     await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
 
     expect(screen.getByText('las transacciones de ajuste requieren una nota')).toBeTruthy()
   })
@@ -218,6 +246,8 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     fireEvent.change(screen.getByLabelText(/cantidad/i), { target: { value: '5' } })
     // The design selector exists but is left unselected — no design_id is sent.
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     const call = fetchMock.mock.calls.find(
@@ -261,6 +291,8 @@ describe('InventoryTransactionPage (mobile txn form)', () => {
     expect(within(design).getAllByRole('option').map((o) => o.textContent)).toContain('Colección Aromo')
     fireEvent.change(design, { target: { value: '31' } })
     fireEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await act(async () => {})
 
     const call = fetchMock.mock.calls.find(

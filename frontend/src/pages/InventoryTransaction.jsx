@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { listDesigns, listInventoryItems, registerInventoryTransaction } from '../api/index.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 export default function InventoryTransactionPage() {
   const [searchParams] = useSearchParams()
@@ -28,6 +29,8 @@ export default function InventoryTransactionPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // Staged but not yet confirmed submit.
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -53,9 +56,18 @@ export default function InventoryTransactionPage() {
     }
   }, [])
 
-  const onSave = async (event) => {
+  // Submit stages the confirmation dialog; the real API call runs only after
+  // the operator confirms (same pattern as Formulas.jsx).
+  const onSave = (event) => {
     event.preventDefault()
     if (!itemId) return
+    setMessage(null)
+    setError(null)
+    setPendingSubmit(true)
+  }
+
+  // Runs after the operator confirms in the dialog — executes the API call.
+  const confirmSave = async () => {
     setMessage(null)
     setError(null)
     setSaving(true)
@@ -85,6 +97,7 @@ export default function InventoryTransactionPage() {
       setError(err.message)
     } finally {
       setSaving(false)
+      setPendingSubmit(false)
     }
   }
 
@@ -191,11 +204,25 @@ export default function InventoryTransactionPage() {
         <button
           type="submit"
           disabled={!itemId || saving}
-          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
         >
           {saving ? 'Guardando…' : 'Registrar transacción'}
         </button>
       </form>
+
+      <ConfirmDialog
+        open={pendingSubmit}
+        title="Registrar transacción"
+        confirmLabel="Guardar"
+        cancelLabel="Cancelar"
+        busy={saving}
+        onConfirm={confirmSave}
+        onClose={() => setPendingSubmit(false)}
+      >
+        <p className="mt-3 text-sm text-slate-600">
+          ¿Estás seguro de que quieres registrar esta transacción?
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

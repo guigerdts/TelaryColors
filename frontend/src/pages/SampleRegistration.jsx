@@ -142,7 +142,7 @@ export default function SampleRegistrationPage() {
         <button
           type="submit"
           disabled={!pantoneTargetId || saving}
-          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
         >
           {saving ? 'Guardando…' : 'Registrar muestra'}
         </button>

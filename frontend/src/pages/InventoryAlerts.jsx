@@ -8,13 +8,7 @@
 import { useEffect, useState } from 'react'
 
 import { listReorderAlerts } from '../api/index.js'
-
-// Display-only mapping from the served enum value to its badge tone. This is
-// NOT a stock computation — the value itself always comes from the API.
-const statusTone = {
-  ok: 'bg-green-100 text-green-700',
-  bajo_umbral: 'bg-amber-100 text-amber-800',
-}
+import StatusBadge from '../components/StatusBadge.jsx'
 
 export default function InventoryAlertsPage() {
   const [groups, setGroups] = useState([])
@@ -71,13 +65,7 @@ export default function InventoryAlertsPage() {
                       </p>
                     </div>
                     {/* Served status verbatim — never recomputed client-side (ADR-1/4). */}
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        statusTone[item.inventory_status] ?? 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {item.inventory_status}
-                    </span>
+                    <StatusBadge status={item.inventory_status} />
                   </li>
                 ))}
               </ul>

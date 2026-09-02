@@ -213,27 +213,81 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     expect(getCalls.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('triggers suggestPantoneHex when code changes and hex is empty', async () => {
-    // Make the hex endpoint return a suggestion.
-    fetchMock.mockImplementation((url, init) => {
-      const method = init?.method ?? 'GET'
-      if (String(url).includes('/pantone-colors/hex')) return okJson({ hex_color: '#00205b' })
-      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
-      if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
-      return okJson([])
-    })
+  it('debounces suggestPantoneHex: no request while typing, one after 250ms of quiet', async () => {
+    vi.useFakeTimers()
+    try {
+      // Make the hex endpoint return a suggestion.
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) return okJson({ hex_color: '#00205b' })
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
 
-    renderPage()
-    await act(async () => {})
+      renderPage()
+      await act(async () => {}) // flush the initial color list load
 
-    // Type a code — this should trigger the suggest effect.
-    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
-    await act(async () => {})
+      // Type a code — three keystrokes inside the debounce window must NOT fire
+      // a suggest per keystroke (P0: the hex auto-suggest is debounced at 250ms).
+      const codeInput = screen.getByLabelText(/código/i)
+      fireEvent.change(codeInput, { target: { value: '2' } })
+      fireEvent.change(codeInput, { target: { value: '28' } })
+      fireEvent.change(codeInput, { target: { value: '281' } })
+      await act(async () => {}) // no timers advanced — nothing may have fired
 
-    const suggestCall = fetchMock.mock.calls.find(
-      ([url]) => String(url).includes('/pantone-colors/hex'),
-    )
-    expect(suggestCall).toBeTruthy()
-    expect(String(suggestCall[0])).toContain('code=281')
+      const before = fetchMock.mock.calls.filter(([url]) => String(url).includes('/pantone-colors/hex'))
+      expect(before).toHaveLength(0)
+
+      // After the quiet window elapses, exactly ONE suggest fires with the final code.
+      await act(async () => {
+        vi.advanceTimersByTime(250)
+      })
+      await act(async () => {}) // flush the suggest promise + setHex
+
+      const after = fetchMock.mock.calls.filter(([url]) => String(url).includes('/pantone-colors/hex'))
+      expect(after).toHaveLength(1)
+      expect(String(after[0][0])).toContain('code=281')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('fires suggestPantoneHex immediately when the gamut changes (gamut is not debounced)', async () => {
+    vi.useFakeTimers()
+    try {
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) return okJson({ hex_color: '#00205b' })
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
+
+      renderPage()
+      await act(async () => {})
+
+      // Settle a code so the form has a debounced code and a suggested hex.
+      fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
+      await act(async () => {
+        vi.advanceTimersByTime(250)
+      })
+      await act(async () => {})
+
+      // Clear the suggested hex — the field must be empty for auto-suggest to run.
+      fireEvent.change(screen.getByLabelText(/hex/i), { target: { value: '' } })
+
+      // Changing the gamut fires immediately: gamut is an intentional change,
+      // not typing, so it stays a direct (non-debounced) effect dependency.
+      fireEvent.change(screen.getByLabelText(/gamut/i), { target: { value: 'TPX' } })
+      await act(async () => {})
+
+      const calls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/pantone-colors/hex'))
+      // The trailing call carries the new gamut and happened without advancing timers.
+      expect(calls.length).toBeGreaterThanOrEqual(1)
+      expect(String(calls[calls.length - 1][0])).toContain('gamut=TPX')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

@@ -10,14 +10,8 @@ import { Link } from 'react-router-dom'
 
 import { listPantone, listSamples } from '../api/index.js'
 import SampleFicha from '../components/SampleFicha.jsx'
+import StatusBadge from '../components/StatusBadge.jsx'
 import { formatDateTime } from '../lib/datetime.js'
-
-// Spanish label for each sample status (matches the create form's <select>).
-const STATUS_LABELS = {
-  archivada_reutilizable: 'Archivada reutilizable',
-  aprobada: 'Aprobada',
-  descartada: 'Descartada',
-}
 
 export default function SamplesListPage() {
   const [samples, setSamples] = useState([])
@@ -88,9 +82,7 @@ export default function SamplesListPage() {
                   <span className="text-sm font-semibold text-slate-800">
                     {codeById[sample.pantone_target_id] || `Pantone #${sample.pantone_target_id}`}
                   </span>
-                  <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                    {STATUS_LABELS[sample.status] || sample.status}
-                  </span>
+                  <StatusBadge status={sample.status} />
                 </div>
 
                 {sample.photo_url ? (

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPantone, deletePantone, listPantone, suggestPantoneHex, updatePantone } from '../api/index.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import PantoneCard from '../components/PantoneCard.jsx'
+import { useDebounce } from '../hooks/useDebounce.js'
 import { GAMUT_OPTIONS, isValidGamut } from '../lib/gamut.js'
 
 export default function PantonePage() {
@@ -35,15 +36,20 @@ export default function PantonePage() {
     refresh()
   }, [refresh])
 
-  // Auto-suggest hex when code changes and hex field is empty.
+  // Auto-suggest hex when the code settles and the hex field is empty. The code
+  // goes through useDebounce so typing "221" fires ONE suggest (after 250ms of
+  // quiet), not three (P0: request-per-keystroke). Gamut stays a direct
+  // dependency — changing C/TPX/U is an intentional act, not typing.
+  const debouncedCode = useDebounce(code, 250)
+
   useEffect(() => {
-    if (!code || hex) return
-    suggestPantoneHex(code, gamut)
+    if (!debouncedCode || hex) return
+    suggestPantoneHex(debouncedCode, gamut)
       .then((data) => {
         if (data?.hex_color) setHex(data.hex_color)
       })
       .catch(() => {})
-  }, [code, gamut, hex])
+  }, [debouncedCode, gamut, hex])
 
   // Load an existing color into the creation form for editing; a null hex
   // maps to an empty field so the auto-suggest effect can still run later.
@@ -192,7 +198,7 @@ export default function PantonePage() {
         <div className="col-span-full flex gap-2">
           <button
             type="submit"
-            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90"
+            className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 min-h-[44px]"
           >
             {editingId !== null ? 'Guardar' : 'Agregar'}
           </button>
