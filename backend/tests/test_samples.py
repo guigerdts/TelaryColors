@@ -535,6 +535,150 @@ def test_reusable_listing_fewer_than_five_returns_all(
     assert [s["id"] for s in listing.json()] == created_ids[::-1]
 
 
+# --- Batch listing (N+1 fix): GET /samples?pantone_target_ids=1,2,3 ---------
+#
+# The batch endpoint fetches reusable samples for MULTIPLE target Pantones in
+# one request (comma-separated ``pantone_target_ids``), keeping the cap-5-per-
+# color + status semantics of the single-target reusable listing (design
+# ADR-6, spec S6/S7). When given, the batch filter takes precedence over a
+# single ``pantone_target_id``.
+
+
+def test_batch_listing_returns_samples_for_all_targets(
+    client, auth_headers
+) -> None:
+    """Batch: reusable samples for multiple targets in one request, each
+    correctly grouped under its own pantone_target_id."""
+    headers = auth_headers("admin")
+    color_a = _create_color(client, headers)
+    color_b = _create_color(client, headers, code="294C")
+
+    a_ids = [_create_sample(client, headers, color_a).json()["id"] for _ in range(2)]
+    b_ids = [_create_sample(client, headers, color_b).json()["id"] for _ in range(2)]
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={
+            "pantone_target_ids": f"{color_a},{color_b}",
+            "status": "archivada_reutilizable",
+        },
+    )
+    assert listing.status_code == 200
+    returned = listing.json()
+    by_target: dict[int, list[int]] = {}
+    for s in returned:
+        by_target.setdefault(s["pantone_target_id"], []).append(s["id"])
+    assert by_target[color_a] == a_ids[::-1], "color A samples, newest-first"
+    assert by_target[color_b] == b_ids[::-1], "color B samples, newest-first"
+    assert set(by_target) == {color_a, color_b}
+
+
+def test_batch_listing_caps_five_per_target_color(
+    client, auth_headers
+) -> None:
+    """Batch keeps the cap-5-per-color window: >5 reusable samples for EACH of
+    several targets return at most 5 each — a plain global LIMIT would collapse
+    them into 5 total across all colors."""
+    headers = auth_headers("admin")
+    color_a = _create_color(client, headers)
+    color_b = _create_color(client, headers, code="294C")
+
+    a_ids = [_create_sample(client, headers, color_a).json()["id"] for _ in range(7)]
+    b_ids = [_create_sample(client, headers, color_b).json()["id"] for _ in range(7)]
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={
+            "pantone_target_ids": f"{color_a},{color_b}",
+            "status": "archivada_reutilizable",
+        },
+    )
+    assert listing.status_code == 200
+    returned = listing.json()
+    assert len(returned) <= 10, "at most 5 per color across two colors"
+
+    by_target: dict[int, list[int]] = {}
+    for s in returned:
+        by_target.setdefault(s["pantone_target_id"], []).append(s["id"])
+    assert by_target[color_a] == a_ids[-5:][::-1], (
+        "color A: 5 newest reusable samples, newest-first"
+    )
+    assert by_target[color_b] == b_ids[-5:][::-1], (
+        "color B: 5 newest reusable samples, newest-first"
+    )
+
+
+def test_batch_listing_takes_precedence_over_single_target(
+    client, auth_headers
+) -> None:
+    """Batch precedence: when both ``pantone_target_ids`` and
+    ``pantone_target_id`` are given, the batch filter wins and the single
+    target is ignored."""
+    headers = auth_headers("admin")
+    color_a = _create_color(client, headers)
+    color_b = _create_color(client, headers, code="294C")
+
+    a_id = _create_sample(client, headers, color_a).json()["id"]
+    b_id = _create_sample(client, headers, color_b).json()["id"]
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={
+            "pantone_target_id": color_a,          # single target (must be ignored)
+            "pantone_target_ids": f"{color_b}",    # batch wins
+            "status": "archivada_reutilizable",
+        },
+    )
+    assert listing.status_code == 200
+    returned = listing.json()
+    assert [s["id"] for s in returned] == [b_id], (
+        "batch filter must take precedence over the single target"
+    )
+
+
+def test_batch_listing_without_status_returns_all(
+    client, auth_headers
+) -> None:
+    """Batch without a status filter applies no cap and no status filter: all
+    matching samples for the listed targets return (mirrors the single-target
+    unbounded behavior)."""
+    headers = auth_headers("admin")
+    color_a = _create_color(client, headers)
+    color_b = _create_color(client, headers, code="294C")
+
+    created = [
+        _create_sample(client, headers, color_a).json()["id"] for _ in range(6)
+    ]
+    _create_sample(client, headers, color_b)
+
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={"pantone_target_ids": f"{color_a},{color_b}"},
+    )
+    assert listing.status_code == 200
+    returned = listing.json()
+    assert all(s["pantone_target_id"] in {color_a, color_b} for s in returned)
+    assert len(returned) == 7, "no cap/status filter in batch mode without status"
+
+
+def test_batch_listing_rejects_non_numeric_ids(
+    client, auth_headers
+) -> None:
+    """Batch: a non-numeric value in the comma-separated list is rejected with
+    422 — never a silent filter or a 500."""
+    headers = auth_headers("admin")
+    listing = client.get(
+        "/api/v1/samples",
+        headers=headers,
+        params={"pantone_target_ids": "1,abc,3", "status": "archivada_reutilizable"},
+    )
+    assert listing.status_code == 422
+
+
 def test_delete_sample_returns_405(client, auth_headers) -> None:
     """A sample must never be hard-deleted: DELETE is not routed → 405."""
     headers = auth_headers("admin")

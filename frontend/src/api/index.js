@@ -85,6 +85,17 @@ export const listReusableSamples = (pantoneTargetId) =>
     (r) => r.json(),
   )
 
+// Batch version of listReusableSamples: one request for MANY target Pantones
+// via the comma-separated pantone_target_ids param (fixes the Search page's
+// N+1). The status filter is kept so the backend applies its cap-5-per-color
+// reusable window to each target in the batch.
+export const listReusableSamplesByIds = (pantoneTargetIds) => {
+  const ids = Array.isArray(pantoneTargetIds) ? pantoneTargetIds.join(',') : pantoneTargetIds
+  return apiFetch(`/samples?pantone_target_ids=${encodeURIComponent(ids)}&status=archivada_reutilizable`).then(
+    (r) => r.json(),
+  )
+}
+
 // Create / update a sample. POST defaults the status to archivada_reutilizable
 // server-side; PATCH accepts status/photo_url/notes only (pantone target is
 // immutable once created). SampleOut mirrors the backend contract.

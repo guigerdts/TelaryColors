@@ -18,14 +18,21 @@ const COLORS = [
 
 const FORMULAS = [{ id: 10, pantone_color_id: 1, name: 'Fórmula 221', ingredients: [] }]
 
-// Routed fetch mock so the page's search, formulas, and per-result sample
+// Routed fetch mock so the page's search, formulas, and batch sample
 // requests each get the data they need.
 function buildMock(colors, formulas, samplesByColor) {
   return vi.fn((url) => {
     const u = String(url)
-    if (u.includes('/samples?pantone_target_id=')) {
-      const id = Number(new URL(u, 'http://localhost').searchParams.get('pantone_target_id'))
-      return Promise.resolve({ ok: true, status: 200, json: async () => samplesByColor[id] ?? [] })
+    if (u.includes('/samples?pantone_target_ids=')) {
+      const ids = new URL(u, 'http://localhost')
+        .searchParams.get('pantone_target_ids')
+        .split(',')
+        .map(Number)
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ids.flatMap((id) => samplesByColor[id] ?? []),
+      })
     }
     if (u.includes('/formulas')) {
       return Promise.resolve({ ok: true, status: 200, json: async () => formulas })
@@ -95,6 +102,41 @@ describe('SearchPage (pantone → formula + reusable samples)', () => {
     const cards = screen.getAllByRole('article')
     expect(cards).toHaveLength(2)
     expect(within(cards[0]).getByText('PANTONE®')).toBeTruthy()
+  })
+
+  it('fetches reusable samples for all results in ONE batch call (N+1 fix)', async () => {
+    const sample = {
+      id: 100,
+      pantone_target_id: 1,
+      photo_url: '/uploads/sample-a.jpg',
+      status: 'archivada_reutilizable',
+      notes: null,
+    }
+    fetchMock.mockImplementation(buildMock(COLORS, FORMULAS, { 1: [sample] }))
+
+    renderPage()
+    const input = screen.getByLabelText(/buscar color/i)
+
+    await act(async () => {})
+    fetchMock.mockClear()
+
+    fireEvent.change(input, { target: { value: '221' } })
+    await act(async () => {
+      await sleep(350)
+    })
+
+    // Two results → exactly ONE samples request carrying both ids, with the
+    // reusable status so the backend keeps its cap-5-per-color window.
+    const sampleCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/samples?'))
+    expect(sampleCalls).toHaveLength(1)
+    const url = new URL(String(sampleCalls[0][0]), 'http://localhost')
+    expect(url.searchParams.get('pantone_target_ids').split(',').map(Number)).toEqual([1, 2])
+    expect(url.searchParams.get('status')).toBe('archivada_reutilizable')
+
+    // The returned samples still render grouped under their owning color.
+    const img = screen.getByAltText('Muestra reutilizable de 221 C')
+    expect(img).toBeTruthy()
+    expect(img).toHaveAttribute('src', '/uploads/sample-a.jpg')
   })
 
   it('fetches and renders reusable samples for each search result', async () => {

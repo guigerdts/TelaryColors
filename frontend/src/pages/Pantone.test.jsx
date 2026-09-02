@@ -11,6 +11,13 @@ import PantonePage from './Pantone.jsx'
 
 const renderPage = () => render(<MemoryRouter><PantonePage /></MemoryRouter>)
 
+// PantoneCard's action buttons carry no per-card aria-label (the UX overhaul
+// dropped labels like "eliminar 211"; they are plain "Eliminar"/"Editar" text
+// today), so resolve the target card by its PMS code and scope the action
+// query inside that card — this also disambiguates the multi-card listing.
+const cardFor = (pmsText) =>
+  screen.getAllByRole('article').find((card) => within(card).queryByText(pmsText))
+
 const COLORS = [
   { id: 1, code: '211', gamut: 'C', paint_type: 'reactiva' },
   { id: 2, code: '2210', gamut: 'TPX', paint_type: 'pigmento' },
@@ -54,7 +61,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    fireEvent.click(within(cardFor('PMS 211 C')).getByRole('button', { name: 'Eliminar' }))
     await act(async () => {})
 
     // A confirmation dialog appears and the delete has NOT run yet.
@@ -70,7 +77,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    fireEvent.click(within(cardFor('PMS 211 C')).getByRole('button', { name: 'Eliminar' }))
     await act(async () => {})
     const dialog = screen.getByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
@@ -96,7 +103,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     renderPage()
     await act(async () => {})
 
-    fireEvent.click(screen.getByRole('button', { name: 'eliminar 211' }))
+    fireEvent.click(within(cardFor('PMS 211 C')).getByRole('button', { name: 'Eliminar' }))
     await act(async () => {})
     const dialog = screen.getByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }))
@@ -174,8 +181,8 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     renderPage()
     await act(async () => {})
 
-    // The Editar button should be present.
-    const editBtn = screen.getByRole('button', { name: /editar negro/i })
+    // The Editar button should be present (scoped to the 'PMS Negro C' card).
+    const editBtn = within(cardFor('PMS Negro C')).getByRole('button', { name: 'Editar' })
     expect(editBtn).toBeTruthy()
 
     // Click Editar — form should pre-load the existing values.

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiFetch, setUnauthorizedHandler } from './client.js'
-import { listReusableSamples, listSamples, promoteSample } from './index.js'
+import { listReusableSamples, listReusableSamplesByIds, listSamples, promoteSample } from './index.js'
 import { clearToken, getToken, setToken } from '../auth/store.js'
 
 describe('api client', () => {
@@ -104,6 +104,28 @@ describe('api client', () => {
 
     const [url] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/v1/samples?pantone_target_id=42&status=archivada_reutilizable')
+  })
+
+  it('listReusableSamplesByIds fetches many targets in one comma-separated call', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => [] })
+
+    await listReusableSamplesByIds([7, 8, 9])
+
+    // One HTTP request for the whole batch, status kept so the backend keeps
+    // its cap-5-per-color reusable window (batch listing fix).
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples?pantone_target_ids=7%2C8%2C9&status=archivada_reutilizable')
+  })
+
+  it('listReusableSamplesByIds passes a plain pre-joined string through', async () => {
+    setToken('jwt-abc')
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => [] })
+
+    await listReusableSamplesByIds('7,8')
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/samples?pantone_target_ids=7%2C8&status=archivada_reutilizable')
   })
 
   it('uploadSamplePhoto posts multipart FormData and never a JSON content-type', async () => {

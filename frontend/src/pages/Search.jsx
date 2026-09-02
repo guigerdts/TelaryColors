@@ -3,7 +3,7 @@
 // with their formulas and reusable samples. The legacy Fase 1 flat box is gone.
 import { useEffect, useState } from 'react'
 
-import { listFormulas, listReusableSamples, searchPantone } from '../api/index.js'
+import { listFormulas, listReusableSamplesByIds, searchPantone } from '../api/index.js'
 import PantoneCard from '../components/PantoneCard.jsx'
 import SampleFicha from '../components/SampleFicha.jsx'
 import { useDebounce } from '../hooks/useDebounce.js'
@@ -59,28 +59,26 @@ export default function SearchPage() {
     }
   }, [])
 
-  // Client-side ficha: after a search returns colors, fetch each result's
-  // reusable samples (GET /samples?pantone_target_id=&status=archivada_reutilizable)
-  // and keep them keyed by color id for the card surfaces below.
-  //
-  // KNOWN N+1 (P0 follow-up): this fires ONE request per result — 20 results =
-  // 20 parallel GETs — because the backend samples router only accepts a
-  // single `pantone_target_id`. The real fix is a batch endpoint
-  // (GET /samples?pantone_target_ids=1,2,3) plus a listReusableSamplesByIds()
-  // helper here; that is a BACKEND change tracked as a follow-up. Do NOT switch
-  // to GET /samples with no filters: its payload is unbounded and the cap-5 +
-  // status filter are server-side semantics this page relies on.
+  // Client-side ficha: after a search returns colors, fetch ALL their reusable
+  // samples in ONE batch request (GET /samples?pantone_target_ids=1,2,3
+  // &status=archivada_reutilizable) and keep them keyed by color id for the
+  // card surfaces below. The backend caps reusable samples at the 5 newest
+  // PER color, so the grouping here stays flat and the count per card is the
+  // served window.
   useEffect(() => {
     if (!results.length) {
       setReusableSamples({})
       return
     }
     let cancelled = false
-    Promise.all(results.map((color) => listReusableSamples(color.id).then((samples) => ({ id: color.id, samples }))))
-      .then((all) => {
+    listReusableSamplesByIds(results.map((color) => color.id))
+      .then((allSamples) => {
         if (cancelled) return
         const byColor = {}
-        for (const { id, samples } of all) byColor[id] = samples
+        for (const s of allSamples) {
+          if (!byColor[s.pantone_target_id]) byColor[s.pantone_target_id] = []
+          byColor[s.pantone_target_id].push(s)
+        }
         setReusableSamples(byColor)
       })
       .catch(() => {

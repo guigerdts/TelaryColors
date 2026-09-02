@@ -5,7 +5,10 @@
   validating the ``pantone_target_id`` anchor exists (404 otherwise).
 - ``GET /samples?pantone_target_id=&status=`` lists samples newest-first,
   capped at the 5 newest when both filters are given (S6/S7 reusable
-  listing; design ADR-6 "cap 5").
+  listing; design ADR-6 "cap 5"). ``?pantone_target_ids=1,2,3`` is the
+  batch variant (N+1 fix): many targets in one request, same status
+  filter and cap-5 PER target color, and it takes precedence over the
+  single ``pantone_target_id``.
 - ``GET/PATCH /samples/{sample_id}`` — read/update by id (404 missing).
   PATCH is scoped to ``status``/``photo_url``/``notes``; ``pantone_target_id``
   is immutable post-create and any attempt is rejected (400, never silently
@@ -34,8 +37,8 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, aliased
 
 from app.core.config import settings
 from app.core.deps import get_current_user, get_db
@@ -81,19 +84,60 @@ def _get_sample_or_404(db: Session, sample_id: int) -> Sample:
 @router.get("", response_model=list[SampleOut])
 def list_samples(
     pantone_target_id: int | None = None,
+    pantone_target_ids: str | None = Query(default=None),
     sample_status: SampleStatus | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> list[Sample]:
-    """List samples newest-first; cap 5 when filter by target AND status."""
+    """List samples newest-first; cap 5 per target when filtered by status.
+
+    ``pantone_target_ids`` is a comma-separated list (batch mode, the N+1
+    fix): it fetches samples for MANY target Pantones in one request. When
+    given, batch mode takes precedence over the single ``pantone_target_id``.
+    With a status filter the results are capped at the 5 newest PER target
+    color — the same semantic as the single-target reusable listing (design
+    ADR-6, spec S6/S7) — achieved with a ROW_NUMBER() window so one request
+    covers many colors without a plain LIMIT collapsing the whole batch.
+    """
+    batch_ids: list[int] | None = None
+    if pantone_target_ids is not None:
+        raw_ids = [part.strip() for part in pantone_target_ids.split(",") if part.strip()]
+        try:
+            batch_ids = [int(part) for part in raw_ids]
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="pantone_target_ids debe ser una lista separada por comas de IDs numéricos",
+            ) from error
+
     query = select(Sample)
-    if pantone_target_id is not None:
+    if batch_ids:
+        query = query.where(Sample.pantone_target_id.in_(batch_ids))
+    elif pantone_target_id is not None:
         query = query.where(Sample.pantone_target_id == pantone_target_id)
     if sample_status is not None:
         query = query.where(Sample.status == sample_status)
-    if pantone_target_id is not None and sample_status is not None:
-        query = query.limit(_REUSABLE_LISTING_CAP)
-    return db.scalars(query.order_by(Sample.created_at.desc(), Sample.id.desc())).all()
+
+    order = (Sample.created_at.desc(), Sample.id.desc())
+
+    # The cap-5 applies whenever we filter by status AND by target(s). Use a
+    # window function so the cap holds per target color even in batch mode.
+    if (batch_ids or pantone_target_id is not None) and sample_status is not None:
+        row_number = (
+            func.row_number()
+            .over(partition_by=Sample.pantone_target_id, order_by=order)
+            .label("_rn")
+        )
+        ranked = query.add_columns(row_number).subquery()
+        ranked_sample = aliased(Sample, ranked)
+        stmt = (
+            select(ranked_sample)
+            .where(ranked.c._rn <= _REUSABLE_LISTING_CAP)
+            .order_by(ranked_sample.created_at.desc(), ranked_sample.id.desc())
+        )
+        return db.scalars(stmt).all()
+
+    return db.scalars(query.order_by(*order)).all()
 
 
 @router.get("/{sample_id}", response_model=SampleOut)
