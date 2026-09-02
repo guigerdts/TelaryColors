@@ -18,5 +18,8 @@ frontend/dist/
 .codegraph/
 .atl/
 
+# Impeccable audit reports (local session artifacts)
+.impeccable/critique/
+
 # Logs
 *.log
