@@ -16,22 +16,7 @@ import {
   listFormulas,
   listPantone,
 } from '../api/index.js'
-
-const CopyIcon = ({ className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    className={className}
-  >
-    <rect x="9" y="9" width="11" height="11" rx="2" />
-    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-  </svg>
-)
+import CopyIcon from '../components/icons/CopyIcon.jsx'
 
 export default function PantoneDetail() {
   const { id: pantoneId } = useParams()
@@ -97,7 +82,6 @@ export default function PantoneDetail() {
 
     init()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pantoneId])
 
   // Load existing designs for the manual link selector.

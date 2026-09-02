@@ -157,4 +157,96 @@ describe('PantoneCard (spec §4 visual)', () => {
 
     expect(screen.queryByRole('link')).toBeNull()
   })
+
+  it('sets color block background from hex_color', () => {
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} />
+      </MemoryRouter>,
+    )
+
+    const block = screen.getByRole('img', { name: 'Pantone PMS 211 C' })
+    const bg = block.style.backgroundColor || block.style.background
+    expect(bg).toMatch(/230,\s*57,\s*80/) // rgb of #E63950
+  })
+
+  it('shows fallback when hex_color is absent', () => {
+    const pantoneNoHex = { code: '211', gamut: 'C' }
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={pantoneNoHex} formula={DETAIL} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Sin color asignado')).toBeTruthy()
+    expect(screen.queryByText('#E63950')).toBeNull()
+  })
+
+  it('copies hex to clipboard on copy button click', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} />
+      </MemoryRouter>,
+    )
+
+    const copyBtn = screen.getByRole('button', { name: /copiar #E63950/i })
+    await copyBtn.click()
+
+    expect(writeText).toHaveBeenCalledWith('#E63950')
+
+    vi.unstubAllGlobals()
+  })
+
+  it('shows first 3 ingredients and overflow count for 5-ingredient formula', () => {
+    const bigFormula = {
+      id: 99,
+      name: 'Big formula',
+      ingredients: [
+        { id: 1, colorant: 'A', quantity_g: '100.0' },
+        { id: 2, colorant: 'B', quantity_g: '200.0' },
+        { id: 3, colorant: 'C', quantity_g: '300.0' },
+        { id: 4, colorant: 'D', quantity_g: '400.0' },
+        { id: 5, colorant: 'E', quantity_g: '500.0' },
+      ],
+    }
+
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={bigFormula} />
+      </MemoryRouter>,
+    )
+
+    const formulaSection = screen.getByRole('region', { name: 'Fórmula (g/kg)' })
+    expect(within(formulaSection).getByText('A')).toBeTruthy()
+    expect(within(formulaSection).getByText('B')).toBeTruthy()
+    expect(within(formulaSection).getByText('C')).toBeTruthy()
+    // D and E should NOT be shown
+    expect(within(formulaSection).queryByText('D')).toBeNull()
+    expect(within(formulaSection).queryByText('E')).toBeNull()
+    expect(within(formulaSection).getByText(/\+\s*2 ingredientes más/)).toBeTruthy()
+  })
+
+  it('renders "Ver detalle" link when to prop is provided', () => {
+    render(
+      <MemoryRouter>
+        <PantoneCard to="/pantone/1" pantone={PANTONE} formula={DETAIL} />
+      </MemoryRouter>,
+    )
+
+    const link = screen.getByText(/Ver detalle/)
+    expect(link).toHaveAttribute('href', '/pantone/1')
+  })
+
+  it('does NOT render "Ver detalle" link when to prop is absent', () => {
+    render(
+      <MemoryRouter>
+        <PantoneCard pantone={PANTONE} formula={DETAIL} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByText(/Ver detalle/)).toBeNull()
+  })
 })

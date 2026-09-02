@@ -165,4 +165,73 @@ describe('SearchPage (pantone → formula, batch samples fetched but not rendere
     // The two PantoneCards still render.
     expect(screen.getAllByRole('article')).toHaveLength(2)
   })
+
+  it('shows empty state with hint when search returns no results', async () => {
+    fetchMock.mockImplementation(buildMock([], FORMULAS, {}))
+
+    renderPage()
+    const input = screen.getByLabelText(/buscar color/i)
+
+    await act(async () => {})
+    fetchMock.mockClear()
+
+    fireEvent.change(input, { target: { value: 'zzz999' } })
+    await act(async () => {
+      await sleep(350)
+    })
+
+    expect(screen.getByText(/Sin resultados para/)).toBeTruthy()
+    expect(screen.getByText(/zzz999/)).toBeTruthy()
+    expect(screen.getByText(/Intenta con un código PMS/)).toBeTruthy()
+  })
+
+  it('shows error message when search API rejects', async () => {
+    fetchMock.mockImplementation((url) => {
+      const u = String(url)
+      if (u.includes('/formulas')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => FORMULAS })
+      }
+      return Promise.reject(new Error('Error de red'))
+    })
+
+    renderPage()
+    const input = screen.getByLabelText(/buscar color/i)
+
+    await act(async () => {})
+    fetchMock.mockClear()
+
+    fireEvent.change(input, { target: { value: 'fail' } })
+    await act(async () => {
+      await sleep(350)
+    })
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('Error de red')).toBeTruthy()
+  })
+
+  it('clear button clears input, results, and message', async () => {
+    fetchMock.mockImplementation(buildMock(COLORS, FORMULAS, {}))
+
+    renderPage()
+    const input = screen.getByLabelText(/buscar color/i)
+
+    await act(async () => {})
+    fetchMock.mockClear()
+
+    fireEvent.change(input, { target: { value: '221' } })
+    await act(async () => {
+      await sleep(350)
+    })
+
+    // Results are visible
+    expect(screen.getAllByRole('article')).toHaveLength(2)
+
+    // Click clear button
+    const clearBtn = screen.getByRole('button', { name: /limpiar búsqueda/i })
+    fireEvent.click(clearBtn)
+
+    // Input is empty, results and message are gone
+    expect(input.value).toBe('')
+    expect(screen.queryByRole('article')).toBeNull()
+  })
 })
