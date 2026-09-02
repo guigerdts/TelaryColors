@@ -87,18 +87,18 @@ describe('PantoneDetail (self-loading ficha)', () => {
     // getFormulaDetail called with the first formula's id.
     expect(getFormulaDetail).toHaveBeenCalledWith(7)
 
-    // Formula + designs rendered from the detail response.
-    expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
-    const designsSection = screen.getByRole('region', {
-      name: 'Diseños que usan esta fórmula',
-    })
+    // Formula section rendered from the detail response.
+    expect(screen.getByText(/Ingredientes/)).toBeTruthy()
+    // Designs section rendered from the detail response.
+    const designsSection = screen.getByText('Diseños vinculados').closest('section')
     expect(within(designsSection).getByText('Linterna Coral')).toBeTruthy()
   })
 
-  it('shows a loading state while fetching', () => {
+  it('shows a loading skeleton while fetching', () => {
     listFormulas.mockReturnValue(new Promise(() => {}))
     renderDetail(1)
-    expect(screen.getByText(/Cargando/)).toBeTruthy()
+    // The component shows animated skeleton divs, not text.
+    expect(screen.getByLabelText('Cargando fórmula')).toBeTruthy()
   })
 
   it('shows an error and recovers via retry', async () => {
@@ -112,7 +112,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     await act(async () => {
       screen.getByRole('button', { name: /Reintentar/i }).click()
     })
-    expect(screen.getByRole('region', { name: 'Fórmula (g/kg)' })).toBeTruthy()
+    expect(screen.getByText(/Ingredientes/)).toBeTruthy()
   })
 
   it('shows a message when no formulas exist for the pantone', async () => {
@@ -120,7 +120,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     renderDetail(1)
     await act(async () => {})
 
-    expect(screen.getByText(/no hay fórmulas/i)).toBeTruthy()
+    expect(screen.getByText(/No hay fórmulas/i)).toBeTruthy()
     expect(getFormulaDetail).not.toHaveBeenCalled()
   })
 
@@ -129,7 +129,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     renderDetail(1)
     await act(async () => {})
 
-    expect(screen.queryByRole('combobox', { name: /fórmula/i })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: /seleccionar fórmula/i })).toBeNull()
   })
 
   it('shows a formula selector when there are multiple formulas', async () => {
@@ -138,7 +138,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     renderDetail(1)
     await act(async () => {})
 
-    const selector = screen.getByRole('combobox', { name: /fórmula/i })
+    const selector = screen.getByRole('combobox', { name: /seleccionar fórmula/i })
     // Two options (one per formula).
     expect(within(selector).getAllByRole('option')).toHaveLength(2)
   })
@@ -153,7 +153,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     expect(getFormulaDetail).toHaveBeenCalledTimes(1)
     expect(getFormulaDetail).toHaveBeenLastCalledWith(7)
 
-    const selector = screen.getByRole('combobox', { name: /fórmula/i })
+    const selector = screen.getByRole('combobox', { name: /seleccionar fórmula/i })
     fireEvent.change(selector, { target: { value: '8' } })
     await act(async () => {})
     // After change, getFormulaDetail called with the second formula id.
@@ -166,9 +166,7 @@ describe('PantoneDetail (self-loading ficha)', () => {
     renderDetail(1)
     await act(async () => {})
 
-    const designsSection = screen.getByRole('region', {
-      name: 'Diseños que usan esta fórmula',
-    })
+    const designsSection = screen.getByText('Diseños vinculados').closest('section')
     expect(within(designsSection).getByText(/Sin diseños vinculados/)).toBeTruthy()
   })
 
@@ -181,14 +179,17 @@ describe('PantoneDetail (self-loading ficha)', () => {
     await act(async () => {})
 
     const selector = screen.getByLabelText(/vincular diseño/i)
-    expect(within(selector).getAllByRole('option').map((o) => o.textContent)).toEqual([
+    // The select includes a "Seleccionar…" placeholder option + the actual designs
+    const options = within(selector).getAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual([
+      'Seleccionar…',
       'Linterna Coral',
       'Maceta Norte',
     ])
 
     await act(async () => {
       fireEvent.change(selector, { target: { value: '21' } })
-      fireEvent.click(screen.getByRole('button', { name: /vincular/i }))
+      fireEvent.click(screen.getByRole('button', { name: /vincular$/i }))
     })
 
     await act(async () => {})

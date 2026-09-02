@@ -14,7 +14,6 @@ import {
   listFormulas,
   listInventoryItems,
   listPantone,
-  listReorderAlerts,
   listSamples,
 } from '../api/index.js'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -128,7 +127,6 @@ export default function DashboardPage() {
   const [pantones, setPantones] = useState([])
   const [samples, setSamples] = useState([])
   const [inventoryItems, setInventoryItems] = useState([])
-  const [reorderAlerts, setReorderAlerts] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -137,13 +135,12 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       try {
-        const [f, d, p, s, inv, alerts] = await Promise.all([
+        const [f, d, p, s, inv] = await Promise.all([
           listFormulas(),
           listDesigns(),
           listPantone(),
           listSamples(),
           listInventoryItems(),
-          listReorderAlerts(),
         ])
         if (cancelled) return
         setFormulas(f)
@@ -151,7 +148,6 @@ export default function DashboardPage() {
         setPantones(p)
         setSamples(s)
         setInventoryItems(inv)
-        setReorderAlerts(alerts)
       } catch (err) {
         if (!cancelled) setError(err.message)
       } finally {

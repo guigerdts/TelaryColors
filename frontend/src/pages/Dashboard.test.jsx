@@ -11,7 +11,6 @@ vi.mock('../api/index.js', () => ({
   listPantone: vi.fn(),
   listSamples: vi.fn(),
   listInventoryItems: vi.fn(),
-  listReorderAlerts: vi.fn(),
 }))
 
 import {
@@ -20,7 +19,6 @@ import {
   listPantone,
   listSamples,
   listInventoryItems,
-  listReorderAlerts,
 } from '../api/index.js'
 
 function renderDashboard() {
@@ -39,7 +37,6 @@ describe('DashboardPage', () => {
     listPantone.mockResolvedValue([])
     listSamples.mockResolvedValue([])
     listInventoryItems.mockResolvedValue([])
-    listReorderAlerts.mockResolvedValue([])
   })
 
   it('shows skeleton while loading', () => {
@@ -48,7 +45,6 @@ describe('DashboardPage', () => {
     listPantone.mockReturnValue(new Promise(() => {}))
     listSamples.mockReturnValue(new Promise(() => {}))
     listInventoryItems.mockReturnValue(new Promise(() => {}))
-    listReorderAlerts.mockReturnValue(new Promise(() => {}))
 
     renderDashboard()
     expect(screen.getByLabelText('Cargando dashboard')).toBeInTheDocument()
@@ -163,7 +159,6 @@ describe('DashboardPage', () => {
     listPantone.mockRejectedValue(new Error('Network error'))
     listSamples.mockRejectedValue(new Error('Network error'))
     listInventoryItems.mockRejectedValue(new Error('Network error'))
-    listReorderAlerts.mockRejectedValue(new Error('Network error'))
 
     renderDashboard()
     await waitFor(() => {

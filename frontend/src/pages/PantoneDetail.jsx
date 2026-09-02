@@ -138,7 +138,7 @@ export default function PantoneDetail() {
   // ── Loading skeleton ──────────────────────────────────────────────────
   if (loading && !detail) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6" aria-label="Cargando fórmula" aria-busy="true">
         {/* Breadcrumb skeleton */}
         <div className="h-3 w-48 animate-pulse rounded bg-surface-sunken" />
 
