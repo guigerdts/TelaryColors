@@ -16,6 +16,7 @@ import {
   listPantone,
   listSamples,
 } from '../api/index.js'
+import ColorSwatch from '../components/ColorSwatch.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 
 // --- Skeleton loaders -------------------------------------------------------
@@ -347,17 +348,20 @@ export default function DashboardPage() {
                     <span className="text-xs text-text-disabled">·</span>
                     <span className="text-xs capitalize text-text-muted">{d.paint_type}</span>
                   </div>
-                  {/* Color dots */}
+                  {/* Color dots — resolve hex from the full pantone list */}
                   {d.colors?.length > 0 && (
                     <div className="mt-2 flex gap-1">
-                      {d.colors.slice(0, 7).map((dc, i) => (
-                        <span
-                          key={i}
-                          className="inline-block h-3 w-3 rounded-full border border-border-default"
-                          style={{ backgroundColor: dc.hex_color || '#94a3b8' }}
-                          title={dc.pantone_code || `Color ${dc.pantone_color_id}`}
-                        />
-                      ))}
+                      {d.colors.slice(0, 7).map((dc) => {
+                        const pantone = pantones.find((p) => p.id === dc.pantone_color_id)
+                        return (
+                          <ColorSwatch
+                            key={dc.pantone_color_id}
+                            code={pantone?.code ?? String(dc.pantone_color_id)}
+                            hex={pantone?.hex_color}
+                            size="xs"
+                          />
+                        )
+                      })}
                     </div>
                   )}
                 </li>

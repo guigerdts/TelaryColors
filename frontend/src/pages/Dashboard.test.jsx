@@ -125,10 +125,14 @@ describe('DashboardPage', () => {
         name: 'Diseño Test',
         paint_type: 'reactiva',
         colors: [
-          { pantone_color_id: 1, hex_color: '#FF0000', pantone_code: '185 C' },
-          { pantone_color_id: 2, hex_color: '#0000FF', pantone_code: '286 C' },
+          { pantone_color_id: 1 },
+          { pantone_color_id: 2 },
         ],
       },
+    ])
+    listPantone.mockResolvedValue([
+      { id: 1, code: '185', gamut: 'C', hex_color: '#E4002B', paint_type: 'reactiva' },
+      { id: 2, code: '286', gamut: 'C', hex_color: '#00205B', paint_type: 'reactiva' },
     ])
 
     renderDashboard()
@@ -137,6 +141,16 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Diseño Test')).toBeInTheDocument()
       expect(screen.getByText('2 colores')).toBeInTheDocument()
     })
+
+    // The color swatches should render with real hex colors, not gray fallback.
+    const swatches = screen.getAllByRole('img')
+    const colorSwatches = swatches.filter((el) =>
+      el.getAttribute('aria-label')?.startsWith('PMS'),
+    )
+    expect(colorSwatches).toHaveLength(2)
+    // First swatch should have the real red color, not gray.
+    expect(colorSwatches[0]).toHaveStyle({ backgroundColor: '#E4002B' })
+    expect(colorSwatches[1]).toHaveStyle({ backgroundColor: '#00205B' })
   })
 
   it('shows empty state for formulas when none exist', async () => {
@@ -184,5 +198,67 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Ctrl')).toBeInTheDocument()
       expect(screen.getByText('K')).toBeInTheDocument()
     })
+  })
+
+  // ── Regression: design color dots must use real hex from pantone list ──
+
+  it('resolves design color hex from pantone list, not from design colors array', async () => {
+    // Real API: design colors only have pantone_color_id, NO hex_color.
+    listDesigns.mockResolvedValue([
+      {
+        id: 1,
+        name: 'Colección Real',
+        paint_type: 'reactiva',
+        colors: [
+          { pantone_color_id: 10 },
+          { pantone_color_id: 11 },
+        ],
+      },
+    ])
+    // Pantone list provides the actual hex values.
+    listPantone.mockResolvedValue([
+      { id: 10, code: '185', gamut: 'C', hex_color: '#E4002B', paint_type: 'reactiva' },
+      { id: 11, code: '281', gamut: 'C', hex_color: '#00205B', paint_type: 'reactiva' },
+    ])
+
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByText('Colección Real')).toBeInTheDocument()
+    })
+
+    // Both color swatches must show real hex colors resolved from pantone list.
+    const swatches = screen.getAllByRole('img')
+    const colorSwatches = swatches.filter((el) =>
+      el.getAttribute('aria-label')?.startsWith('PMS'),
+    )
+    expect(colorSwatches).toHaveLength(2)
+    expect(colorSwatches[0]).toHaveStyle({ backgroundColor: '#E4002B' })
+    expect(colorSwatches[1]).toHaveStyle({ backgroundColor: '#00205B' })
+  })
+
+  it('falls back to neutral swatch when pantone not found in list', async () => {
+    listDesigns.mockResolvedValue([
+      {
+        id: 1,
+        name: 'Diseño Huérfano',
+        paint_type: 'reactiva',
+        colors: [
+          { pantone_color_id: 999 },
+        ],
+      },
+    ])
+    // Pantone list does NOT include id 999.
+    listPantone.mockResolvedValue([])
+
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByText('Diseño Huérfano')).toBeInTheDocument()
+    })
+
+    // The swatch should render with "sin color" label, no background color.
+    const swatch = screen.getByRole('img', { name: /PMS 999 — sin color/ })
+    expect(swatch).toBeInTheDocument()
+    // No inline backgroundColor — neutral swatch uses CSS class only.
+    expect(swatch.style.backgroundColor).toBe('')
   })
 })
