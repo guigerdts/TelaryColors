@@ -114,15 +114,15 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       <h2 className="text-xl font-bold text-text-primary">Usuarios (administración)</h2>
 
       {message && (
-        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
+        <p role="status" aria-live="polite" className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
-      {error && <p className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
+      {error && <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form onSubmit={onCreate} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
+      <form onSubmit={onCreate} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="block text-xs font-medium text-text-secondary">Usuario *</span>
@@ -176,12 +176,13 @@ export default function AdminUsersPage() {
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
+        <caption className="sr-only">Usuarios del sistema</caption>
         <thead>
           <tr className="border-b text-xs uppercase text-text-muted">
-            <th className="py-2">Usuario</th>
-            <th>Nombre</th>
-            <th>Rol</th>
-            <th>Último acceso</th>
+            <th scope="col" className="py-2">Usuario</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Rol</th>
+            <th scope="col">Último acceso</th>
           </tr>
         </thead>
         <tbody>
@@ -230,7 +231,7 @@ export default function AdminUsersPage() {
           <button
             type="button"
             onClick={() => setLogVisibleCount((n) => n + 10)}
-            className="mt-4 rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-sunken"
+            className="mt-4 rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-sunken min-h-[44px]"
           >
             Cargar más
           </button>

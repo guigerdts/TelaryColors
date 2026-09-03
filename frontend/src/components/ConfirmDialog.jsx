@@ -87,7 +87,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded bg-neutral-300 px-4 py-2 text-sm font-semibold text-text-primary hover:bg-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] rounded bg-neutral-300 px-4 py-2 text-sm font-semibold text-text-primary hover:bg-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -95,7 +95,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`rounded px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`min-h-[44px] rounded px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 ${
               danger ? 'bg-error-text' : 'bg-accent-281c'
             }`}
           >

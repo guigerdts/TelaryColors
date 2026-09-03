@@ -131,7 +131,7 @@ export default function SearchPage() {
   const resultCount = results.length === 1 ? '1 resultado' : `${results.length} resultados`
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-5">
       <h2 className="text-xl font-bold text-text-primary">Buscar color</h2>
 
       {/* Search input — full width on mobile, capped on desktop; icon left,
@@ -178,7 +178,7 @@ export default function SearchPage() {
       </div>
 
       {message && message.startsWith('Error') && (
-        <p role="alert" aria-live="polite" className="text-sm text-error-text">
+        <p role="alert" className="text-sm text-error-text">
           {message}
         </p>
       )}

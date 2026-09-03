@@ -54,7 +54,7 @@ export default function DesignDetail() {
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6" aria-label="Cargando diseño" aria-busy="true">
+      <div className="mx-auto max-w-4xl space-y-5" aria-label="Cargando diseño" aria-busy="true">
         <div className="h-3 w-32 animate-pulse rounded bg-surface-sunken" />
         <div className="space-y-3">
           <div className="h-6 w-64 animate-pulse rounded bg-surface-sunken" />
@@ -73,7 +73,7 @@ export default function DesignDetail() {
   // ── Error state ─────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5">
         <nav className="text-sm text-text-muted">
           <Link to="/designs" className="text-primary-500 hover:text-primary-600">
             Diseños
@@ -99,7 +99,7 @@ export default function DesignDetail() {
   // ── Not found (404) ────────────────────────────────────────────────────
   if (!design) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5">
         <nav className="text-sm text-text-muted">
           <Link to="/designs" className="text-primary-500 hover:text-primary-600">
             Diseños
@@ -118,7 +118,7 @@ export default function DesignDetail() {
     .filter((c) => c.pantone)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5">
       {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
       <nav aria-label="Breadcrumb" className="text-sm text-text-muted">
         <ol className="flex items-center gap-1.5">

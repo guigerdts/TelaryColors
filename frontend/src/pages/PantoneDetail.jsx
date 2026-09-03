@@ -138,7 +138,7 @@ export default function PantoneDetail() {
   // ── Loading skeleton ──────────────────────────────────────────────────
   if (loading && !detail) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6" aria-label="Cargando fórmula" aria-busy="true">
+      <div className="mx-auto max-w-4xl space-y-5" aria-label="Cargando fórmula" aria-busy="true">
         {/* Breadcrumb skeleton */}
         <div className="h-3 w-48 animate-pulse rounded bg-surface-sunken" />
 
@@ -171,7 +171,7 @@ export default function PantoneDetail() {
   // ── Error state ───────────────────────────────────────────────────────
   if (error && !detail) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5">
         <nav className="text-sm text-text-muted">
           <Link to="/buscar" className="text-primary-500 hover:text-primary-600">Buscar</Link>
         </nav>
@@ -195,7 +195,7 @@ export default function PantoneDetail() {
   // ── No formulas ───────────────────────────────────────────────────────
   if (formulasForPantone.length === 0 && !loading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5">
         <nav className="text-sm text-text-muted">
           <Link to="/buscar" className="text-primary-500 hover:text-primary-600">Buscar</Link>
         </nav>
@@ -210,7 +210,7 @@ export default function PantoneDetail() {
   const linkedDesigns = detail?.designs ?? []
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5">
       {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
       <nav aria-label="Breadcrumb" className="text-sm text-text-muted">
         <ol className="flex items-center gap-1.5">

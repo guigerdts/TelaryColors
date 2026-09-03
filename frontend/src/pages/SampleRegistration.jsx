@@ -74,11 +74,11 @@ export default function SampleRegistrationPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-2xl space-y-5">
       <h2 className="text-xl font-bold text-text-primary">Registrar muestra</h2>
 
       {message && (
-        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
+        <p role="status" aria-live="polite" className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
       {error && (
         <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">
@@ -86,7 +86,7 @@ export default function SampleRegistrationPage() {
         </p>
       )}
 
-      <form onSubmit={onSave} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
+      <form onSubmit={onSave} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
         <label className="block space-y-1">
           <span className="block text-xs font-medium text-text-secondary">Color Pantone</span>
           <select
@@ -142,7 +142,7 @@ export default function SampleRegistrationPage() {
         <button
           type="submit"
           disabled={!pantoneTargetId || saving}
-          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-white hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
+          className="w-full rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
         >
           {saving ? 'Guardando…' : 'Registrar muestra'}
         </button>

@@ -47,12 +47,12 @@ export default function SamplesListPage() {
   }, [pantones])
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-5xl space-y-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-text-primary">Muestras</h2>
         <Link
           to="/muestras"
-          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90"
+          className="rounded bg-accent-281c px-4 py-2 text-sm font-semibold text-text-inverse hover:brightness-90 min-h-[44px]"
         >
           Nueva muestra
         </Link>
@@ -121,7 +121,7 @@ export default function SamplesListPage() {
         <button
           type="button"
           onClick={refresh}
-          className="rounded border border-accent-281c/60 px-3 py-1.5 text-sm text-accent-281c hover:bg-accent-281c/10"
+          className="rounded border border-accent-281c/60 px-3 py-1.5 text-sm text-accent-281c hover:bg-accent-281c/10 min-h-[44px]"
         >
           Reintentar
         </button>

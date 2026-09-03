@@ -169,15 +169,15 @@ export default function PantonePage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-5xl space-y-5">
       <h2 className="text-xl font-bold text-text-primary">Colores Pantone</h2>
 
       {message && (
-        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
+        <p role="status" aria-live="polite" className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
-      {error && <p className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
+      {error && <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form onSubmit={onCreate} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
+      <form onSubmit={onCreate} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="block text-xs font-medium text-text-secondary">Código *</span>
@@ -236,7 +236,7 @@ export default function PantonePage() {
             <button
               type="button"
               onClick={onCancelEdit}
-              className="rounded bg-neutral-300 px-4 py-2 text-sm font-semibold text-text-primary hover:bg-neutral-400"
+              className="rounded bg-neutral-300 px-4 py-2 text-sm font-semibold text-text-primary hover:bg-neutral-400 min-h-[44px]"
             >
               Cancelar
             </button>

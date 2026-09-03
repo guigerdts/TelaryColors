@@ -21,12 +21,12 @@ import StatusBadge from '../components/StatusBadge.jsx'
 // --- Skeleton loaders -------------------------------------------------------
 
 function SkeletonBlock({ className = '' }) {
-  return <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+  return <div className={`animate-pulse rounded bg-surface-sunken ${className}`} />
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Cargando dashboard">
+    <div className="space-y-5" aria-busy="true" aria-label="Cargando dashboard">
       {/* Header skeleton */}
       <div className="flex items-center justify-between">
         <SkeletonBlock className="h-7 w-48" />
@@ -55,16 +55,16 @@ function QuickAction({ to, label, description, icon }) {
   return (
     <Link
       to={to}
-      className="group flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/30 focus-visible:outline-none"
+      className="group flex items-start gap-3 rounded-lg border border-border-default bg-surface-raised p-4 transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-500/30 focus-visible:outline-none"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-500 transition group-hover:bg-primary-100">
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-slate-800 group-hover:text-primary-600">
+        <span className="block text-sm font-semibold text-text-primary group-hover:text-primary-600">
           {label}
         </span>
-        <span className="block text-xs text-slate-500">{description}</span>
+        <span className="block text-xs text-text-secondary">{description}</span>
       </span>
     </Link>
   )
@@ -74,13 +74,13 @@ function QuickAction({ to, label, description, icon }) {
 
 function Stat({ label, value, href, color }) {
   const content = (
-    <span className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:shadow-md">
-      <span className="block text-xs font-medium uppercase tracking-wider text-slate-500">
+    <span className="block rounded-lg border border-border-default bg-surface-raised p-4 transition hover:shadow-md">
+      <span className="block text-xs font-medium uppercase tracking-wider text-text-muted">
         {label}
       </span>
       <span
         className={`mt-1 block text-2xl font-bold tabular-nums ${
-          color || 'text-slate-800'
+          color || 'text-text-primary'
         }`}
       >
         {value}
@@ -105,8 +105,8 @@ function Stat({ label, value, href, color }) {
 function Section({ title, children, action }) {
   return (
     <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted">
           {title}
         </h2>
         {action}
@@ -164,17 +164,17 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-bold text-slate-800">Dashboard</h1>
+        <h1 className="text-xl font-bold text-text-primary">Dashboard</h1>
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          className="rounded-lg border border-border-default bg-error-bg p-4 text-sm text-error-text"
         >
           <p className="font-semibold">Error al cargar el dashboard</p>
           <p className="mt-1">{error}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-3 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+            className="mt-3 rounded bg-error-text px-3 py-1.5 text-xs font-semibold text-text-inverse hover:brightness-90 min-h-[44px]"
           >
             Reintentar
           </button>
@@ -192,13 +192,13 @@ export default function DashboardPage() {
   const recentDesigns = designs.slice(0, 5)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* --- Header --- */}
       <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-xl font-bold text-slate-800">Dashboard</h1>
+        <h1 className="text-xl font-bold text-text-primary">Dashboard</h1>
         <time
           dateTime={new Date().toISOString().slice(0, 10)}
-          className="text-xs text-slate-500"
+          className="text-xs text-text-muted"
         >
           {new Date().toLocaleDateString('es-AR', {
             weekday: 'long',
@@ -269,13 +269,13 @@ export default function DashboardPage() {
             </Link>
           }
         >
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <ul className="divide-y divide-amber-200">
+          <div className="rounded-lg border border-border-default bg-warning-bg p-4">
+            <ul className="divide-y divide-border-default">
               {bajoUmbral.slice(0, 5).map((item) => (
                 <li key={item.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
-                  <span className="text-sm font-medium text-slate-800">{item.name}</span>
+                  <span className="text-sm font-medium text-text-primary">{item.name}</span>
                   <span className="flex items-center gap-2">
-                    <span className="text-xs tabular-nums text-slate-600">
+                    <span className="text-xs tabular-nums text-text-secondary">
                       {item.current_stock} {item.unit}
                     </span>
                     <StatusBadge status={item.inventory_status} />
@@ -284,7 +284,7 @@ export default function DashboardPage() {
               ))}
             </ul>
             {bajoUmbral.length > 5 && (
-              <p className="mt-2 text-xs text-amber-700">
+              <p className="mt-2 text-xs text-warning-text">
                 +{bajoUmbral.length - 5} items más bajo umbral
               </p>
             )}
@@ -292,35 +292,35 @@ export default function DashboardPage() {
         </Section>
       )}
 
-      {/* --- Summary + Recent --- */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Summary stats */}
-        <Section title="Resumen">
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="Pantone" value={pantones.length} href="/pantone" />
-            <Stat label="Fórmulas" value={formulas.length} href="/formulas" />
-            <Stat label="Diseños" value={designs.length} href="/designs" />
-            <Stat label="Muestras" value={samples.length} href="/muestras/lista" />
-          </div>
-        </Section>
+      {/* --- Summary --- */}
+      <Section title="Resumen">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Pantone" value={pantones.length} href="/pantone" />
+          <Stat label="Fórmulas" value={formulas.length} href="/formulas" />
+          <Stat label="Diseños" value={designs.length} href="/designs" />
+          <Stat label="Muestras" value={samples.length} href="/muestras/lista" />
+        </div>
+      </Section>
 
+      {/* --- Recent --- */}
+      <div className="grid gap-5 lg:grid-cols-2">
         {/* Recent formulas */}
         <Section title="Fórmulas recientes">
           {recentFormulas.length === 0 ? (
-            <p className="rounded-lg border border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
+            <p className="rounded-lg border border-border-default bg-surface-raised p-4 text-center text-sm text-text-muted">
               Sin fórmulas creadas
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+            <ul className="divide-y divide-border-default rounded-lg border border-border-default bg-surface-raised">
               {recentFormulas.map((f) => (
                 <li key={f.id} className="px-4 py-3">
                   <Link
                     to={`/pantone/${f.pantone_color_id}`}
-                    className="block text-sm font-medium text-slate-800 hover:text-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500/30 focus-visible:outline-none"
+                    className="block text-sm font-medium text-text-primary hover:text-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500/30 focus-visible:outline-none"
                   >
                     {f.name}
                   </Link>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-text-muted">
                     {f.ingredients?.length ?? 0} ingredientes
                   </p>
                 </li>
@@ -332,20 +332,20 @@ export default function DashboardPage() {
         {/* Recent designs */}
         <Section title="Diseños recientes">
           {recentDesigns.length === 0 ? (
-            <p className="rounded-lg border border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
+            <p className="rounded-lg border border-border-default bg-surface-raised p-4 text-center text-sm text-text-muted">
               Sin diseños creados
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+            <ul className="divide-y divide-border-default rounded-lg border border-border-default bg-surface-raised">
               {recentDesigns.map((d) => (
                 <li key={d.id} className="px-4 py-3">
-                  <span className="text-sm font-medium text-slate-800">{d.name}</span>
+                  <span className="text-sm font-medium text-text-primary">{d.name}</span>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-text-muted">
                       {d.colors?.length ?? 0} colores
                     </span>
-                    <span className="text-xs text-slate-400">·</span>
-                    <span className="text-xs capitalize text-slate-500">{d.paint_type}</span>
+                    <span className="text-xs text-text-disabled">·</span>
+                    <span className="text-xs capitalize text-text-muted">{d.paint_type}</span>
                   </div>
                   {/* Color dots */}
                   {d.colors?.length > 0 && (
@@ -353,7 +353,7 @@ export default function DashboardPage() {
                       {d.colors.slice(0, 7).map((dc, i) => (
                         <span
                           key={i}
-                          className="inline-block h-3 w-3 rounded-full border border-slate-200"
+                          className="inline-block h-3 w-3 rounded-full border border-border-default"
                           style={{ backgroundColor: dc.hex_color || '#94a3b8' }}
                           title={dc.pantone_code || `Color ${dc.pantone_color_id}`}
                         />
@@ -368,8 +368,8 @@ export default function DashboardPage() {
       </div>
 
       {/* --- Search shortcut hint --- */}
-      <p className="text-center text-xs text-slate-400">
-        Atajo de búsqueda: <kbd className="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">Ctrl</kbd> + <kbd className="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">K</kbd>
+      <p className="text-center text-xs text-text-disabled">
+        Atajo de búsqueda: <kbd className="rounded border border-border-default px-1.5 py-0.5 font-mono text-[10px] text-text-muted">Ctrl</kbd> + <kbd className="rounded border border-border-default px-1.5 py-0.5 font-mono text-[10px] text-text-muted">K</kbd>
       </p>
     </div>
   )

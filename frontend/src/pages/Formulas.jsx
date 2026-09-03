@@ -143,7 +143,7 @@ export default function FormulasPage() {
   }, [editingId])
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-bold text-text-primary">Fórmulas</h1>
@@ -268,7 +268,7 @@ export default function FormulasPage() {
             <button
               type="button"
               onClick={addIngredient}
-              className="text-sm text-primary-500 hover:text-primary-600 hover:underline"
+              className="min-h-[44px] text-sm text-primary-500 hover:text-primary-600 hover:underline"
             >
               + Agregar ingrediente
             </button>

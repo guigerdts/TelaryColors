@@ -98,15 +98,15 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       <h2 className="text-xl font-bold text-text-primary">Inventario</h2>
 
       {message && (
-        <p className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
+        <p role="status" aria-live="polite" className="rounded bg-success-bg px-3 py-2 text-sm text-success-text">{message}</p>
       )}
-      {error && <p className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
+      {error && <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form id="inventory-form" onSubmit={onSubmit} className="space-y-3 rounded border border-border-default bg-surface-raised p-4">
+      <form id="inventory-form" onSubmit={onSubmit} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
         <h3 className="font-semibold text-text-primary">
           {editingId === null ? 'Nuevo item' : 'Editar item'}
         </h3>
@@ -184,7 +184,7 @@ export default function InventoryPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-sunken"
+              className="rounded border border-border-strong px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-sunken min-h-[44px]"
             >
               Cancelar
             </button>
