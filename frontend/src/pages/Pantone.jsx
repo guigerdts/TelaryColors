@@ -112,7 +112,7 @@ export default function PantonePage() {
       setError('Gamut inválido: use C, TPX o U')
       return
     }
-    if (!hex.trim()) {
+    if (editingId === null && !hex.trim()) {
       setError('Ingresá el código HEX del color — el auto-suggest no encontró este código en la base de datos.')
       return
     }
