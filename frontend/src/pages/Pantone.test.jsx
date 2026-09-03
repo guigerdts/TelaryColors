@@ -124,7 +124,7 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     expect(options).toEqual(['C', 'TPX', 'U'])
   })
 
-  it('includes hex_color=null when submitting without a hex value', async () => {
+  it('blocks submission when HEX is empty — shows validation error', async () => {
     renderPage()
     await act(async () => {})
 
@@ -132,16 +132,10 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
     fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
     await act(async () => {})
-    // Confirm in the dialog to complete the create.
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
-    await act(async () => {})
 
-    const postCall = fetchMock.mock.calls.find(
-      ([url, init]) => init?.method === 'POST' && String(url).includes('/pantone-colors'),
-    )
-    expect(postCall).toBeTruthy()
-    const body = JSON.parse(postCall[1].body)
-    expect(body.hex_color).toBeNull()
+    // Should NOT open the dialog — validation blocks submission.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/hex/i)
   })
 
   it('includes hex_color when submitting with a typed hex value', async () => {

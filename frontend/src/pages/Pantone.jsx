@@ -49,6 +49,7 @@ export default function PantonePage() {
   // After a save or cancel, skip exactly one effect cycle so the stale
   // debouncedCode doesn't trigger a redundant suggest with the old code.
   const skipAfterSave = useRef(false)
+  const formRef = useRef(null)
 
   useEffect(() => {
     if (skipAfterSave.current) {
@@ -111,6 +112,10 @@ export default function PantonePage() {
       setError('Gamut inválido: use C, TPX o U')
       return
     }
+    if (!hex.trim()) {
+      setError('Ingresá el código HEX del color — el auto-suggest no encontró este código en la base de datos.')
+      return
+    }
     setPendingSubmit(true)
   }
 
@@ -132,6 +137,8 @@ export default function PantonePage() {
         setCode('')
         setHex('')
         setMessage('Color creado')
+        // Scroll the form back into view so the user can immediately create another.
+        try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) } catch { /* jsdom */ }
       }
       // Reset suggest tracking so the next code triggers a fresh fetch.
       lastFetchedCode.current = null
@@ -177,7 +184,7 @@ export default function PantonePage() {
       )}
       {error && <p role="alert" className="rounded bg-error-bg px-3 py-2 text-sm text-error-text">{error}</p>}
 
-      <form onSubmit={onCreate} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
+      <form ref={formRef} onSubmit={onCreate} className="space-y-3 rounded-lg border border-border-default bg-surface-raised p-5 shadow-xs">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="block text-xs font-medium text-text-secondary">Código *</span>
