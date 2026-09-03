@@ -196,7 +196,7 @@ export default function FormulasPage() {
             >
               <option value="">Seleccionar…</option>
               {colors.map((c) => (
-                <option key={c.id} value={c.id}>{c.code}</option>
+                <option key={c.id} value={c.id}>{c.code} — {c.paint_type}</option>
               ))}
             </select>
           </label>
