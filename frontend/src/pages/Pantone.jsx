@@ -50,6 +50,7 @@ export default function PantonePage() {
   // debouncedCode doesn't trigger a redundant suggest with the old code.
   const skipAfterSave = useRef(false)
   const formRef = useRef(null)
+  const codeInputRef = useRef(null)
 
   useEffect(() => {
     if (skipAfterSave.current) {
@@ -137,8 +138,12 @@ export default function PantonePage() {
         setCode('')
         setHex('')
         setMessage('Color creado')
-        // Scroll the form back into view so the user can immediately create another.
-        try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) } catch { /* jsdom */ }
+        // Scroll to top and focus the code input so the operator can chain
+        // multiple Pantone creations without manual scrolling or tapping.
+        try {
+          window.scrollTo(0, 0)
+          codeInputRef.current?.focus()
+        } catch { /* jsdom */ }
       }
       // Reset suggest tracking so the next code triggers a fresh fetch.
       lastFetchedCode.current = null
@@ -189,6 +194,7 @@ export default function PantonePage() {
           <label className="space-y-1">
             <span className="block text-xs font-medium text-text-secondary">Código *</span>
             <input
+              ref={codeInputRef}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               required

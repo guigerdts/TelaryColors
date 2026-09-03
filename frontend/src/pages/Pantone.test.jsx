@@ -485,4 +485,58 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
       vi.useRealTimers()
     }
   })
+
+  // ── Regression: scroll-to-top + focus after create ─────────────────
+
+  it('scrolls to top after successful create', async () => {
+    const scrollToSpy = vi.fn()
+    vi.stubGlobal('scrollTo', scrollToSpy)
+
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+      if (String(url).includes('/pantone-colors') && method === 'POST') return okJson({})
+      if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+      return okJson([])
+    })
+
+    renderPage()
+    await act(async () => {})
+
+    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: '281' } })
+    fireEvent.change(screen.getByLabelText(/hex/i), { target: { value: '#00205b' } })
+    fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+    await act(async () => {})
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
+
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('focuses the code input after successful create', async () => {
+    fetchMock.mockImplementation((url, init) => {
+      const method = init?.method ?? 'GET'
+      if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+      if (String(url).includes('/pantone-colors') && method === 'POST') return okJson({})
+      if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+      return okJson([])
+    })
+
+    renderPage()
+    await act(async () => {})
+
+    const codeInput = screen.getByLabelText(/código/i)
+    const focusSpy = vi.fn()
+    const originalFocus = codeInput.focus.bind(codeInput)
+    codeInput.focus = focusSpy
+
+    fireEvent.change(codeInput, { target: { value: '281' } })
+    fireEvent.change(screen.getByLabelText(/hex/i), { target: { value: '#00205b' } })
+    fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+    await act(async () => {})
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+    await act(async () => {})
+
+    expect(focusSpy).toHaveBeenCalled()
+  })
 })
