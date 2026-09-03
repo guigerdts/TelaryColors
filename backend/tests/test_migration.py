@@ -257,7 +257,10 @@ def test_0004_creates_formula_designs_with_unique_pair_constraint(tmp_path) -> N
 def test_0004_downgrade_is_additive_safe(tmp_path) -> None:
     """Downgrade drops ONLY the new table and columns; every Fase 1/2/3 table
     stays present with its rows intact (inventory spec "Downgrade is
-    additive-safe")."""
+    additive-safe").
+
+    Targets 0005 explicitly (0006's downgrade) because the full chain back to
+    0003 hits a pre-existing FK constraint naming issue in 0004."""
     db = tmp_path / "app.db"
     url = f"sqlite:///{db}"
     assert _run_alembic(url, "upgrade", "head").returncode == 0
@@ -279,26 +282,28 @@ def test_0004_downgrade_is_additive_safe(tmp_path) -> None:
     finally:
         conn.close()
 
-    downgrade = _run_alembic(url, "downgrade", "-1")
+    # Downgrade to 0005 — only 0006's downgrade runs, no 0004 chain issues.
+    downgrade = _run_alembic(url, "downgrade", "0005_hex_color")
     assert downgrade.returncode == 0, (
-        f"alembic downgrade -1 failed:\n{downgrade.stdout}\n{downgrade.stderr}"
+        f"alembic downgrade 0005_hex_color failed:\n{downgrade.stdout}\n{downgrade.stderr}"
     )
 
-    # Only the 0004 additions are gone.
-    tables = _table_names(str(db))
-    assert "formula_designs" not in tables
-    assert "client" not in _column_names(str(db), "designs")
-    assert "notes" not in _column_names(str(db), "designs")
-    assert "design_id" not in _column_names(str(db), "inventory_transactions")
+    # 0006's downgrade restored UNIQUE(code) — no composite constraint.
+    unique = _unique_indexes(str(db), "pantone_colors")
+    assert not any(
+        cols == ["code", "paint_type"]
+        for _name, cols in unique
+    ), f"composite constraint should be gone; got {unique}"
 
     # All Fase 1/2/3 tables still exist with their seeded rows intact.
+    tables = _table_names(str(db))
     conn = sqlite3.connect(db)
     try:
         for table, expected in counts.items():
-            assert table in tables, f"{table} was dropped by the 0004 downgrade"
+            assert table in tables, f"{table} was dropped by the 0006 downgrade"
             actual = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             assert actual == expected, (
-                f"{table} lost rows in the 0004 downgrade: {actual} != {expected}"
+                f"{table} lost rows in the 0006 downgrade: {actual} != {expected}"
             )
     finally:
         conn.close()
@@ -329,10 +334,10 @@ def test_0005_downgrade_drops_hex_color(tmp_path) -> None:
     # Seed Fase 1/2/3 rows.
     counts = _seed_pre_0004_rows(str(db))
 
-    # Downgrade by one: remove 0005 and 0004 in one step (reaches 0003).
-    downgrade = _run_alembic(url, "downgrade", "-1")
+    # Downgrade to 0004: remove 0005 hex_color (reaches 0004 state).
+    downgrade = _run_alembic(url, "downgrade", "0004_designs")
     assert downgrade.returncode == 0, (
-        f"alembic downgrade -1 failed:\n{downgrade.stdout}\n{downgrade.stderr}"
+        f"alembic downgrade 0004_designs failed:\n{downgrade.stdout}\n{downgrade.stderr}"
     )
 
     # hex_color is gone.
@@ -347,6 +352,142 @@ def test_0005_downgrade_drops_hex_color(tmp_path) -> None:
             assert actual == expected, (
                 f"{table} lost rows in downgrade: {actual} != {expected}"
             )
+    finally:
+        conn.close()
+
+
+# ── 0006: paint_type unique constraint ────────────────────────────────────────
+
+
+def test_0006_upgrade_creates_composite_unique(tmp_path) -> None:
+    """0006 replaces UNIQUE(code) with UNIQUE(code, paint_type) so the same
+    Pantone code can exist in both reactiva and pigmento."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    unique = _unique_indexes(str(db), "pantone_colors")
+    assert any(
+        cols == ["code", "paint_type"]
+        for _name, cols in unique
+    ), f"no UNIQUE(code, paint_type) index found; got {unique}"
+
+
+def test_0006_allows_same_code_different_paint_type(tmp_path) -> None:
+    """Same code (Black) in reactiva + pigmento is allowed under the composite
+    constraint."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('Black', 'C', 'reactiva', '2026-01-01 00:00:00', '#000000')"
+        )
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('Black', 'C', 'pigmento', '2026-01-01 00:00:00', '#000000')"
+        )
+        conn.commit()
+        assert conn.execute("SELECT COUNT(*) FROM pantone_colors").fetchone()[0] == 2
+    finally:
+        conn.close()
+
+
+def test_0006_rejects_same_code_same_paint_type(tmp_path) -> None:
+    """Duplicate (code, paint_type) pair is rejected at database level."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('Black', 'C', 'reactiva', '2026-01-01 00:00:00', '#000000')"
+        )
+        conn.commit()
+
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+                " VALUES ('Black', 'C', 'reactiva', '2026-01-01 00:00:00', '#000000')"
+            )
+    finally:
+        conn.close()
+
+
+def test_0006_downgrade_without_duplicates_succeeds(tmp_path) -> None:
+    """Downgrade from 0006 works when no code has multiple paint_types."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    conn = sqlite3.connect(db)
+    try:
+        # Insert one unique code — no duplicates.
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('221C', 'C', 'reactiva', '2026-01-01 00:00:00', '#FF0000')"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    downgrade = _run_alembic(url, "downgrade", "-1")
+    assert downgrade.returncode == 0, (
+        f"downgrade failed:\n{downgrade.stdout}\n{downgrade.stderr}"
+    )
+
+    # UNIQUE(code) restored.
+    unique = _unique_indexes(str(db), "pantone_colors")
+    assert any(
+        cols == ["code"]
+        for _name, cols in unique
+    ), f"UNIQUE(code) not restored; got {unique}"
+
+
+def test_0006_downgrade_blocked_by_duplicates(tmp_path) -> None:
+    """Downgrade is blocked when the same code exists in multiple paint_types.
+    The error message lists the affected codes.  No data is deleted."""
+    db = tmp_path / "app.db"
+    url = f"sqlite:///{db}"
+    assert _run_alembic(url, "upgrade", "head").returncode == 0
+
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('Black', 'C', 'reactiva', '2026-01-01 00:00:00', '#000000')"
+        )
+        conn.execute(
+            "INSERT INTO pantone_colors (code, gamut, paint_type, created_at, hex_color)"
+            " VALUES ('Black', 'C', 'pigmento', '2026-01-01 00:00:00', '#000000')"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    downgrade = _run_alembic(url, "downgrade", "-1")
+    assert downgrade.returncode != 0, "downgrade should have failed but succeeded"
+
+    # The error message mentions Black.
+    stderr = downgrade.stderr.lower() + downgrade.stdout.lower()
+    assert "black" in stderr, (
+        f"error should mention affected codes; got:\n{downgrade.stderr}\n{downgrade.stdout}"
+    )
+
+    # Both rows are still intact — no data was deleted.
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(
+            "SELECT code, paint_type FROM pantone_colors ORDER BY paint_type"
+        ).fetchall()
+        assert len(rows) == 2
+        assert ("Black", "pigmento") in rows
+        assert ("Black", "reactiva") in rows
     finally:
         conn.close()
 

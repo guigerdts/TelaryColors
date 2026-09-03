@@ -139,7 +139,12 @@ def update_design(
         design.paint_type = payload.paint_type
     if payload.color_ids is not None:
         _validate_color_ids(db, payload.color_ids)
-        # replace the whole color set: delete-orphan prunes stale links
+        # Explicitly delete old colors before inserting new ones to avoid
+        # UNIQUE constraint conflicts (delete-orphan cascade alone may not
+        # flush in the right order).
+        for old_color in list(design.colors):
+            db.delete(old_color)
+        db.flush()
         design.colors = [
             DesignColor(pantone_color_id=color_id) for color_id in payload.color_ids
         ]

@@ -1,17 +1,19 @@
 // Designs page — Spanish UI. Fase 3.3: CRUD — crear y editar.
 // 14 original tests + 8 new edit tests = 22 total.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import DesignsPage from './Designs.jsx'
 
 const PANTONE_COLORS = [
-  { id: 10, code: '185 C', hex_color: '#E4002B', name: 'Rojo' },
-  { id: 11, code: '281 C', hex_color: '#00205B', name: 'Azul' },
-  { id: 12, code: '348 C', hex_color: '#00843D', name: 'Verde' },
-  { id: 13, code: '116 C', hex_color: '#FFCD00', name: 'Amarillo' },
-  { id: 14, code: '286 C', hex_color: '#0033A0', name: 'Azul oscuro' },
+  { id: 10, code: '185 C', hex_color: '#E4002B', name: 'Rojo', paint_type: 'reactiva' },
+  { id: 11, code: '281 C', hex_color: '#00205B', name: 'Azul', paint_type: 'reactiva' },
+  { id: 12, code: '348 C', hex_color: '#00843D', name: 'Verde', paint_type: 'pigmento' },
+  { id: 13, code: '116 C', hex_color: '#FFCD00', name: 'Amarillo', paint_type: 'reactiva' },
+  { id: 14, code: '286 C', hex_color: '#0033A0', name: 'Azul oscuro', paint_type: 'pigmento' },
+  { id: 15, code: 'Black', hex_color: '#000000', name: 'Negro', paint_type: 'reactiva' },
+  { id: 16, code: 'Black', hex_color: '#000000', name: 'Negro', paint_type: 'pigmento' },
 ]
 
 const DESIGNS = [
@@ -487,5 +489,121 @@ describe('DesignsPage', () => {
     expect(screen.getByRole('dialog')).toBeTruthy()
     // Confirm button should be disabled
     expect(screen.getByRole('button', { name: 'Guardar cambios' }).disabled).toBe(true)
+  })
+
+  // ── Paint-type filtering ────────────────────────────────────────────────
+  describe('paint_type filtering', () => {
+    it('shows only reactiva pantones when paint_type is reactiva', async () => {
+      render(<MemoryRouter><DesignsPage /></MemoryRouter>)
+      await act(async () => {})
+
+      // The create form defaults to reactiva. Only reactiva buttons should appear.
+      const buttons = screen.getAllByRole('button', { pressed: false })
+      const colorLabels = buttons.map((b) => b.textContent).filter((t) => t !== 'Crear diseño' && t !== 'Editar' && t !== 'Ver')
+      // Should contain reactiva colors: 185 C, 281 C, 116 C, Black (reactiva)
+      expect(colorLabels).toContain('185 C')
+      expect(colorLabels).toContain('281 C')
+      expect(colorLabels).toContain('116 C')
+      expect(colorLabels).toContain('Black')
+      // Should NOT contain pigmento-only colors
+      expect(colorLabels).not.toContain('348 C')
+      expect(colorLabels).not.toContain('286 C')
+    })
+
+    it('shows only pigmento pantones when paint_type is pigmento', async () => {
+      render(<MemoryRouter><DesignsPage /></MemoryRouter>)
+      await act(async () => {})
+
+      // Switch to pigmento
+      const paintSelect = screen.getAllByRole('combobox').find((el) =>
+        el.closest('label')?.textContent?.includes('Tipo de pintura'),
+      )
+      fireEvent.change(paintSelect, { target: { value: 'pigmento' } })
+      await act(async () => {})
+
+      const buttons = screen.getAllByRole('button', { pressed: false })
+      const colorLabels = buttons.map((b) => b.textContent).filter((t) => t !== 'Crear diseño' && t !== 'Editar' && t !== 'Ver')
+      // Should contain pigmento colors: 348 C, 286 C, Black (pigmento)
+      expect(colorLabels).toContain('348 C')
+      expect(colorLabels).toContain('286 C')
+      expect(colorLabels).toContain('Black')
+      // Should NOT contain reactiva-only colors
+      expect(colorLabels).not.toContain('185 C')
+      expect(colorLabels).not.toContain('281 C')
+      expect(colorLabels).not.toContain('116 C')
+    })
+
+    it('Black appears once in reactiva and once in pigmento context', async () => {
+      render(<MemoryRouter><DesignsPage /></MemoryRouter>)
+      await act(async () => {})
+
+      // Default reactiva — one Black
+      const reactivaButtons = screen.getAllByRole('button', { pressed: false })
+      const reactivaBlack = reactivaButtons.filter((b) => b.textContent === 'Black')
+      expect(reactivaBlack.length).toBe(1)
+
+      // Switch to pigmento — one Black
+      const paintSelect = screen.getAllByRole('combobox').find((el) =>
+        el.closest('label')?.textContent?.includes('Tipo de pintura'),
+      )
+      fireEvent.change(paintSelect, { target: { value: 'pigmento' } })
+      await act(async () => {})
+
+      const pigmentoButtons = screen.getAllByRole('button', { pressed: false })
+      const pigmentoBlack = pigmentoButtons.filter((b) => b.textContent === 'Black')
+      expect(pigmentoBlack.length).toBe(1)
+    })
+
+    it('switching paint_type clears incompatible selected IDs', async () => {
+      render(<MemoryRouter><DesignsPage /></MemoryRouter>)
+      await act(async () => {})
+
+      // Select a reactiva color (185 C, id=10)
+      const btn185 = screen.getByRole('button', { name: '185 C' })
+      fireEvent.click(btn185)
+      await act(async () => {})
+      expect(btn185.getAttribute('aria-pressed')).toBe('true')
+
+      // Switch to pigmento — 185 C should be deselected
+      const paintSelect = screen.getAllByRole('combobox').find((el) =>
+        el.closest('label')?.textContent?.includes('Tipo de pintura'),
+      )
+      fireEvent.change(paintSelect, { target: { value: 'pigmento' } })
+      await act(async () => {})
+
+      // 185 C should no longer be in the picker (it's reactiva)
+      expect(screen.queryByRole('button', { name: '185 C' })).toBeNull()
+    })
+
+    it('edit mode also filters by paint_type and cleans selection on type change', async () => {
+      render(<MemoryRouter><DesignsPage /></MemoryRouter>)
+      await act(async () => {})
+
+      // Open edit for "Línea Básica" (pigmento, has 348 C)
+      const editButtons = screen.getAllByText('Editar')
+      fireEvent.click(editButtons[1]) // Second design is pigmento
+      await act(async () => {})
+
+      // Edit modal should show pigmento colors
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByRole('button', { name: '348 C' })).toBeTruthy()
+      expect(within(dialog).getByRole('button', { name: '286 C' })).toBeTruthy()
+      expect(within(dialog).getByRole('button', { name: 'Black' })).toBeTruthy()
+      // Should NOT show reactiva-only colors
+      expect(within(dialog).queryByRole('button', { name: '185 C' })).toBeNull()
+      expect(within(dialog).queryByRole('button', { name: '281 C' })).toBeNull()
+
+      // Switch paint_type in edit to reactiva
+      const editPaintSelect = within(dialog).getAllByRole('combobox').find((el) =>
+        el.closest('label')?.textContent?.includes('Tipo de pintura'),
+      )
+      fireEvent.change(editPaintSelect, { target: { value: 'reactiva' } })
+      await act(async () => {})
+
+      // Now should show reactiva colors, not pigmento
+      expect(within(dialog).getByRole('button', { name: '185 C' })).toBeTruthy()
+      expect(within(dialog).queryByRole('button', { name: '348 C' })).toBeNull()
+      expect(within(dialog).queryByRole('button', { name: '286 C' })).toBeNull()
+    })
   })
 })

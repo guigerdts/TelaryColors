@@ -52,6 +52,25 @@ export default function DesignsPage() {
   }, [])
 
   // ── Create handlers ──────────────────────────────────────────────────────
+  // Filter colors by the create form's paint_type so the picker only shows
+  // matching pantones (Black reactiva / Black pigmento are separate rows).
+  const createFilteredColors = useMemo(
+    () => colors.filter((c) => c.paint_type === createPaintType),
+    [colors, createPaintType],
+  )
+
+  const handleCreatePaintTypeChange = (newType) => {
+    setCreatePaintType(newType)
+    // Remove any selected IDs that don't match the new paint_type so the
+    // internal state never holds incompatible selections.
+    setCreateSelectedIds((prev) => {
+      const matchingIds = new Set(
+        colors.filter((c) => c.paint_type === newType).map((c) => c.id),
+      )
+      return prev.filter((id) => matchingIds.has(id))
+    })
+  }
+
   const onCreate = (event) => {
     event.preventDefault()
     setMessage(null)
@@ -76,6 +95,23 @@ export default function DesignsPage() {
   }
 
   // ── Edit handlers ────────────────────────────────────────────────────────
+  // Filter colors by the edit form's paint_type.
+  const editFilteredColors = useMemo(
+    () => colors.filter((c) => c.paint_type === editPaintType),
+    [colors, editPaintType],
+  )
+
+  const handleEditPaintTypeChange = (newType) => {
+    setEditPaintType(newType)
+    // Remove any selected IDs that don't match the new paint_type.
+    setEditSelectedIds((prev) => {
+      const matchingIds = new Set(
+        colors.filter((c) => c.paint_type === newType).map((c) => c.id),
+      )
+      return prev.filter((id) => matchingIds.has(id))
+    })
+  }
+
   const onEdit = (design) => {
     setMessage(null)
     setError(null)
@@ -169,8 +205,8 @@ export default function DesignsPage() {
             name={createName}
             onNameChange={setCreateName}
             paintType={createPaintType}
-            onPaintTypeChange={setCreatePaintType}
-            allColors={colors}
+            onPaintTypeChange={handleCreatePaintTypeChange}
+            allColors={createFilteredColors}
             selectedIds={createSelectedIds}
             onColorsChange={setCreateSelectedIds}
           />
@@ -440,8 +476,8 @@ export default function DesignsPage() {
             name={editName}
             onNameChange={setEditName}
             paintType={editPaintType}
-            onPaintTypeChange={setEditPaintType}
-            allColors={colors}
+            onPaintTypeChange={handleEditPaintTypeChange}
+            allColors={editFilteredColors}
             selectedIds={editSelectedIds}
             onColorsChange={setEditSelectedIds}
             disabled={editSaving}

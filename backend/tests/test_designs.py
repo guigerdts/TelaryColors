@@ -178,6 +178,26 @@ def test_crud_cycle_list_read_update(client, auth_headers) -> None:
     assert client.get("/api/v1/designs/9999", headers=headers).status_code == 404
 
 
+def test_update_design_same_colors_succeeds(client, auth_headers) -> None:
+    """Editing a design with the same color_ids must not fail with UNIQUE
+    constraint (regression: delete-orphan was not flushing before INSERTs)."""
+    headers = auth_headers("admin")
+    color_id = _create_color(client, headers)
+    created = _create_design(client, headers, [color_id], name="Original")
+    assert created.status_code == 201
+    design_id = created.json()["id"]
+
+    # Update only the name, keep same color_ids
+    updated = client.patch(
+        f"/api/v1/designs/{design_id}",
+        headers=headers,
+        json={"name": "Renombrado", "color_ids": [color_id]},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Renombrado"
+    assert [c["pantone_color_id"] for c in updated.json()["colors"]] == [color_id]
+
+
 def test_delete_design_cascades_and_audits(client, auth_headers, session_factory) -> None:
     headers = auth_headers("admin")
     color_id = _create_color(client, headers)

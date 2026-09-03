@@ -116,6 +116,50 @@ def test_duplicate_code_on_update_returns_409(client, auth_headers) -> None:
     assert updated.status_code == 409
 
 
+def test_same_code_different_paint_type_allowed(
+    client, auth_headers, session_factory
+) -> None:
+    """Black reactiva + Black pigmento = two valid rows with the same code."""
+    headers = auth_headers("admin")
+    r1 = _create(client, headers, code="Black", paint_type="reactiva")
+    assert r1.status_code == 201
+    r2 = _create(client, headers, code="Black", paint_type="pigmento")
+    assert r2.status_code == 201
+
+    # Both rows exist
+    with session_factory() as db:
+        count = db.scalar(
+            sa.select(sa.func.count())
+            .select_from(PantoneColor)
+            .where(PantoneColor.code == "Black")
+        )
+        assert count == 2
+
+
+def test_same_code_same_paint_type_rejected(
+    client, auth_headers, session_factory
+) -> None:
+    """Duplicate (code, paint_type) pair is still rejected with 409."""
+    headers = auth_headers("admin")
+    r1 = _create(client, headers, code="Black", paint_type="reactiva")
+    assert r1.status_code == 201
+
+    dup = _create(client, headers, code="Black", paint_type="reactiva")
+    assert dup.status_code == 409
+
+    # Only one Black reactiva row
+    with session_factory() as db:
+        count = db.scalar(
+            sa.select(sa.func.count())
+            .select_from(PantoneColor)
+            .where(
+                PantoneColor.code == "Black",
+                PantoneColor.paint_type == "reactiva",
+            )
+        )
+        assert count == 1
+
+
 def test_search_q_prefix_matching_results(client, auth_headers) -> None:
     headers = auth_headers("admin")
     assert _create(client, headers, code="221C").status_code == 201
