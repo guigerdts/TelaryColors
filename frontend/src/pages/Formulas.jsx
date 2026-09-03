@@ -79,10 +79,11 @@ export default function FormulasPage() {
   // Build the payload for the mode currently active.
   const buildPayload = () => {
     if (editingId !== null) {
-      // Edit sends only mutable fields: name, notes and ingredient {id, quantity}.
+      // Edit sends mutable fields: name, notes, pantone_color_id, and ingredient {id, quantity}.
       return {
         name,
         notes: notes || null,
+        pantone_color_id: Number(pantoneColorId),
         ingredients: ingredients.map((ing) => ({ id: ing.id, quantity: ing.quantity })),
       }
     }
