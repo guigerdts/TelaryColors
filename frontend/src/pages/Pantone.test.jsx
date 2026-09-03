@@ -297,4 +297,198 @@ describe('PantonePage (Slice F: card catalog + gamut selector)', () => {
       vi.useRealTimers()
     }
   })
+
+  // ── Regression: stale hex state between consecutive creates ────────────
+
+  it('consecutive creates: "224 → save → 345" shows hex for 345, not 224', async () => {
+    vi.useFakeTimers()
+    try {
+      const hexMap = { '224': '#AA1111', '345': '#11BB22' }
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) {
+          const code = String(url).match(/code=([^&]+)/)?.[1]
+          return okJson({ hex_color: hexMap[code] || null })
+        }
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'POST') {
+          return okJson({ id: 99, code: '224', gamut: 'C', paint_type: 'reactiva', hex_color: '#AA1111' })
+        }
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
+
+      renderPage()
+      await act(async () => {})
+
+      // ── Create 224 ──────────────────────────────────────────────────
+      const codeInput = screen.getByLabelText(/código/i)
+      fireEvent.change(codeInput, { target: { value: '224' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {}) // flush suggest
+
+      const hexInput = screen.getByLabelText(/hex/i)
+      expect(hexInput.value).toBe('#AA1111')
+
+      // Submit and confirm
+      fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+      await act(async () => {})
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+      await act(async () => {})
+
+      // Form is cleared after save
+      expect(codeInput.value).toBe('')
+      expect(hexInput.value).toBe('')
+
+      // ── Create 345 ──────────────────────────────────────────────────
+      fireEvent.change(codeInput, { target: { value: '345' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {}) // flush suggest
+
+      // The hex MUST be for 345, NOT the stale 224 value
+      expect(hexInput.value).toBe('#11BB22')
+      expect(hexInput.value).not.toBe('#AA1111')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('stale response: late resolve from "224" does not overwrite hex for "345"', async () => {
+    vi.useFakeTimers()
+    try {
+      // Simulate slow "224" response and fast "345" response
+      let resolve224
+      const promise224 = new Promise((r) => { resolve224 = r })
+
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) {
+          const code = String(url).match(/code=([^&]+)/)?.[1]
+          if (code === '224') return promise224.then((hex) => ({ hex_color: hex }))
+          if (code === '345') return okJson({ hex_color: '#11BB22' })
+        }
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
+
+      renderPage()
+      await act(async () => {})
+
+      const codeInput = screen.getByLabelText(/código/i)
+      const hexInput = screen.getByLabelText(/hex/i)
+
+      // Type "224" → suggest fires, but response is pending
+      fireEvent.change(codeInput, { target: { value: '224' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {}) // suggest request fired, but response is pending
+
+      // Immediately change to "345" — old "224" response hasn't arrived yet
+      fireEvent.change(codeInput, { target: { value: '345' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {}) // "345" suggest fires and resolves
+
+      expect(hexInput.value).toBe('#11BB22')
+
+      // NOW the stale "224" response arrives late
+      await act(async () => {
+        resolve224('#AA1111')
+      })
+      await act(async () => {})
+
+      // Hex must STILL be for "345" — the stale "224" response was discarded
+      expect(hexInput.value).toBe('#11BB22')
+      expect(hexInput.value).not.toBe('#AA1111')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('cancel clears suggest state: "224 → cancel → 345" works cleanly', async () => {
+    vi.useFakeTimers()
+    try {
+      const hexMap = { '224': '#AA1111', '345': '#11BB22' }
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) {
+          const code = String(url).match(/code=([^&]+)/)?.[1]
+          return okJson({ hex_color: hexMap[code] || null })
+        }
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
+
+      renderPage()
+      await act(async () => {})
+
+      const codeInput = screen.getByLabelText(/código/i)
+      const hexInput = screen.getByLabelText(/hex/i)
+
+      // Type "224" → suggest fires → hex populated
+      fireEvent.change(codeInput, { target: { value: '224' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {})
+      expect(hexInput.value).toBe('#AA1111')
+
+      // Clear the form manually (simulating cancel by resetting fields)
+      fireEvent.change(codeInput, { target: { value: '' } })
+      fireEvent.change(hexInput, { target: { value: '' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {})
+
+      // Type "345" → suggest fires → hex must be for 345
+      fireEvent.change(codeInput, { target: { value: '345' } })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => {})
+
+      expect(hexInput.value).toBe('#11BB22')
+      expect(hexInput.value).not.toBe('#AA1111')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('three consecutive creates: "224 → 345 → 512" each shows its own hex', async () => {
+    vi.useFakeTimers()
+    try {
+      const hexMap = { '224': '#AA1111', '345': '#11BB22', '512': '#3344CC' }
+      fetchMock.mockImplementation((url, init) => {
+        const method = init?.method ?? 'GET'
+        if (String(url).includes('/pantone-colors/hex')) {
+          const code = String(url).match(/code=([^&]+)/)?.[1]
+          return okJson({ hex_color: hexMap[code] || null })
+        }
+        if (String(url).includes('/pantone-colors') && method === 'GET') return okJson(COLORS)
+        if (String(url).includes('/pantone-colors') && method === 'POST') return okJson({})
+        if (String(url).includes('/pantone-colors') && method === 'DELETE') return okJson(null)
+        return okJson([])
+      })
+
+      renderPage()
+      await act(async () => {})
+
+      const codeInput = screen.getByLabelText(/código/i)
+      const hexInput = screen.getByLabelText(/hex/i)
+
+      for (const [code, expectedHex] of [['224', '#AA1111'], ['345', '#11BB22'], ['512', '#3344CC']]) {
+        fireEvent.change(codeInput, { target: { value: code } })
+        await act(async () => { vi.advanceTimersByTime(250) })
+        await act(async () => {})
+
+        expect(hexInput.value).toBe(expectedHex)
+
+        // Submit and confirm
+        fireEvent.click(screen.getByRole('button', { name: /agregar/i }))
+        await act(async () => {})
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Guardar' }))
+        await act(async () => {})
+
+        expect(codeInput.value).toBe('')
+        expect(hexInput.value).toBe('')
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

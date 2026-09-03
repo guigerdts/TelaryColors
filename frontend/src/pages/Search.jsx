@@ -54,7 +54,7 @@ export default function SearchPage() {
   const [, setReusableSamples] = useState({})
   const [searching, setSearching] = useState(false)
 
-  const debounced = useDebounce(query, 250)
+  const [debounced] = useDebounce(query, 250)
 
   // Pantone search fires only after the debounce settles.
   useEffect(() => {

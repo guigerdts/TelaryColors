@@ -2,7 +2,7 @@
 // renders as PantoneCards (Slice F) instead of the legacy Fase 1 table, and
 // the create form's gamut selector offers the real options C/TPX/U (validated,
 // never free text — pantone-card spec "Gamut Selector").
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { createPantone, deletePantone, listPantone, suggestPantoneHex, updatePantone } from '../api/index.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -40,12 +40,33 @@ export default function PantonePage() {
   // goes through useDebounce so typing "221" fires ONE suggest (after 250ms of
   // quiet), not three (P0: request-per-keystroke). Gamut stays a direct
   // dependency — changing C/TPX/U is an intentional act, not typing.
-  const debouncedCode = useDebounce(code, 250)
+  const [debouncedCode, resetDebouncedCode] = useDebounce(code, 250)
+
+  // Track which code was last fetched to avoid redundant requests, and which
+  // request is current to discard stale responses (P1: stale-response guard).
+  const lastFetchedCode = useRef(null)
+  const hexRequestId = useRef(0)
+  // After a save or cancel, skip exactly one effect cycle so the stale
+  // debouncedCode doesn't trigger a redundant suggest with the old code.
+  const skipAfterSave = useRef(false)
 
   useEffect(() => {
-    if (!debouncedCode || hex) return
+    if (skipAfterSave.current) {
+      skipAfterSave.current = false
+      return
+    }
+    if (!debouncedCode) return
+    // Skip if we already fetched this exact code+gamut combo and hex is populated.
+    if (lastFetchedCode.current === debouncedCode && hex) return
+
+    lastFetchedCode.current = debouncedCode
+    const thisRequest = ++hexRequestId.current
+
     suggestPantoneHex(debouncedCode, gamut)
       .then((data) => {
+        // Discard stale responses: if another request started after this one,
+        // this response is obsolete and must not overwrite the current hex.
+        if (thisRequest !== hexRequestId.current) return
         if (data?.hex_color) setHex(data.hex_color)
       })
       .catch(() => {})
@@ -72,6 +93,10 @@ export default function PantonePage() {
     setPaintType('reactiva')
     setMessage(null)
     setError(null)
+    lastFetchedCode.current = null
+    hexRequestId.current = 0
+    skipAfterSave.current = true
+    resetDebouncedCode()
   }
 
   // Form submit stages the confirmation dialog; the real API call runs only
@@ -108,6 +133,11 @@ export default function PantonePage() {
         setHex('')
         setMessage('Color creado')
       }
+      // Reset suggest tracking so the next code triggers a fresh fetch.
+      lastFetchedCode.current = null
+      hexRequestId.current = 0
+      skipAfterSave.current = true
+      resetDebouncedCode()
       refresh()
     } catch (err) {
       setError(err.message)
